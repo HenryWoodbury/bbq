@@ -1,0 +1,165 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Player Universe (Global Data) ───────────────────────────────────────────
+
+model Player {
+  id                String    @id @default(uuid())
+  playerId          String    @unique @map("player_id")
+  playerName        String    @map("player_name")
+  fangraphsId       Int?      @map("fangraphs_id")
+  fangraphsMinorsId String?   @map("fangraphs_minors_id")
+  mlbamId           Int?      @map("mlbam_id")
+  birthday          DateTime? @db.Date
+  /// Eligible positions. Any delimiter accepted: comma, slash, or space (e.g. "C/1B", "OF, DH", "SP RP")
+  positions         String?
+  /// JSONB: { preferred_name, nick_names, bats, throws, height (inches), weight (lbs), born, links }
+  bioData           Json      @default("{}") @map("bio_data")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  deletedAt         DateTime? @map("deleted_at")
+
+  stats         PlayerStat[]
+  rosterHistory RosterHistory[]
+
+  @@map("players")
+}
+
+model StatDefinition {
+  id           String    @id @default(uuid())
+  abbreviation String    @unique
+  name         String?
+  description  String?
+  /// Format hint e.g. "#.###", "integer", "string"
+  format       String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  @@map("stat_definitions")
+}
+
+model PlayerStat {
+  id        String    @id @default(uuid())
+  playerId  String    @map("player_id")
+  player    Player    @relation(fields: [playerId], references: [id])
+  season    Int
+  mlbTeam   String?   @map("mlb_team") @db.VarChar(10)
+  /// JSONB: { "HR": 40, "AVG": 0.300, ... }
+  stats     Json
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@unique([playerId, season])
+  @@map("player_stats")
+}
+
+// ─── League & Multi-Tenancy (Clerk Linked) ───────────────────────────────────
+
+model League {
+  id              String        @id @default(uuid())
+  /// Maps 1:1 to a Clerk Organization ID — the tenancy boundary
+  clerkOrgId      String        @unique @map("clerk_org_id")
+  leagueName      String        @map("league_name")
+  leagueFormat    LeagueFormat? @map("league_format")
+  /// e.g. "ottoneu", "fantrax", "espn". Nullable.
+  fantasyPlatform String?       @map("fantasy_platform")
+  /// URL or deep-link to the league on its host platform. Nullable.
+  hostLeagueUrl   String?       @map("host_league_url")
+  /// JSONB: { "C": 2, "1B": 1, "OF": 5, "SP": 9, ... }
+  rosterConfig    Json          @map("roster_config")
+  isAuction       Boolean       @default(false) @map("is_auction")
+  isH2H           Boolean       @default(false) @map("is_h2h")
+  /// Null for non-auction leagues
+  leagueCap       Int?          @map("league_cap")
+  /// Array of 4-digit years the league was active
+  seasons         Int[]
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  deletedAt       DateTime?     @map("deleted_at")
+
+  members LeagueMember[]
+  teams   Team[]
+
+  @@map("leagues")
+}
+
+enum LeagueFormat {
+  FGPTS
+  SABR
+  ROTO_5X5
+  ROTO_4X5
+  CUSTOM
+}
+
+enum LeagueMemberRole {
+  COMMISSIONER
+  CO_COMMISSIONER
+  MANAGER
+  CO_MANAGER
+  ONLOOKER
+}
+
+model LeagueMember {
+  clerkUserId String           @map("clerk_user_id")
+  leagueId    String           @map("league_id")
+  league      League           @relation(fields: [leagueId], references: [id])
+  role        LeagueMemberRole
+
+  @@id([clerkUserId, leagueId])
+  @@map("league_members")
+}
+
+// ─── Team & Roster ────────────────────────────────────────────────────────────
+
+model Team {
+  id            String    @id @default(uuid())
+  leagueId      String    @map("league_id")
+  league        League    @relation(fields: [leagueId], references: [id])
+  teamName      String    @map("team_name")
+  /// JSONB: { "C_1": "player-uuid", "1B": "player-uuid", "OF_1": null, ... }
+  currentRoster Json      @default("{}") @map("current_roster")
+  /// JSONB: { "loans_in": 0, "loans_out": 0, "budget": 400, "spent": 0 } — all values in whole dollars
+  financeData   Json      @default("{}") @map("finance_data")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
+
+  managers      TeamManager[]
+  rosterHistory RosterHistory[]
+
+  @@map("teams")
+}
+
+model TeamManager {
+  clerkUserId String  @map("clerk_user_id")
+  teamId      String  @map("team_id")
+  team        Team    @relation(fields: [teamId], references: [id])
+  isPrimary   Boolean @default(true) @map("is_primary")
+
+  @@id([clerkUserId, teamId])
+  @@map("team_managers")
+}
+
+model RosterHistory {
+  id          String    @id @default(uuid())
+  teamId      String    @map("team_id")
+  team        Team      @relation(fields: [teamId], references: [id])
+  playerId    String    @map("player_id")
+  player      Player    @relation(fields: [playerId], references: [id])
+  /// Whole dollar salary at time of cut
+  salaryAtCut Int?      @map("salary_at_cut")
+  cutDate     DateTime  @default(now()) @map("cut_date")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  @@map("roster_history")
+}
