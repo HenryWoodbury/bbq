@@ -1,6 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { assertLeagueRole } from "@/lib/auth-helpers";
+import { LeagueMemberRole } from "@/generated/prisma/client";
 
 export async function GET() {
   const { orgId } = await auth.protect();
@@ -21,6 +23,11 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const { orgId, userId } = await auth.protect();
+  const denied = await assertLeagueRole(orgId!, userId!, [
+    LeagueMemberRole.COMMISSIONER,
+    LeagueMemberRole.CO_COMMISSIONER,
+  ]);
+  if (denied) return denied;
 
   const league = await prisma.league.findFirst({
     where: { clerkOrgId: orgId!, deletedAt: null },

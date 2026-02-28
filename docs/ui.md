@@ -4,7 +4,7 @@
 
 The baseline google font family is Lato (Sans Serif)
 
-It needs to be loaded before loading to avoid layout refresh.
+It is loaded before loading to avoid layout refresh.
 
 ## Colors
 
@@ -21,5 +21,3 @@ Dark Mode should be supported for all components, colors, and layouts.
 Admin users will have access to a set of pages for uploading CVS data to the "player universe"
 
 Admin users can create leagues (Clerk organizations). Follow the schema where:
-
-TODO: Make this self service (not for MVP).

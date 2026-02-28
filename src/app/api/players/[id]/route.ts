@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { assertAdmin } from "@/lib/auth-helpers";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -15,7 +16,8 @@ export async function GET(_request: NextRequest, { params }: Params) {
 }
 
 export async function PATCH(request: NextRequest, { params }: Params) {
-  await auth.protect();
+  const denied = await assertAdmin();
+  if (denied) return denied;
   const { id } = await params;
 
   const body = await request.json();
@@ -41,7 +43,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(_request: NextRequest, { params }: Params) {
-  await auth.protect();
+  const denied = await assertAdmin();
+  if (denied) return denied;
   const { id } = await params;
 
   const player = await prisma.player.findFirst({ where: { id, deletedAt: null } });

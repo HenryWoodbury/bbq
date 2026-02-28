@@ -51,31 +51,30 @@ function genStitches(
 }
 
 // ── Seam geometry ────────────────────────────────────────────────────────────
-// Portrait baseball seam, circle r=46 centred at (50,50).
-// Two S-curves: seam 1 (left) and seam 2 (right, 180° rotated).
-// Each seam is two joined cubic Béziers sharing a midpoint.
+// Derived from a real 3D baseball model (SketchUp/Collada), looking along the
+// Y axis and projecting X→SVG-x, Z→SVG-y. Circle r=46 centred at (50,50).
 //
-// Seam 1 — left side:  top-left → mid-left → bottom-left (S-curve)
-const A: [Pt, Pt, Pt, Pt] = [[34, 7],  [4, 20],  [4, 48],  [34, 52]];
-const B: [Pt, Pt, Pt, Pt] = [[34, 52], [64, 56], [64, 82], [34, 93]];
-// Seam 2 — right side: (x,y) → (100-x, 100-y) rotation of seam 1
-const C: [Pt, Pt, Pt, Pt] = [[66, 93], [96, 80], [96, 52], [66, 48]];
-const D: [Pt, Pt, Pt, Pt] = [[66, 48], [36, 44], [36, 20], [66, 7]];
+// Each seam half is a single cubic Bézier fitted (least-squares, chord-length
+// parameterisation) to 28 extracted stitch-centreline points. Seam 2 is an
+// exact 180° point-rotation of Seam 1 around the ball centre (x,y)→(100-x,100-y).
+//
+// Seam 1 — C-curve bowing left:  (33,8) → left apex ≈ (20,58) → (52,90)
+const S1: [Pt, Pt, Pt, Pt] = [[33.2, 7.8],  [18.3, 34.4], [6.2,  89.5], [51.7, 90.4]];
+// Seam 2 — C-curve bowing right: (67,92) → right apex ≈ (80,42) → (48,10)
+const S2: [Pt, Pt, Pt, Pt] = [[66.8, 92.2], [81.7, 65.6], [93.8, 10.5], [48.3,  9.6]];
 
 const SEAM_D =
-  "M 34,7 C 4,20 4,48 34,52 C 64,56 64,82 34,93 " +
-  "M 66,93 C 96,80 96,52 66,48 C 36,44 36,20 66,7";
+  "M 33.2,7.8 C 18.3,34.4 6.2,89.5 51.7,90.4 " +
+  "M 66.8,92.2 C 81.7,65.6 93.8,10.5 48.3,9.6";
 
-const STITCH_COUNT = 5; // per Bézier segment
-const INNER = 3;        // SVG units from seam centre to near end of bar
-const OUTER = 8;        // SVG units from seam centre to far end of bar
+const STITCH_COUNT = 10; // per Bézier segment (one segment per seam half)
+const INNER = 3;         // SVG units from seam centre to near end of bar
+const OUTER = 8;         // SVG units from seam centre to far end of bar
 
 // Pre-compute all stitch marks (static — same for every instance)
 const ALL_STITCHES: StitchMark[] = [
-  ...genStitches(...A, STITCH_COUNT, INNER, OUTER),
-  ...genStitches(...B, STITCH_COUNT, INNER, OUTER),
-  ...genStitches(...C, STITCH_COUNT, INNER, OUTER),
-  ...genStitches(...D, STITCH_COUNT, INNER, OUTER),
+  ...genStitches(...S1, STITCH_COUNT, INNER, OUTER),
+  ...genStitches(...S2, STITCH_COUNT, INNER, OUTER),
 ];
 
 // ── Component ────────────────────────────────────────────────────────────────

@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { assertAdmin } from "@/lib/auth-helpers";
 
 export async function GET(request: NextRequest) {
   await auth.protect();
@@ -27,7 +28,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  await auth.protect();
+  const denied = await assertAdmin();
+  if (denied) return denied;
 
   const body = await request.json();
   const { playerId, playerName, fangraphsId, fangraphsMinorsId, mlbamId, birthday, positions, bioData } = body;

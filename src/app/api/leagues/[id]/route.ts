@@ -1,6 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { assertLeagueRole } from "@/lib/auth-helpers";
+import { LeagueMemberRole } from "@/generated/prisma/client";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -21,7 +23,12 @@ export async function GET(_request: NextRequest, { params }: Params) {
 }
 
 export async function PATCH(request: NextRequest, { params }: Params) {
-  const { orgId } = await auth.protect();
+  const { orgId, userId } = await auth.protect();
+  const denied = await assertLeagueRole(orgId!, userId!, [
+    LeagueMemberRole.COMMISSIONER,
+    LeagueMemberRole.CO_COMMISSIONER,
+  ]);
+  if (denied) return denied;
   const { id } = await params;
 
   const league = await resolveLeague(id, orgId!);
@@ -47,7 +54,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(_request: NextRequest, { params }: Params) {
-  const { orgId } = await auth.protect();
+  const { orgId, userId } = await auth.protect();
+  const denied = await assertLeagueRole(orgId!, userId!, [LeagueMemberRole.COMMISSIONER]);
+  if (denied) return denied;
   const { id } = await params;
 
   const league = await resolveLeague(id, orgId!);

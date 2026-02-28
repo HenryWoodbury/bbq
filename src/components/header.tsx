@@ -1,4 +1,5 @@
-import { auth, currentUser, clerkClient } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
+import { isAdminFromClaims } from "@/lib/auth-helpers";
 import { ClerkLoaded, ClerkLoading, SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
@@ -13,9 +14,9 @@ export async function Header() {
 
   if (userId) {
     const clerk = await clerkClient();
-    const [orgMemberships, clerkUser] = await Promise.all([
+    const [orgMemberships, adminFlag] = await Promise.all([
       clerk.users.getOrganizationMembershipList({ userId }),
-      currentUser(),
+      isAdminFromClaims(),
     ]);
 
     const clerkOrgs = orgMemberships.data.map((m) => ({
@@ -41,7 +42,7 @@ export async function Header() {
       });
     }
 
-    isAdmin = (clerkUser?.publicMetadata?.role as string) === "admin";
+    isAdmin = adminFlag;
   }
 
   return (

@@ -1,14 +1,10 @@
-# Database Schema
+# Admin
 
 Fantasy baseball draft and league management. Multi-tenant via Clerk organizations — each league maps 1:1 to a Clerk org.
 
-All tables include soft-delete (`deleted_at`) and standard audit timestamps (`created_at`, `updated_at`).
-
----
-
 ## Player Universe
 
-Global data shared across all leagues. Populated by CSV import (Ottoneu export or custom commissioner upload). Admins manage the canonical player list; commissioners may upload their own CSVs.
+Global data shared across all leagues. Populated by CSV import (Ottoneu export). Admins manage the canonical player list; commissioners may upload their own CSVs to override
 
 ### `players`
 
@@ -58,7 +54,7 @@ The canonical player registry. One row per real-world player.
 | `links` | object | Keyed by source name (`bbref`, `sabr`, etc.) |
 ```
 
-> **Note:** `player_stats` can be looked up by either `fangraphs_id` or `fangraphs_minors_id` depending on what the stat source provides.
+**Note:** `player_stats` can be looked up by either `fangraphs_id` or `fangraphs_minors_id` depending on what the stat source provides.
 
 ---
 
@@ -235,8 +231,6 @@ Slot keys are derived from `league.roster_config` with a `_N` suffix when count 
 }
 ```
 
----
-
 ### `team_managers`
 
 Junction table linking Clerk users to teams. A team can have one primary manager and multiple co-managers. Composite PK on `(clerk_user_id, team_id)`.
@@ -268,7 +262,7 @@ Append-only log of players cut from a team. Enables historical roster snapshots 
 
 ## Transactions
 
-> **TODO:** The `transactions` table is planned but not yet implemented.
+**TODO:** The `transactions` table is planned but not yet implemented.
 
 All league activity will be tracked as an append-only ledger to allow reconstructing a historical snapshot of any team at any point in time. The salary cap state for a team is derived by replaying its transactions.
 
@@ -311,3 +305,8 @@ players ─────────────────────── tr
 
 stat_definitions   global lookup for player_stats.stats JSONB keys
 ```
+
+## Notes
+
+All tables include soft-delete (`deleted_at`) and standard audit timestamps (`created_at`, `updated_at`).
+
