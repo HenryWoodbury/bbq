@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { PlayerImport } from "./PlayerImport";
+import { SyncPlayers } from "./SyncPlayers";
 import { PlayersTable } from "./PlayersTable";
 import { LeaguesTable } from "./LeaguesTable";
 import { StatDefsTable } from "./StatDefsTable";
@@ -10,7 +11,7 @@ export const metadata = { title: "Admin — BBQ" };
 export default async function AdminPage() {
   await requireAdmin();
 
-  const [playerCount, leagueCount, teamCount, statDefCount, lastImportedPlayer, leagues, statDefs, players] =
+  const [playerCount, leagueCount, teamCount, statDefCount, lastSyncedPlayer, leagues, statDefs, players] =
     await Promise.all([
       prisma.player.count({ where: { deletedAt: null } }),
       prisma.league.count({ where: { deletedAt: null } }),
@@ -41,10 +42,10 @@ export default async function AdminPage() {
           id: true,
           playerName: true,
           positions: true,
+          team: true,
+          active: true,
           fangraphsId: true,
-          fangraphsMinorsId: true,
           mlbamId: true,
-          birthday: true,
           updatedAt: true,
         },
       }),
@@ -83,14 +84,23 @@ export default async function AdminPage() {
         <h2 className="mb-1 text-sm font-semibold uppercase tracking-wider text-zinc-500">
           Player Universe
         </h2>
-        <p className="mb-3 text-xs text-zinc-400 dark:text-zinc-500">
-          Upload the Player Universe CSV to define the canonical player list.
-          {lastImportedPlayer && (
-            <> Last updated {lastImportedPlayer.updatedAt.toLocaleString()}.</>
-          )}
+        <p className="mb-4 text-xs text-zinc-400 dark:text-zinc-500">
+          Canonical player registry sourced from the Smart Fantasy Baseball Player ID Map.
+          Syncing replaces the universe; use append-only mode to add without removing.
         </p>
-        <PlayerImport />
-        <div className="mt-4">
+
+        <SyncPlayers lastSyncedAt={lastSyncedPlayer?.updatedAt ?? null} />
+
+        <details className="mt-4 group">
+          <summary className="cursor-pointer text-xs font-medium text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300">
+            CSV upload (manual / fallback)
+          </summary>
+          <div className="mt-3 pl-1">
+            <PlayerImport />
+          </div>
+        </details>
+
+        <div className="mt-6">
           <PlayersTable data={players} />
         </div>
       </section>

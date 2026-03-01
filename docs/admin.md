@@ -4,28 +4,60 @@ Fantasy baseball draft and league management. Multi-tenant via Clerk organizatio
 
 ## Player Universe
 
-Global data shared across all leagues. Populated by CSV import (Ottoneu export). Admins manage the canonical player list; commissioners may upload their own CSVs to override
+Global data shared across all leagues. The canonical player registry is sourced from the [Smart Fantasy Baseball Player ID Map](https://www.smartfantasybaseball.com/PLAYERIDMAPCSV) — ~750 fantasy-relevant players updated infrequently. Admins trigger a remote sync via the Admin UI; CSV upload is available as a manual fallback.
 
 ### `players`
 
-The canonical player registry. One row per real-world player.
+The canonical player registry. One row per real-world player. Keyed on SFBB's `PLAYERID`.
 
 | Column | Type | Notes |
 |---|---|---|
-| `id` | `uuid` PK | Auto-generated |
-| `player_id` | `varchar` UNIQUE | ID within this draft system (e.g. Ottoneu player ID). Required. |
-| `player_name` | `text` | First + last name. Required. |
-| `fangraphs_id` | `int` | FanGraphs major league player ID. Nullable. |
-| `fangraphs_minors_id` | `varchar` | FanGraphs minor league player ID (different format from major league). Nullable. |
-| `mlbam_id` | `int` | MLB Advanced Media (Statcast) player ID. Nullable. |
-| `birthday` | `date` | Nullable. |
-| `positions` | `text` | Eligible positions. Any delimiter accepted: comma, slash, or space (e.g. `"C/1B"`, `"OF, DH"`, `"SP RP"`). Nullable. |
-| `bio_data` | `jsonb` | Supplemental bio fields. Defaults to `{}`. See shape below. |
+| `id` | `uuid` PK | Auto-generated internal UUID. |
+| `sfbb_id` | `varchar` UNIQUE | Smart Fantasy Baseball Player ID (`PLAYERID` column). Primary external key. |
+| `player_name` | `text` | Full name (`PLAYERNAME`). Required. |
+| `positions` | `text[]` | Eligible positions parsed from `POS` (e.g. `["SP","RP"]`, `["1B","3B"]`). |
+| `team` | `varchar` | Current MLB team abbreviation, e.g. `"LAD"`, `"NYY"`, `"FA"`. Nullable. |
+| `mlb_level` | `varchar` | League level from `LG` column: `"MLB"`, `"AAA"`, `"AA"`, etc. Nullable. |
+| `active` | `boolean` | `true` when SFBB `ACTIVE = "Y"`. Defaults to `true`. |
+| `birthday` | `date` | From `BIRTHDATE`. Nullable. |
+| `mlbam_id` | `int` | MLB Advanced Media / Statcast ID (`MLBID`). Nullable. |
+| `fangraphs_id` | `int` | FanGraphs major league ID (`IDFANGRAPHS`). Nullable. |
+| `fangraphs_minors_id` | `varchar` | FanGraphs minor league ID (`FANGRAPHSMINORSID`). Nullable. |
+| `cbs_id` | `int` | CBS Sports ID (`CBSID`). Nullable. |
+| `espn_id` | `int` | ESPN ID (`ESPNID`). Nullable. |
+| `yahoo_id` | `int` | Yahoo Fantasy ID (`YAHOOID`). Nullable. |
+| `fantrax_id` | `varchar` | Fantrax ID (`FANTRAXID`). Nullable. |
+| `retro_id` | `varchar` | Retrosheet ID (`RETROID`), e.g. `"ohtash001"`. Nullable. |
+| `nfbc_id` | `int` | NFBC ID (`NFBCID`). Nullable. |
+| `bref_id` | `varchar` | Baseball-Reference ID (`BREFID`), e.g. `"ohtansh01"`. Nullable. |
+| `bio_data` | `jsonb` | Supplemental bio fields not in SFBB. Defaults to `{}`. See shape below. |
 | `created_at` | `timestamp` | |
-| `updated_at` | `timestamp` | Auto-updated on write. |
-| `deleted_at` | `timestamp` | Soft delete. Nullable. |
+| `updated_at` | `timestamp` | Auto-updated on write. Tracks last SFBB sync time. |
+| `deleted_at` | `timestamp` | Soft delete. Players absent from a replace-mode sync are soft-deleted. |
 
-**`bio_data` shape**
+**SFBB column mapping** — constants in `src/app/api/admin/sync-players/route.ts`:
+
+| SFBB column | maps to |
+|---|---|
+| `IDPLAYER` | `sfbb_id` |
+| `PLAYERNAME` | `player_name` |
+| `BIRTHDATE` | `birthday` |
+| `POS` | `positions` |
+| `TEAM` | `team` |
+| `LG` | `mlb_level` |
+| `ACTIVE` | `active` |
+| `MLBID` | `mlbam_id` |
+| `IDFANGRAPHS` | `fangraphs_id` |
+| `FANGRAPHSMINORSID` | `fangraphs_minors_id` |
+| `CBSID` | `cbs_id` |
+| `ESPNID` | `espn_id` |
+| `YAHOOID` | `yahoo_id` |
+| `FANTRAXID` | `fantrax_id` |
+| `RETROID` | `retro_id` |
+| `NFBCID` | `nfbc_id` |
+| `BREFID` | `bref_id` |
+
+**`bio_data` shape** — for supplemental data not provided by SFBB (e.g. handedness, physical stats):
 ```json
 {
   "preferred_name": "Shohei",
@@ -53,8 +85,7 @@ The canonical player registry. One row per real-world player.
 | `born` | string | City, State/Country |
 | `links` | object | Keyed by source name (`bbref`, `sabr`, etc.) |
 
-
-**Note:** `player_stats` can be looked up by either `fangraphs_id` or `fangraphs_minors_id` depending on what the stat source provides.
+**Note:** `player_stats` can be looked up by `fangraphs_id` or `fangraphs_minors_id` depending on the stat source.
 
 ---
 

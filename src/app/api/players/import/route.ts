@@ -1,10 +1,13 @@
+// TODO: Column mapping is placeholder — update to match the final CSV upload format
+// once the SFBB-based player universe schema is settled (follow-on work).
 import { NextRequest, NextResponse } from "next/server";
 import { assertAdmin } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { parsePositions } from "@/lib/positions";
+import { parseCSVLine, chunk } from "@/lib/csv";
 
 interface ParsedRow {
-  playerId: string;
+  sfbbId: string;
   playerName: string;
   fangraphsId: number | null;
   fangraphsMinorsId: string | null;
@@ -19,39 +22,8 @@ interface RowError {
   message: string;
 }
 
-function parseCSVLine(line: string): string[] {
-  const fields: string[] = [];
-  let current = "";
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        current += '"';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if (ch === "," && !inQuotes) {
-      fields.push(current);
-      current = "";
-    } else {
-      current += ch;
-    }
-  }
-  fields.push(current);
-  return fields;
-}
-
 const BATCH_SIZE = 500;
 const ERROR_LIMIT = 10;
-
-function chunk<T>(arr: T[], size: number): T[][] {
-  const chunks: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) chunks.push(arr.slice(i, i + size));
-  return chunks;
-}
 
 export async function POST(request: NextRequest) {
   const denied = await assertAdmin();
@@ -74,18 +46,18 @@ export async function POST(request: NextRequest) {
 
     const headers = parseCSVLine(lines[0]);
     const colIdx = {
-      playerId: headers.indexOf("Ottoneu ID"),
-      playerName: headers.indexOf("Name"),
-      fgId: headers.indexOf("FG ID"),
-      fgMinorId: headers.indexOf("FG Minor ID"),
-      mlbamId: headers.indexOf("MLBAM ID"),
-      birthday: headers.indexOf("Birthday"),
-      positions: headers.indexOf("Ottoneu Positions"),
+      sfbbId:    headers.indexOf("IDPLAYER"),
+      playerName:headers.indexOf("PLAYERNAME"),
+      fgId:      headers.indexOf("IDFANGRAPHS"),
+      fgMinorId: headers.indexOf("FANGRAPHSMINORSID"),
+      mlbamId:   headers.indexOf("MLBID"),
+      birthday:  headers.indexOf("BIRTHDATE"),
+      positions: headers.indexOf("POS"),
     };
 
-    if (colIdx.playerId === -1 || colIdx.playerName === -1) {
+    if (colIdx.sfbbId === -1 || colIdx.playerName === -1) {
       return NextResponse.json(
-        { error: `Missing required columns. Expected "Ottoneu ID" and "Name".` },
+        { error: `Missing required columns. Expected "IDPLAYER" and "PLAYERNAME". Found: ${headers.slice(0, 10).join(", ")}` },
         { status: 400 }
       );
     }
@@ -103,40 +75,40 @@ export async function POST(request: NextRequest) {
       const rowNum = i;
       const fields = parseCSVLine(lines[i]);
 
-      const rawPlayerId = colIdx.playerId !== -1 ? (fields[colIdx.playerId] ?? "").trim() : "";
-      const rawName = colIdx.playerName !== -1 ? (fields[colIdx.playerName] ?? "").trim() : "";
-      const rawFgId = colIdx.fgId !== -1 ? (fields[colIdx.fgId] ?? "").trim() : "";
-      const rawFgMinorId = colIdx.fgMinorId !== -1 ? (fields[colIdx.fgMinorId] ?? "").trim() : "";
-      const rawMlbamId = colIdx.mlbamId !== -1 ? (fields[colIdx.mlbamId] ?? "").trim() : "";
-      const rawBirthday = colIdx.birthday !== -1 ? (fields[colIdx.birthday] ?? "").trim() : "";
-      const rawPositions = colIdx.positions !== -1 ? (fields[colIdx.positions] ?? "").trim() : "";
+      const rawSfbbId   = colIdx.sfbbId    !== -1 ? (fields[colIdx.sfbbId]    ?? "").trim() : "";
+      const rawName     = colIdx.playerName !== -1 ? (fields[colIdx.playerName]?? "").trim() : "";
+      const rawFgId     = colIdx.fgId      !== -1 ? (fields[colIdx.fgId]      ?? "").trim() : "";
+      const rawFgMinorId= colIdx.fgMinorId !== -1 ? (fields[colIdx.fgMinorId] ?? "").trim() : "";
+      const rawMlbamId  = colIdx.mlbamId   !== -1 ? (fields[colIdx.mlbamId]   ?? "").trim() : "";
+      const rawBirthday = colIdx.birthday  !== -1 ? (fields[colIdx.birthday]  ?? "").trim() : "";
+      const rawPositions= colIdx.positions !== -1 ? (fields[colIdx.positions] ?? "").trim() : "";
 
-      if (!rawPlayerId) addError({ row: rowNum, field: "Ottoneu ID", message: "Required" });
-      if (!rawName) addError({ row: rowNum, field: "Name", message: "Required" });
+      if (!rawSfbbId) addError({ row: rowNum, field: "PLAYERID", message: "Required" });
+      if (!rawName)   addError({ row: rowNum, field: "PLAYERNAME", message: "Required" });
 
       let fangraphsId: number | null = null;
       if (rawFgId) {
         const n = parseInt(rawFgId, 10);
-        if (isNaN(n)) addError({ row: rowNum, field: "FG ID", message: "Must be an integer" });
+        if (isNaN(n)) addError({ row: rowNum, field: "IDFANGRAPHS", message: "Must be an integer" });
         else fangraphsId = n;
       }
 
       let mlbamId: number | null = null;
       if (rawMlbamId) {
         const n = parseInt(rawMlbamId, 10);
-        if (isNaN(n)) addError({ row: rowNum, field: "MLBAM ID", message: "Must be an integer" });
+        if (isNaN(n)) addError({ row: rowNum, field: "MLBID", message: "Must be an integer" });
         else mlbamId = n;
       }
 
       let birthday: Date | null = null;
       if (rawBirthday) {
         const d = new Date(rawBirthday);
-        if (isNaN(d.getTime())) addError({ row: rowNum, field: "Birthday", message: "Invalid date" });
+        if (isNaN(d.getTime())) addError({ row: rowNum, field: "BIRTHDATE", message: "Invalid date" });
         else birthday = d;
       }
 
       rows.push({
-        playerId: rawPlayerId,
+        sfbbId: rawSfbbId,
         playerName: rawName,
         fangraphsId,
         fangraphsMinorsId: rawFgMinorId || null,
@@ -153,37 +125,37 @@ export async function POST(request: NextRequest) {
     const existingIds = new Set(
       (
         await prisma.player.findMany({
-          where: { playerId: { in: rows.map((r) => r.playerId) } },
-          select: { playerId: true },
+          where: { sfbbId: { in: rows.map((r) => r.sfbbId) } },
+          select: { sfbbId: true },
         })
-      ).map((p) => p.playerId)
+      ).map((p) => p.sfbbId)
     );
 
-    const inserted = rows.filter((r) => !existingIds.has(r.playerId)).length;
+    const inserted = rows.filter((r) => !existingIds.has(r.sfbbId)).length;
     const updated = rows.length - inserted;
 
     for (const batch of chunk(rows, BATCH_SIZE)) {
       await prisma.$transaction(
         batch.map((row) =>
           prisma.player.upsert({
-            where: { playerId: row.playerId },
+            where: { sfbbId: row.sfbbId },
             create: {
-              playerId: row.playerId,
-              playerName: row.playerName,
-              fangraphsId: row.fangraphsId,
+              sfbbId:            row.sfbbId,
+              playerName:        row.playerName,
+              fangraphsId:       row.fangraphsId,
               fangraphsMinorsId: row.fangraphsMinorsId,
-              mlbamId: row.mlbamId,
-              birthday: row.birthday,
-              positions: row.positions,
+              mlbamId:           row.mlbamId,
+              birthday:          row.birthday,
+              positions:         row.positions,
             },
             update: {
-              playerName: row.playerName,
-              fangraphsId: row.fangraphsId,
+              playerName:        row.playerName,
+              fangraphsId:       row.fangraphsId,
               fangraphsMinorsId: row.fangraphsMinorsId,
-              mlbamId: row.mlbamId,
-              birthday: row.birthday,
-              positions: row.positions,
-              deletedAt: null,
+              mlbamId:           row.mlbamId,
+              birthday:          row.birthday,
+              positions:         row.positions,
+              deletedAt:         null,
             },
           })
         )
@@ -192,9 +164,9 @@ export async function POST(request: NextRequest) {
 
     let deleted = 0;
     if (mode === "replace") {
-      const uploadedIds = rows.map((r) => r.playerId);
+      const uploadedIds = rows.map((r) => r.sfbbId);
       const { count } = await prisma.player.updateMany({
-        where: { playerId: { notIn: uploadedIds }, deletedAt: null },
+        where: { sfbbId: { notIn: uploadedIds }, deletedAt: null },
         data: { deletedAt: new Date() },
       });
       deleted = count;

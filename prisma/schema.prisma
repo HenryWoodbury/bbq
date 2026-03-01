@@ -10,20 +10,37 @@ datasource db {
 // ─── Player Universe (Global Data) ───────────────────────────────────────────
 
 model Player {
-  id                String    @id @default(uuid())
-  playerId          String    @unique @map("player_id")
-  playerName        String    @map("player_name")
-  fangraphsId       Int?      @map("fangraphs_id")
-  fangraphsMinorsId String?   @map("fangraphs_minors_id")
-  mlbamId           Int?      @map("mlbam_id")
-  birthday          DateTime? @db.Date
+  id       String @id @default(uuid())
+  /// Smart Fantasy Baseball Player ID (PLAYERID column). Primary external key.
+  sfbbId   String @unique @map("sfbb_id")
+  playerName String @map("player_name")
   /// Parsed eligible positions (e.g. ["C","1B"]). Raw CSV may use /, comma, space, or tab as delimiter.
-  positions         String[]  @default([])
+  positions  String[] @default([])
+  /// Current MLB team abbreviation, e.g. "LAD", "NYY", "FA"
+  team       String?
+  /// League level from SFBB LG column: "MLB", "AAA", "AA", etc.
+  mlbLevel   String?   @map("mlb_level")
+  /// Whether player is fantasy-relevant per SFBB (ACTIVE = "Y")
+  active     Boolean   @default(true)
+  birthday   DateTime? @db.Date
+
+  // ── Cross-reference IDs ─────────────────────────────────────────────────────
+  mlbamId           Int?    @map("mlbam_id")           // MLBID  (Statcast / MLBAM)
+  fangraphsId       Int?    @map("fangraphs_id")       // IDFANGRAPHS
+  fangraphsMinorsId String? @map("fangraphs_minors_id") // FANGRAPHSMINORSID
+  cbsId             Int?    @map("cbs_id")             // CBSID
+  espnId            Int?    @map("espn_id")            // ESPNID
+  yahooId           Int?    @map("yahoo_id")           // YAHOOID
+  fantraxId         String? @map("fantrax_id")         // FANTRAXID
+  retroId           String? @map("retro_id")           // RETROID (e.g. "ohtash001")
+  nfbcId            Int?    @map("nfbc_id")            // NFBCID
+  bRefId            String? @map("bref_id")            // BREFID  (e.g. "ohtansh01")
+
   /// JSONB: { preferred_name, nick_names, bats, throws, height (inches), weight (lbs), born, links }
-  bioData           Json      @default("{}") @map("bio_data")
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
-  deletedAt         DateTime? @map("deleted_at")
+  bioData   Json      @default("{}") @map("bio_data")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
   stats         PlayerStat[]
   rosterHistory RosterHistory[]

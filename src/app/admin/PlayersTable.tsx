@@ -7,10 +7,10 @@ export type PlayerRow = {
   id: string;
   playerName: string;
   positions: string[];
+  team: string | null;
+  active: boolean;
   fangraphsId: number | null;
-  fangraphsMinorsId: string | null;
   mlbamId: number | null;
-  birthday: Date | null;
   updatedAt: Date;
 };
 
@@ -26,45 +26,38 @@ const columns: ColumnDef<PlayerRow, unknown>[] = [
   },
   {
     accessorKey: "positions",
-    header: "Positions",
-    sortingFn: (a, b) => {
-      const aStr = a.original.positions.join(", ");
-      const bStr = b.original.positions.join(", ");
-      return aStr.localeCompare(bStr);
-    },
+    header: "Pos",
+    sortingFn: (a, b) =>
+      a.original.positions.join(", ").localeCompare(b.original.positions.join(", ")),
     cell: ({ getValue }) => {
       const pos = getValue() as string[];
       return pos.length > 0 ? pos.join(", ") : "—";
     },
   },
   {
-    accessorKey: "fangraphsId",
-    header: "FG ID",
-    cell: ({ getValue }) => {
-      const v = getValue() as number | null;
-      return v ?? "—";
-    },
+    accessorKey: "team",
+    header: "Team",
+    cell: ({ getValue }) => (getValue() as string | null) ?? "—",
   },
   {
-    accessorKey: "fangraphsMinorsId",
-    header: "FG Minor ID",
-    cell: ({ getValue }) => (getValue() as string | null) ?? "—",
+    accessorKey: "active",
+    header: "Active",
+    cell: ({ getValue }) =>
+      getValue() ? (
+        <span className="text-emerald-600 dark:text-emerald-400">Y</span>
+      ) : (
+        <span className="text-zinc-400">N</span>
+      ),
+  },
+  {
+    accessorKey: "fangraphsId",
+    header: "FG ID",
+    cell: ({ getValue }) => (getValue() as number | null) ?? "—",
   },
   {
     accessorKey: "mlbamId",
     header: "MLBAM ID",
-    cell: ({ getValue }) => {
-      const v = getValue() as number | null;
-      return v ?? "—";
-    },
-  },
-  {
-    accessorKey: "birthday",
-    header: "Birthday",
-    cell: ({ getValue }) => {
-      const v = getValue() as Date | null;
-      return v ? new Date(v).toLocaleDateString() : "—";
-    },
+    cell: ({ getValue }) => (getValue() as number | null) ?? "—",
   },
 ];
 

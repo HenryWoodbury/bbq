@@ -166,8 +166,8 @@ export function DataTable<T>({ columns, data, defaultPageSize = 20 }: DataTableP
               const val = e.target.value;
               const numVal = Number(val);
               const isAll = val === "All";
-              const isValidNum = !isNaN(numVal) && ([20, 30, 50, 100] as const).includes(numVal);
-              const opt: PageSizeOption = isAll ? "All" : isValidNum ? numVal : defaultPageSize;
+              const isValidNum = !isNaN(numVal) && ([20, 30, 50, 100] as const).includes(numVal as 20 | 30 | 50 | 100);
+              const opt: PageSizeOption = isAll ? "All" : isValidNum ? (numVal as 20 | 30 | 50 | 100) : defaultPageSize;
               setPageSizeOption(opt);
               setPageIndex(0);
             }}

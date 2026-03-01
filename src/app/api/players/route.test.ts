@@ -57,6 +57,21 @@ describe('GET /api/players', () => {
     );
   });
 
+  it('filters by position', async () => {
+    mockAuthProtect.mockResolvedValue({ userId: 'u1', orgId: 'o1' });
+    prismaMock.player.findMany.mockResolvedValue([]);
+    prismaMock.player.count.mockResolvedValue(0);
+
+    const req = new NextRequest('http://localhost/api/players?position=SP');
+    await GET(req);
+
+    expect(prismaMock.player.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ positions: { has: 'SP' } }),
+      }),
+    );
+  });
+
   it('rejects when unauthenticated', async () => {
     mockAuthProtect.mockRejectedValue(new Error('Unauthenticated'));
     const req = new NextRequest('http://localhost/api/players');
@@ -70,7 +85,7 @@ describe('POST /api/players', () => {
 
     const req = new NextRequest('http://localhost/api/players', {
       method: 'POST',
-      body: JSON.stringify({ playerId: 'p1', playerName: 'Test' }),
+      body: JSON.stringify({ sfbbId: 'p1', playerName: 'Test' }),
     });
     const res = await POST(req);
     expect(res.status).toBe(403);
@@ -81,13 +96,13 @@ describe('POST /api/players', () => {
 
     const req = new NextRequest('http://localhost/api/players', {
       method: 'POST',
-      body: JSON.stringify({ playerId: 'p1', playerName: 'Test' }),
+      body: JSON.stringify({ sfbbId: 'p1', playerName: 'Test' }),
     });
     const res = await POST(req);
     expect(res.status).toBe(401);
   });
 
-  it('returns 400 when required fields are missing', async () => {
+  it('returns 400 when sfbbId is missing', async () => {
     mockAuth.mockResolvedValue({ userId: 'u1', sessionClaims: { metadata: { role: 'admin' } } });
 
     const req = new NextRequest('http://localhost/api/players', {
@@ -98,21 +113,49 @@ describe('POST /api/players', () => {
     expect(res.status).toBe(400);
   });
 
+  it('returns 400 when playerName is missing', async () => {
+    mockAuth.mockResolvedValue({ userId: 'u1', sessionClaims: { metadata: { role: 'admin' } } });
+
+    const req = new NextRequest('http://localhost/api/players', {
+      method: 'POST',
+      body: JSON.stringify({ sfbbId: 'p1' }),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+  });
+
   it('creates player and returns 201 for admin', async () => {
     mockAuth.mockResolvedValue({ userId: 'u1', sessionClaims: { metadata: { role: 'admin' } } });
     prismaMock.player.create.mockResolvedValue({
       id: 'db-1',
-      playerId: 'p1',
+      sfbbId: 'p1',
       playerName: 'Aaron Judge',
     } as any);
 
     const req = new NextRequest('http://localhost/api/players', {
       method: 'POST',
-      body: JSON.stringify({ playerId: 'p1', playerName: 'Aaron Judge' }),
+      body: JSON.stringify({ sfbbId: 'p1', playerName: 'Aaron Judge' }),
     });
     const res = await POST(req);
     expect(res.status).toBe(201);
     const json = await res.json();
     expect(json.playerName).toBe('Aaron Judge');
+  });
+
+  it('parses positions string into array', async () => {
+    mockAuth.mockResolvedValue({ userId: 'u1', sessionClaims: { metadata: { role: 'admin' } } });
+    prismaMock.player.create.mockResolvedValue({ id: 'db-1', sfbbId: 'p1', playerName: 'Test' } as any);
+
+    const req = new NextRequest('http://localhost/api/players', {
+      method: 'POST',
+      body: JSON.stringify({ sfbbId: 'p1', playerName: 'Test', positions: 'SP/RP' }),
+    });
+    await POST(req);
+
+    expect(prismaMock.player.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ positions: ['SP', 'RP'] }),
+      }),
+    );
   });
 });

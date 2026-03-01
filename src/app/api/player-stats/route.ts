@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
       ...(playerId ? { playerId } : {}),
       ...(season ? { season: parseInt(season, 10) } : {}),
     },
-    include: { player: { select: { id: true, playerName: true, playerId: true } } },
+    include: { player: { select: { id: true, playerName: true, sfbbId: true } } },
     orderBy: [{ season: "desc" }, { player: { playerName: "asc" } }],
   });
 

@@ -35,10 +35,10 @@ async function main() {
 
   // ── Players ───────────────────────────────────────────────────────────────
   const player1 = await prisma.player.upsert({
-    where: { playerId: "OTT-1001" },
+    where: { sfbbId: "OTT-1001" },
     update: {},
     create: {
-      playerId: "OTT-1001",
+      sfbbId: "OTT-1001",
       playerName: "Shohei Ohtani",
       fangraphsId: 19755,
       mlbamId: 660271,
@@ -60,10 +60,10 @@ async function main() {
   });
 
   const player2 = await prisma.player.upsert({
-    where: { playerId: "OTT-1002" },
+    where: { sfbbId: "OTT-1002" },
     update: {},
     create: {
-      playerId: "OTT-1002",
+      sfbbId: "OTT-1002",
       playerName: "Ronald Acuña Jr.",
       fangraphsId: 18401,
       mlbamId: 660670,
@@ -78,10 +78,10 @@ async function main() {
   });
 
   const player3 = await prisma.player.upsert({
-    where: { playerId: "OTT-1003" },
+    where: { sfbbId: "OTT-1003" },
     update: {},
     create: {
-      playerId: "OTT-1003",
+      sfbbId: "OTT-1003",
       playerName: "Mookie Betts",
       fangraphsId: 13611,
       mlbamId: 605141,

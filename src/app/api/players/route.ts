@@ -33,10 +33,10 @@ export async function POST(request: NextRequest) {
   if (denied) return denied;
 
   const body = await request.json();
-  const { playerId, playerName, fangraphsId, fangraphsMinorsId, mlbamId, birthday, bioData } = body;
+  const { sfbbId, playerName, fangraphsId, fangraphsMinorsId, mlbamId, birthday, bioData } = body;
 
-  if (!playerId || !playerName) {
-    return NextResponse.json({ error: "playerId and playerName are required" }, { status: 400 });
+  if (!sfbbId || !playerName) {
+    return NextResponse.json({ error: "sfbbId and playerName are required" }, { status: 400 });
   }
 
   const rawPositions: unknown = body.positions;
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
 
   const player = await prisma.player.create({
     data: {
-      playerId,
+      sfbbId,
       playerName,
       fangraphsId: fangraphsId ?? null,
       fangraphsMinorsId: fangraphsMinorsId ?? null,
