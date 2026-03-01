@@ -52,7 +52,7 @@ The canonical player registry. One row per real-world player.
 | `weight` | integer | Pounds |
 | `born` | string | City, State/Country |
 | `links` | object | Keyed by source name (`bbref`, `sabr`, etc.) |
-```
+
 
 **Note:** `player_stats` can be looked up by either `fangraphs_id` or `fangraphs_minors_id` depending on what the stat source provides.
 

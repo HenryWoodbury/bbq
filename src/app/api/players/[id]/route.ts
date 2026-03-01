@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { assertAdmin } from "@/lib/auth-helpers";
+import { parsePositions } from "@/lib/positions";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -34,7 +35,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       ...(fangraphsMinorsId !== undefined && { fangraphsMinorsId }),
       ...(mlbamId !== undefined && { mlbamId }),
       ...(birthday !== undefined && { birthday: birthday ? new Date(birthday) : null }),
-      ...(positions !== undefined && { positions }),
+      ...(positions !== undefined && {
+        positions: Array.isArray(positions) ? positions : parsePositions(String(positions ?? "")),
+      }),
       ...(bioData !== undefined && { bioData }),
     },
   });

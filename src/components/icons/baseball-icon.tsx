@@ -1,136 +1,29 @@
-"use client";
+import type { IconProps } from "./types";
 
-import { useId } from "react";
-
-type Pt = [number, number];
-
-function bPt(p0: Pt, p1: Pt, p2: Pt, p3: Pt, t: number): Pt {
-  const u = 1 - t;
-  return [
-    u ** 3 * p0[0] + 3 * u ** 2 * t * p1[0] + 3 * u * t ** 2 * p2[0] + t ** 3 * p3[0],
-    u ** 3 * p0[1] + 3 * u ** 2 * t * p1[1] + 3 * u * t ** 2 * p2[1] + t ** 3 * p3[1],
-  ];
-}
-
-function bDeriv(p0: Pt, p1: Pt, p2: Pt, p3: Pt, t: number): Pt {
-  const u = 1 - t;
-  return [
-    3 * u ** 2 * (p1[0] - p0[0]) + 6 * u * t * (p2[0] - p1[0]) + 3 * t ** 2 * (p3[0] - p2[0]),
-    3 * u ** 2 * (p1[1] - p0[1]) + 6 * u * t * (p2[1] - p1[1]) + 3 * t ** 2 * (p3[1] - p2[1]),
-  ];
-}
-
-interface StitchMark {
-  ax1: number; ay1: number; ax2: number; ay2: number; // near side
-  bx1: number; by1: number; bx2: number; by2: number; // far side
-}
-
-/** Two short bars on each side of the seam, perpendicular to the tangent. */
-function genStitches(
-  p0: Pt, p1: Pt, p2: Pt, p3: Pt,
-  count: number,
-  inner: number, // distance from seam to near end of bar
-  outer: number, // distance from seam to far end of bar
-): StitchMark[] {
-  return Array.from({ length: count }, (_, i) => {
-    const t = (i + 1) / (count + 1);
-    const [px, py] = bPt(p0, p1, p2, p3, t);
-    const [dx, dy] = bDeriv(p0, p1, p2, p3, t);
-    const len = Math.hypot(dx, dy);
-    if (len === 0) return { ax1: px, ay1: py, ax2: px, ay2: py, bx1: px, by1: py, bx2: px, by2: py };
-    // Normal (perpendicular to tangent)
-    const nx = -dy / len;
-    const ny = dx / len;
-    return {
-      ax1: px + nx * inner, ay1: py + ny * inner,
-      ax2: px + nx * outer, ay2: py + ny * outer,
-      bx1: px - nx * inner, by1: py - ny * inner,
-      bx2: px - nx * outer, by2: py - ny * outer,
-    };
-  });
-}
-
-// ── Seam geometry ────────────────────────────────────────────────────────────
-// Derived from a real 3D baseball model (SketchUp/Collada), looking along the
-// Y axis and projecting X→SVG-x, Z→SVG-y. Circle r=46 centred at (50,50).
-//
-// Each seam half is a single cubic Bézier fitted (least-squares, chord-length
-// parameterisation) to 28 extracted stitch-centreline points. Seam 2 is an
-// exact 180° point-rotation of Seam 1 around the ball centre (x,y)→(100-x,100-y).
-//
-// Seam 1 — C-curve bowing left:  (33,8) → left apex ≈ (20,58) → (52,90)
-const S1: [Pt, Pt, Pt, Pt] = [[33.2, 7.8],  [18.3, 34.4], [6.2,  89.5], [51.7, 90.4]];
-// Seam 2 — C-curve bowing right: (67,92) → right apex ≈ (80,42) → (48,10)
-const S2: [Pt, Pt, Pt, Pt] = [[66.8, 92.2], [81.7, 65.6], [93.8, 10.5], [48.3,  9.6]];
-
-const SEAM_D =
-  "M 33.2,7.8 C 18.3,34.4 6.2,89.5 51.7,90.4 " +
-  "M 66.8,92.2 C 81.7,65.6 93.8,10.5 48.3,9.6";
-
-const STITCH_COUNT = 10; // per Bézier segment (one segment per seam half)
-const INNER = 3;         // SVG units from seam centre to near end of bar
-const OUTER = 8;         // SVG units from seam centre to far end of bar
-
-// Pre-compute all stitch marks (static — same for every instance)
-const ALL_STITCHES: StitchMark[] = [
-  ...genStitches(...S1, STITCH_COUNT, INNER, OUTER),
-  ...genStitches(...S2, STITCH_COUNT, INNER, OUTER),
-];
-
-// ── Component ────────────────────────────────────────────────────────────────
-
-interface BaseballIconProps {
-  /** Rendered pixel size (viewBox is always 100×100). */
-  size?: number;
-  className?: string;
-  /** Clockwise rotation of the seam pattern in degrees (default 30). */
-  rotation?: number;
-}
-
-export function BaseballIcon({ size = 24, className, rotation = 30 }: BaseballIconProps) {
-  const uid = useId().replace(/:/g, "");
-  const clipId = `bb-clip-${uid}`;
-
+export function BaseballIcon({
+  size = 24,
+  strokeWidth = 2,
+  className,
+  ...props
+}: IconProps) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 100 100"
       width={size}
       height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
       className={className}
       aria-hidden="true"
+      {...props}
     >
-      <defs>
-        {/* Clip to the ball circle so rotated seam paths don't bleed outside */}
-        <clipPath id={clipId}>
-          <circle cx="50" cy="50" r="46" />
-        </clipPath>
-      </defs>
-
-      {/* Ball */}
-      <circle cx="50" cy="50" r="46" fill="white" stroke="#d1d5db" strokeWidth="1" />
-
-      {/* Seams + stitches — rotate the pattern for visual interest */}
-      <g clipPath={`url(#${clipId})`}>
-        <g transform={`rotate(${rotation} 50 50)`}>
-          {/* Seam curves */}
-          <path
-            d={SEAM_D}
-            fill="none"
-            stroke="#dc2626"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-
-          {/* Stitch marks: two short perpendicular bars on each side of the seam */}
-          {ALL_STITCHES.map((s, i) => (
-            <g key={i} stroke="#dc2626" strokeWidth="1.5" strokeLinecap="round">
-              <line x1={s.ax1} y1={s.ay1} x2={s.ax2} y2={s.ay2} />
-              <line x1={s.bx1} y1={s.by1} x2={s.bx2} y2={s.by2} />
-            </g>
-          ))}
-        </g>
-      </g>
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="7.29,3.18 7.58,3.04 7.87,2.90 8.17,2.78 8.48,2.67 8.79,2.57 9.10,2.48 9.42,2.41 9.74,2.35 10.06,2.31 10.38,2.28 10.71,2.26 11.03,2.27 11.35,2.29 11.67,2.33 11.99,2.39 12.30,2.47 12.61,2.57 12.90,2.69 13.19,2.84 13.47,3.01 13.73,3.20 13.98,3.42 14.20,3.66 14.41,3.93 14.59,4.22 14.75,4.53 14.89,4.86 14.99,5.21 15.07,5.58 15.12,5.96 15.13,6.36 15.12,6.76 15.07,7.17 15.00,7.58 14.90,7.99 14.76,8.39 14.61,8.79 14.43,9.18 14.23,9.57 14.01,9.93 13.77,10.29 13.52,10.63 13.26,10.95 12.98,11.26 12.69,11.55 12.40,11.83 12.10,12.09 11.80,12.33 11.49,12.56 11.18,12.78 10.86,12.98 10.55,13.17 10.24,13.35 9.93,13.51 9.61,13.67 9.31,13.81 9.00,13.95 8.70,14.08 8.40,14.21 8.10,14.33 7.81,14.44 7.53,14.56 7.25,14.66 6.98,14.77 6.71,14.88 6.45,14.98 6.20,15.09 5.95,15.20 5.72,15.31 5.50,15.43 5.28,15.55 5.08,15.67 4.89,15.80 4.72,15.94 4.56,16.08 4.42,16.23 4.29,16.39 4.19,16.56 4.10,16.73 4.04,16.92 4.00,17.11 3.99,17.31 4.01,17.52 4.05,17.73 4.13,17.96 4.23,18.18 4.37,18.41 4.54,18.65 4.74,18.88" />
+      <polyline points="17.00,20.66 17.24,20.52 17.47,20.36 17.70,20.19 17.92,20.01 18.14,19.82 18.36,19.62 18.57,19.40 18.78,19.17 18.98,18.93 19.18,18.67 19.38,18.40 19.57,18.11 19.76,17.81 19.95,17.49 20.13,17.16 20.31,16.82 20.49,16.46 20.65,16.08 20.82,15.69 20.97,15.29 21.12,14.88 21.25,14.46 21.38,14.03 21.49,13.59 21.59,13.15 21.67,12.70 21.73,12.26 21.78,11.82 21.81,11.39 21.82,10.98 21.81,10.57 21.79,10.19 21.74,9.82 21.67,9.47" />
     </svg>
   );
 }

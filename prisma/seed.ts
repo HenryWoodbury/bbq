@@ -43,7 +43,7 @@ async function main() {
       fangraphsId: 19755,
       mlbamId: 660271,
       birthday: new Date("1994-07-05"),
-      positions: "DH, SP",
+      positions: ["DH", "SP"],
       bioData: {
         preferred_name: "Shohei",
         nick_names: ["Showtime"],
@@ -68,7 +68,7 @@ async function main() {
       fangraphsId: 18401,
       mlbamId: 660670,
       birthday: new Date("1997-12-18"),
-      positions: "OF",
+      positions: ["OF"],
       bioData: {
         bats: "R",
         throws: "R",
@@ -86,7 +86,7 @@ async function main() {
       fangraphsId: 13611,
       mlbamId: 605141,
       birthday: new Date("1992-10-07"),
-      positions: "OF, SS",
+      positions: ["OF", "SS"],
       bioData: {
         preferredName: "Mookie",
         bats: "R",

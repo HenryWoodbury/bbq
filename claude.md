@@ -53,4 +53,4 @@ Rollout: Focus on working prototype using free-tier services. Design architectur
 - **Code Quality**: Accurate TypeScript interfaces/types are mandatory. No `any`.
 - **No Placeholders**: Output full code blocks for modified files.
 - **Verification**: Remind the user to run `npx prisma validate` and `npx tsc` after structural changes.
-
+- **Plan Mode**: Do not implement from plan mode without verification.

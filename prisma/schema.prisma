@@ -17,8 +17,8 @@ model Player {
   fangraphsMinorsId String?   @map("fangraphs_minors_id")
   mlbamId           Int?      @map("mlbam_id")
   birthday          DateTime? @db.Date
-  /// Eligible positions. Any delimiter accepted: comma, slash, or space (e.g. "C/1B", "OF, DH", "SP RP")
-  positions         String?
+  /// Parsed eligible positions (e.g. ["C","1B"]). Raw CSV may use /, comma, space, or tab as delimiter.
+  positions         String[]  @default([])
   /// JSONB: { preferred_name, nick_names, bats, throws, height (inches), weight (lbs), born, links }
   bioData           Json      @default("{}") @map("bio_data")
   createdAt         DateTime  @default(now()) @map("created_at")
@@ -28,6 +28,7 @@ model Player {
   stats         PlayerStat[]
   rosterHistory RosterHistory[]
 
+  @@index([positions], type: Gin)
   @@map("players")
 }
 
