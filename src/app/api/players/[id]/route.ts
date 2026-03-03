@@ -22,7 +22,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   const { id } = await params;
 
   const body = await request.json();
-  const { playerName, fangraphsId, fangraphsMinorsId, mlbamId, birthday, positions, bioData } = body;
+  const { playerName, firstName, lastName, bats, throws: throwsHand, fangraphsId, mlbamId, birthday, positions } = body;
 
   const player = await prisma.player.findFirst({ where: { id, deletedAt: null } });
   if (!player) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -31,14 +31,16 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     where: { id },
     data: {
       ...(playerName !== undefined && { playerName }),
+      ...(firstName !== undefined && { firstName }),
+      ...(lastName !== undefined && { lastName }),
+      ...(bats !== undefined && { bats }),
+      ...(throwsHand !== undefined && { throws: throwsHand }),
       ...(fangraphsId !== undefined && { fangraphsId }),
-      ...(fangraphsMinorsId !== undefined && { fangraphsMinorsId }),
       ...(mlbamId !== undefined && { mlbamId }),
       ...(birthday !== undefined && { birthday: birthday ? new Date(birthday) : null }),
       ...(positions !== undefined && {
         positions: Array.isArray(positions) ? positions : parsePositions(String(positions ?? "")),
       }),
-      ...(bioData !== undefined && { bioData }),
     },
   });
 

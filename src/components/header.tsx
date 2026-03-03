@@ -5,6 +5,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { UserMenu, type UserMenuLeague } from "./user-menu";
 import { LeagueSelector } from "./league-selector";
+import { AdminMenu } from "./admin-menu";
 
 export async function Header() {
   const { userId } = await auth();
@@ -55,7 +56,7 @@ export async function Header() {
           BBQ
         </Link>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           <ClerkLoading>
             {userId && (
               <div className="h-8 w-8 animate-pulse rounded-full bg-zinc-200 dark:bg-zinc-800" />
@@ -64,7 +65,8 @@ export async function Header() {
           <ClerkLoaded>
             <SignedIn>
               <LeagueSelector leagues={leagues} />
-              <UserMenu isAdmin={isAdmin} />
+              {isAdmin && <AdminMenu className="mr-2"/>}
+              <UserMenu />
             </SignedIn>
             <SignedOut>
               <SignInButton mode="redirect">

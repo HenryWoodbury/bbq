@@ -11,6 +11,8 @@ import {
 } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
+import { IconButton } from "@/components/ui/icon-button";
+import { Select } from "@/components/ui/select";
 
 const PAGE_SIZE_OPTIONS = [20, 30, 50, 100, "All"] as const;
 type PageSizeOption = (typeof PAGE_SIZE_OPTIONS)[number];
@@ -23,10 +25,11 @@ interface DataTableProps<T> {
   columns: ColumnDef<T, unknown>[];
   data: T[];
   defaultPageSize?: PageSizeOption;
+  defaultSorting?: SortingState;
 }
 
-export function DataTable<T>({ columns, data, defaultPageSize = 20 }: DataTableProps<T>) {
-  const [sorting, setSorting] = useState<SortingState>([]);
+export function DataTable<T>({ columns, data, defaultPageSize = 20, defaultSorting = [] }: DataTableProps<T>) {
+  const [sorting, setSorting] = useState<SortingState>(defaultSorting);
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSizeOption, setPageSizeOption] = useState<PageSizeOption>(defaultPageSize);
   const pageSize = resolvePageSize(pageSizeOption);
@@ -136,31 +139,29 @@ export function DataTable<T>({ columns, data, defaultPageSize = 20 }: DataTableP
 
         {/* Center: prev / indicator / next */}
         <div className="flex items-center gap-2">
-          <button
+          <IconButton
             onClick={() => setPageIndex((p) => p - 1)}
             disabled={!canPrev}
-            className="rounded p-1 hover:bg-zinc-100 disabled:opacity-30 dark:hover:bg-zinc-800"
             aria-label="Previous page"
           >
             <ChevronLeft className="h-4 w-4" />
-          </button>
+          </IconButton>
           <span className="tabular-nums">
             {pageCount === 0 ? "—" : `${pageIndex + 1} / ${pageCount}`}
           </span>
-          <button
+          <IconButton
             onClick={() => setPageIndex((p) => p + 1)}
             disabled={!canNext}
-            className="rounded p-1 hover:bg-zinc-100 disabled:opacity-30 dark:hover:bg-zinc-800"
             aria-label="Next page"
           >
             <ChevronRight className="h-4 w-4" />
-          </button>
+          </IconButton>
         </div>
 
         {/* Right: page size */}
         <div className="flex items-center gap-1">
           <span>Rows:</span>
-          <select
+          <Select
             value={pageSizeOption}
             onChange={(e) => {
               const val = e.target.value;
@@ -171,14 +172,14 @@ export function DataTable<T>({ columns, data, defaultPageSize = 20 }: DataTableP
               setPageSizeOption(opt);
               setPageIndex(0);
             }}
-            className="rounded border border-zinc-200 bg-white px-1.5 py-0.5 text-xs dark:border-zinc-700 dark:bg-zinc-900"
+            className="px-1.5 py-0.5 text-xs"
           >
             {PAGE_SIZE_OPTIONS.map((o) => (
               <option key={o} value={o}>
                 {o}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
       </div>
     </div>

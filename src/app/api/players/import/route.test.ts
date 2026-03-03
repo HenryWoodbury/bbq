@@ -14,9 +14,10 @@ import { POST } from './route';
 
 const prismaMock = prisma as unknown as DeepMockProxy<PrismaClient>;
 
+const HDR = 'IDPLAYER,PLAYERNAME,BIRTHDATE,FIRSTNAME,LASTNAME,POS,TEAM,LG,ACTIVE,MLBID,IDFANGRAPHS,CBSID,ESPNID,YAHOOID,FANTRAXID,RETROID,NFBCID,BREFID,BATS,THROWS';
 const VALID_CSV = [
-  'IDPLAYER,PLAYERNAME,BIRTHDATE,POS,TEAM,LG,ACTIVE,MLBID,IDFANGRAPHS,FANGRAPHSMINORSID,CBSID,ESPNID,YAHOOID,FANTRAXID,RETROID,NFBCID,BREFID',
-  '15640,Aaron Judge,1992-04-26,OF,NYY,MLB,Y,592450,15640,,,,,,,,'
+  HDR,
+  '15640,Aaron Judge,1992-04-26,Aaron,Judge,OF,NYY,MLB,Y,592450,15640,,,,,,,,R,R',
 ].join('\n');
 
 function makeFormRequest(csv: string | null, mode = 'replace') {
@@ -70,8 +71,8 @@ describe('POST /api/players/import — validation', () => {
   it('returns 422 when rows have validation errors', async () => {
     mockAuth.mockResolvedValue({ userId: 'u1', sessionClaims: { metadata: { role: 'admin' } } });
     const csv = [
-      'IDPLAYER,PLAYERNAME,BIRTHDATE,POS,TEAM,LG,ACTIVE,MLBID,IDFANGRAPHS,FANGRAPHSMINORSID,CBSID,ESPNID,YAHOOID,FANTRAXID,RETROID,NFBCID,BREFID',
-      ',No ID Here,,,,,,,,,,,,,,,',
+      HDR,
+      ',No ID Here,,,,,,,,,,,,,,,,,,,',
     ].join('\n');
     const res = await POST(makeFormRequest(csv));
     expect(res.status).toBe(422);

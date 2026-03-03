@@ -1,5 +1,3 @@
-// TODO: Column mapping is placeholder — update to match the final CSV upload format
-// once the SFBB-based player universe schema is settled (follow-on work).
 import { NextRequest, NextResponse } from "next/server";
 import { assertAdmin } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
@@ -9,11 +7,24 @@ import { parseCSVLine, chunk } from "@/lib/csv";
 interface ParsedRow {
   sfbbId: string;
   playerName: string;
-  fangraphsId: number | null;
-  fangraphsMinorsId: string | null;
-  mlbamId: number | null;
-  birthday: Date | null;
+  firstName: string | null;
+  lastName: string | null;
   positions: string[];
+  team: string | null;
+  mlbLevel: string | null;
+  active: boolean;
+  birthday: Date | null;
+  bats: string | null;
+  throws: string | null;
+  mlbamId: number | null;
+  fangraphsId: string | null;
+  cbsId: number | null;
+  espnId: number | null;
+  yahooId: number | null;
+  fantraxId: string | null;
+  retroId: string | null;
+  nfbcId: number | null;
+  bRefId: string | null;
 }
 
 interface RowError {
@@ -48,11 +59,24 @@ export async function POST(request: NextRequest) {
     const colIdx = {
       sfbbId:    headers.indexOf("IDPLAYER"),
       playerName:headers.indexOf("PLAYERNAME"),
-      fgId:      headers.indexOf("IDFANGRAPHS"),
-      fgMinorId: headers.indexOf("FANGRAPHSMINORSID"),
-      mlbamId:   headers.indexOf("MLBID"),
       birthday:  headers.indexOf("BIRTHDATE"),
+      firstName: headers.indexOf("FIRSTNAME"),
+      lastName:  headers.indexOf("LASTNAME"),
       positions: headers.indexOf("POS"),
+      team:      headers.indexOf("TEAM"),
+      mlbLevel:  headers.indexOf("LG"),
+      active:    headers.indexOf("ACTIVE"),
+      bats:      headers.indexOf("BATS"),
+      throws:    headers.indexOf("THROWS"),
+      mlbamId:   headers.indexOf("MLBID"),
+      fgId:      headers.indexOf("IDFANGRAPHS"),
+      cbsId:     headers.indexOf("CBSID"),
+      espnId:    headers.indexOf("ESPNID"),
+      yahooId:   headers.indexOf("YAHOOID"),
+      fantraxId: headers.indexOf("FANTRAXID"),
+      retroId:   headers.indexOf("RETROID"),
+      nfbcId:    headers.indexOf("NFBCID"),
+      bRefId:    headers.indexOf("BREFID"),
     };
 
     if (colIdx.sfbbId === -1 || colIdx.playerName === -1) {
@@ -75,24 +99,25 @@ export async function POST(request: NextRequest) {
       const rowNum = i;
       const fields = parseCSVLine(lines[i]);
 
-      const rawSfbbId   = colIdx.sfbbId    !== -1 ? (fields[colIdx.sfbbId]    ?? "").trim() : "";
-      const rawName     = colIdx.playerName !== -1 ? (fields[colIdx.playerName]?? "").trim() : "";
-      const rawFgId     = colIdx.fgId      !== -1 ? (fields[colIdx.fgId]      ?? "").trim() : "";
-      const rawFgMinorId= colIdx.fgMinorId !== -1 ? (fields[colIdx.fgMinorId] ?? "").trim() : "";
-      const rawMlbamId  = colIdx.mlbamId   !== -1 ? (fields[colIdx.mlbamId]   ?? "").trim() : "";
-      const rawBirthday = colIdx.birthday  !== -1 ? (fields[colIdx.birthday]  ?? "").trim() : "";
-      const rawPositions= colIdx.positions !== -1 ? (fields[colIdx.positions] ?? "").trim() : "";
+      const get = (key: keyof typeof colIdx) =>
+        colIdx[key] !== -1 ? (fields[colIdx[key]] ?? "").trim() : "";
 
-      if (!rawSfbbId) addError({ row: rowNum, field: "PLAYERID", message: "Required" });
+      const rawSfbbId = get("sfbbId");
+      const rawName   = get("playerName");
+
+      if (!rawSfbbId) addError({ row: rowNum, field: "IDPLAYER",   message: "Required" });
       if (!rawName)   addError({ row: rowNum, field: "PLAYERNAME", message: "Required" });
 
-      let fangraphsId: number | null = null;
-      if (rawFgId) {
-        const n = parseInt(rawFgId, 10);
-        if (isNaN(n)) addError({ row: rowNum, field: "IDFANGRAPHS", message: "Must be an integer" });
-        else fangraphsId = n;
-      }
+      const toInt = (raw: string): number | null => {
+        if (!raw) return null;
+        const n = parseInt(raw, 10);
+        return isNaN(n) ? null : n;
+      };
 
+      const rawFgId     = get("fgId");
+      const fangraphsId: string | null = rawFgId || null;
+
+      const rawMlbamId = get("mlbamId");
       let mlbamId: number | null = null;
       if (rawMlbamId) {
         const n = parseInt(rawMlbamId, 10);
@@ -100,6 +125,7 @@ export async function POST(request: NextRequest) {
         else mlbamId = n;
       }
 
+      const rawBirthday = get("birthday");
       let birthday: Date | null = null;
       if (rawBirthday) {
         const d = new Date(rawBirthday);
@@ -108,13 +134,26 @@ export async function POST(request: NextRequest) {
       }
 
       rows.push({
-        sfbbId: rawSfbbId,
-        playerName: rawName,
-        fangraphsId,
-        fangraphsMinorsId: rawFgMinorId || null,
-        mlbamId,
+        sfbbId:      rawSfbbId,
+        playerName:  rawName,
+        firstName:   get("firstName") || null,
+        lastName:    get("lastName") || null,
+        positions:   parsePositions(get("positions")),
+        team:        get("team") || null,
+        mlbLevel:    get("mlbLevel") || null,
+        active:      get("active").toUpperCase() !== "N",
         birthday,
-        positions: parsePositions(rawPositions),
+        bats:        get("bats") || null,
+        throws:      get("throws") || null,
+        mlbamId,
+        fangraphsId,
+        cbsId:       toInt(get("cbsId")),
+        espnId:      toInt(get("espnId")),
+        yahooId:     toInt(get("yahooId")),
+        fantraxId:   get("fantraxId") || null,
+        retroId:     get("retroId") || null,
+        nfbcId:      toInt(get("nfbcId")),
+        bRefId:      get("bRefId") || null,
       });
     }
 
@@ -140,22 +179,48 @@ export async function POST(request: NextRequest) {
           prisma.player.upsert({
             where: { sfbbId: row.sfbbId },
             create: {
-              sfbbId:            row.sfbbId,
-              playerName:        row.playerName,
-              fangraphsId:       row.fangraphsId,
-              fangraphsMinorsId: row.fangraphsMinorsId,
-              mlbamId:           row.mlbamId,
-              birthday:          row.birthday,
-              positions:         row.positions,
+              sfbbId:      row.sfbbId,
+              playerName:  row.playerName,
+              firstName:   row.firstName,
+              lastName:    row.lastName,
+              positions:   row.positions,
+              team:        row.team,
+              mlbLevel:    row.mlbLevel,
+              active:      row.active,
+              birthday:    row.birthday,
+              bats:        row.bats,
+              throws:      row.throws,
+              mlbamId:     row.mlbamId,
+              fangraphsId: row.fangraphsId,
+              cbsId:       row.cbsId,
+              espnId:      row.espnId,
+              yahooId:     row.yahooId,
+              fantraxId:   row.fantraxId,
+              retroId:     row.retroId,
+              nfbcId:      row.nfbcId,
+              bRefId:      row.bRefId,
             },
             update: {
-              playerName:        row.playerName,
-              fangraphsId:       row.fangraphsId,
-              fangraphsMinorsId: row.fangraphsMinorsId,
-              mlbamId:           row.mlbamId,
-              birthday:          row.birthday,
-              positions:         row.positions,
-              deletedAt:         null,
+              playerName:  row.playerName,
+              firstName:   row.firstName,
+              lastName:    row.lastName,
+              positions:   row.positions,
+              team:        row.team,
+              mlbLevel:    row.mlbLevel,
+              active:      row.active,
+              birthday:    row.birthday,
+              bats:        row.bats,
+              throws:      row.throws,
+              mlbamId:     row.mlbamId,
+              fangraphsId: row.fangraphsId,
+              cbsId:       row.cbsId,
+              espnId:      row.espnId,
+              yahooId:     row.yahooId,
+              fantraxId:   row.fantraxId,
+              retroId:     row.retroId,
+              nfbcId:      row.nfbcId,
+              bRefId:      row.bRefId,
+              deletedAt:   null,
             },
           })
         )

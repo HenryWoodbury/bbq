@@ -17,17 +17,7 @@ The updated player ID map data can be retrieved with this import statement (Goog
 =importdata("https://www.smartfantasybaseball.com/PLAYERIDMAPCSV")
 ```
 
-Could a curl command work?
-
-```
-curl -L "https://www.smartfantasybaseball.com/PLAYERIDMAPCSV" 
-```
-
-Could a fetch work from the application?
-
-```
-await fetch("https://www.smartfantasybaseball.com/PLAYERIDMAPCSV")
-```
+Because it is a public Google Sheet, it can also be fetched from the application.
 
 ## Statistics
 

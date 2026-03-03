@@ -3,6 +3,7 @@ import { assertAdmin } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { parsePositions } from "@/lib/positions";
 import { parseCSVLine, chunk } from "@/lib/csv";
+import { reconcilePlayerIds } from "@/lib/reconcile-player-ids";
 
 const SFBB_URL = "https://www.smartfantasybaseball.com/PLAYERIDMAPCSV";
 const BATCH_SIZE = 500;
@@ -12,17 +13,21 @@ const BATCH_SIZE = 500;
 // Actual column names are verified at runtime; a 422 with found headers is
 // returned if required columns are missing.
 const COL = {
-  sfbbId:    "IDPLAYER",       // confirmed from live CSV
-  playerName:"PLAYERNAME",
+  sfbbId:        "IDPLAYER",
+  playerName:    "PLAYERNAME",
+  fgSpecialChar: "FGSPECIALCHAR",
   birthday:  "BIRTHDATE",
+  firstName: "FIRSTNAME",
+  lastName:  "LASTNAME",
   position:  "POS",
   team:      "TEAM",
   mlbLevel:  "LG",
   active:    "ACTIVE",
+  bats:      "BATS",
+  throws:    "THROWS",
   // Cross-reference IDs
   mlbId:     "MLBID",
   fgId:      "IDFANGRAPHS",
-  fgMinorsId:"FANGRAPHSMINORSID",
   cbsId:     "CBSID",
   espnId:    "ESPNID",
   yahooId:   "YAHOOID",
@@ -30,19 +35,24 @@ const COL = {
   retroId:   "RETROID",
   nfbcId:    "NFBCID",
   bRefId:    "BREFID",
+  ottoneuId: "OTTONEUID",
 } as const;
 
 interface ParsedRow {
   sfbbId: string;
   playerName: string;
+  fgSpecialChar: string | null;
+  firstName: string | null;
+  lastName: string | null;
   positions: string[];
   team: string | null;
   mlbLevel: string | null;
   active: boolean;
   birthday: Date | null;
+  bats: string | null;
+  throws: string | null;
   mlbamId: number | null;
-  fangraphsId: number | null;
-  fangraphsMinorsId: string | null;
+  fangraphsId: string | null;
   cbsId: number | null;
   espnId: number | null;
   yahooId: number | null;
@@ -50,6 +60,7 @@ interface ParsedRow {
   retroId: string | null;
   nfbcId: number | null;
   bRefId: string | null;
+  ottoneuId: number | null;
 }
 
 function toInt(raw: string): number | null {
@@ -115,23 +126,28 @@ export async function POST(request: NextRequest) {
     if (!rawId || !rawName) continue;
 
     rows.push({
-      sfbbId:            rawId,
-      playerName:        rawName,
-      positions:         parsePositions(get("position")),
-      team:              get("team") || null,
-      mlbLevel:          get("mlbLevel") || null,
-      active:            get("active").toUpperCase() !== "N",
-      birthday:          (() => { const d = new Date(get("birthday")); return isNaN(d.getTime()) ? null : d; })(),
-      mlbamId:           toInt(get("mlbId")),
-      fangraphsId:       toInt(get("fgId")),
-      fangraphsMinorsId: get("fgMinorsId") || null,
-      cbsId:             toInt(get("cbsId")),
-      espnId:            toInt(get("espnId")),
-      yahooId:           toInt(get("yahooId")),
-      fantraxId:         get("fantraxId") || null,
-      retroId:           get("retroId") || null,
-      nfbcId:            toInt(get("nfbcId")),
-      bRefId:            get("bRefId") || null,
+      sfbbId:        rawId,
+      playerName:    rawName,
+      fgSpecialChar: get("fgSpecialChar") || null,
+      firstName:     get("firstName") || null,
+      lastName:    get("lastName") || null,
+      positions:   parsePositions(get("position")),
+      team:        get("team") || null,
+      mlbLevel:    get("mlbLevel") || null,
+      active:      get("active").toUpperCase() !== "N",
+      birthday:    (() => { const d = new Date(get("birthday")); return isNaN(d.getTime()) ? null : d; })(),
+      bats:        get("bats") || null,
+      throws:      get("throws") || null,
+      mlbamId:     toInt(get("mlbId")),
+      fangraphsId: get("fgId") || null,
+      cbsId:       toInt(get("cbsId")),
+      espnId:      toInt(get("espnId")),
+      yahooId:     toInt(get("yahooId")),
+      fantraxId:   get("fantraxId") || null,
+      retroId:     get("retroId") || null,
+      nfbcId:      toInt(get("nfbcId")),
+      bRefId:      get("bRefId") || null,
+      ottoneuId:   toInt(get("ottoneuId")),
     });
   }
 
@@ -157,42 +173,52 @@ export async function POST(request: NextRequest) {
         prisma.player.upsert({
           where: { sfbbId: row.sfbbId },
           create: {
-            sfbbId:            row.sfbbId,
-            playerName:        row.playerName,
-            positions:         row.positions,
-            team:              row.team,
-            mlbLevel:          row.mlbLevel,
-            active:            row.active,
-            birthday:          row.birthday,
-            mlbamId:           row.mlbamId,
-            fangraphsId:       row.fangraphsId,
-            fangraphsMinorsId: row.fangraphsMinorsId,
-            cbsId:             row.cbsId,
-            espnId:            row.espnId,
-            yahooId:           row.yahooId,
-            fantraxId:         row.fantraxId,
-            retroId:           row.retroId,
-            nfbcId:            row.nfbcId,
-            bRefId:            row.bRefId,
+            sfbbId:        row.sfbbId,
+            playerName:    row.playerName,
+            fgSpecialChar: row.fgSpecialChar,
+            firstName:     row.firstName,
+            lastName:    row.lastName,
+            positions:   row.positions,
+            team:        row.team,
+            mlbLevel:    row.mlbLevel,
+            active:      row.active,
+            birthday:    row.birthday,
+            bats:        row.bats,
+            throws:      row.throws,
+            mlbamId:     row.mlbamId,
+            fangraphsId: row.fangraphsId,
+            cbsId:       row.cbsId,
+            espnId:      row.espnId,
+            yahooId:     row.yahooId,
+            fantraxId:   row.fantraxId,
+            retroId:     row.retroId,
+            nfbcId:      row.nfbcId,
+            bRefId:      row.bRefId,
+            ottoneuId:   row.ottoneuId,
           },
           update: {
-            playerName:        row.playerName,
-            positions:         row.positions,
-            team:              row.team,
-            mlbLevel:          row.mlbLevel,
-            active:            row.active,
-            birthday:          row.birthday,
-            mlbamId:           row.mlbamId,
-            fangraphsId:       row.fangraphsId,
-            fangraphsMinorsId: row.fangraphsMinorsId,
-            cbsId:             row.cbsId,
-            espnId:            row.espnId,
-            yahooId:           row.yahooId,
-            fantraxId:         row.fantraxId,
-            retroId:           row.retroId,
-            nfbcId:            row.nfbcId,
-            bRefId:            row.bRefId,
-            deletedAt:         null,
+            playerName:    row.playerName,
+            fgSpecialChar: row.fgSpecialChar,
+            firstName:     row.firstName,
+            lastName:    row.lastName,
+            positions:   row.positions,
+            team:        row.team,
+            mlbLevel:    row.mlbLevel,
+            active:      row.active,
+            birthday:    row.birthday,
+            bats:        row.bats,
+            throws:      row.throws,
+            mlbamId:     row.mlbamId,
+            fangraphsId: row.fangraphsId,
+            cbsId:       row.cbsId,
+            espnId:      row.espnId,
+            yahooId:     row.yahooId,
+            fantraxId:   row.fantraxId,
+            retroId:     row.retroId,
+            nfbcId:      row.nfbcId,
+            bRefId:      row.bRefId,
+            ottoneuId:   row.ottoneuId,
+            deletedAt:   null,
           },
         })
       )
@@ -209,6 +235,8 @@ export async function POST(request: NextRequest) {
     deleted = count;
   }
 
+  const { linked, ottoneuIdsFilled, manualOverridesLinked } = await reconcilePlayerIds();
+
   const syncedAt = new Date().toISOString();
-  return NextResponse.json({ total: rows.length, inserted, updated, deleted, syncedAt });
+  return NextResponse.json({ total: rows.length, inserted, updated, deleted, linked, ottoneuIdsFilled, manualOverridesLinked, syncedAt });
 }

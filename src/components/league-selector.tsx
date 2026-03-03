@@ -1,7 +1,7 @@
 "use client";
 
 import { useOrganization, useClerk } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { CheckIcon, ChevronDownIcon } from "lucide-react";
 import { BaseballIcon } from "@/components/icons/baseball-icon";
 import {
@@ -20,8 +20,10 @@ export function LeagueSelector({ leagues }: Props) {
   const { organization } = useOrganization();
   const { setActive } = useClerk();
   const router = useRouter();
+  const pathname = usePathname();
 
   const activeLeague = leagues.find((l) => l.clerkOrgId === organization?.id);
+  const label = pathname?.startsWith("/leagues/") ? (activeLeague?.leagueName ?? "Leagues") : "Leagues";
 
   async function selectLeague(league: UserMenuLeague) {
     await setActive({ organization: league.clerkOrgId });
@@ -31,13 +33,13 @@ export function LeagueSelector({ leagues }: Props) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="flex max-w-60 items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800">
+        <button aria-label="League selector" className="flex max-w-60 items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800">
           <BaseballIcon size={15} className="shrink-0" />
-          <span className="min-w-0 truncate">{activeLeague?.leagueName ?? "My Leagues"}</span>
+          <span className="min-w-0 truncate">{label}</span>
           <ChevronDownIcon size={14} className="shrink-0 opacity-60" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-60 max-h-64 overflow-y-auto">
+      <DropdownMenuContent align="end" className="w-50 max-h-64 overflow-y-auto">
         {leagues.length === 0 ? (
           <div className="px-3 py-2 text-sm text-zinc-500">No leagues found</div>
         ) : (

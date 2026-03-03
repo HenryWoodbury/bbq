@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
   if (denied) return denied;
 
   const body = await request.json();
-  const { sfbbId, playerName, fangraphsId, fangraphsMinorsId, mlbamId, birthday, bioData } = body;
+  const { sfbbId, playerName, firstName, lastName, bats, throws: throwsHand, fangraphsId, mlbamId, birthday } = body;
 
   if (!sfbbId || !playerName) {
     return NextResponse.json({ error: "sfbbId and playerName are required" }, { status: 400 });
@@ -50,12 +50,14 @@ export async function POST(request: NextRequest) {
     data: {
       sfbbId,
       playerName,
+      firstName: firstName ?? null,
+      lastName: lastName ?? null,
+      bats: bats ?? null,
+      throws: throwsHand ?? null,
       fangraphsId: fangraphsId ?? null,
-      fangraphsMinorsId: fangraphsMinorsId ?? null,
       mlbamId: mlbamId ?? null,
       birthday: birthday ? new Date(birthday) : null,
       positions,
-      bioData: bioData ?? {},
     },
   });
 

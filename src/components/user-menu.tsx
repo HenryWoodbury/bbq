@@ -1,7 +1,6 @@
 "use client";
 
 import { UserButton } from "@clerk/nextjs";
-import { ShieldIcon } from "lucide-react";
 
 export type UserMenuLeague = {
   id: string;
@@ -9,31 +8,20 @@ export type UserMenuLeague = {
   clerkOrgId: string;
 };
 
-type Props = {
-  isAdmin: boolean;
-};
-
-export function UserMenu({ isAdmin }: Props) {
+export function UserMenu() {
   return (
-    <div className="bbq-user-btn">
+    <div className="bbq-user-btn mt-1">
       <UserButton
-        afterSignOutUrl="/sign-in"
         appearance={{
           elements: {
             userPreviewSecondaryIdentifier: { display: "none" },
+            userButtonPopoverCard: {
+              width: "270px", // Custom width
+              backgroundImage: "None",
+            },
           },
         }}
-      >
-        <UserButton.MenuItems>
-          {isAdmin && (
-            <UserButton.Link
-              label="Admin"
-              href="/admin"
-              labelIcon={<ShieldIcon size={16} />}
-            />
-          )}
-        </UserButton.MenuItems>
-      </UserButton>
+      />
     </div>
   );
 }

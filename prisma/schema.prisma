@@ -12,8 +12,10 @@ datasource db {
 model Player {
   id       String @id @default(uuid())
   /// Smart Fantasy Baseball Player ID (PLAYERID column). Primary external key.
-  sfbbId   String @unique @map("sfbb_id")
-  playerName String @map("player_name")
+  sfbbId        String  @unique @map("sfbb_id")
+  playerName    String  @map("player_name")
+  /// Player name with diacritics/accents from SFBB FGSPECIALCHAR column. Preferred display name.
+  fgSpecialChar String? @map("fg_special_char")
   /// Parsed eligible positions (e.g. ["C","1B"]). Raw CSV may use /, comma, space, or tab as delimiter.
   positions  String[] @default([])
   /// Current MLB team abbreviation, e.g. "LAD", "NYY", "FA"
@@ -24,29 +26,89 @@ model Player {
   active     Boolean   @default(true)
   birthday   DateTime? @db.Date
 
-  // ── Cross-reference IDs ─────────────────────────────────────────────────────
-  mlbamId           Int?    @map("mlbam_id")           // MLBID  (Statcast / MLBAM)
-  fangraphsId       Int?    @map("fangraphs_id")       // IDFANGRAPHS
-  fangraphsMinorsId String? @map("fangraphs_minors_id") // FANGRAPHSMINORSID
-  cbsId             Int?    @map("cbs_id")             // CBSID
-  espnId            Int?    @map("espn_id")            // ESPNID
-  yahooId           Int?    @map("yahoo_id")           // YAHOOID
-  fantraxId         String? @map("fantrax_id")         // FANTRAXID
-  retroId           String? @map("retro_id")           // RETROID (e.g. "ohtash001")
-  nfbcId            Int?    @map("nfbc_id")            // NFBCID
-  bRefId            String? @map("bref_id")            // BREFID  (e.g. "ohtansh01")
+  firstName  String? @map("first_name")
+  lastName   String? @map("last_name")
+  /// "L", "R", or "S"
+  bats       String?
+  /// "L" or "R"
+  throws     String?
 
-  /// JSONB: { preferred_name, nick_names, bats, throws, height (inches), weight (lbs), born, links }
-  bioData   Json      @default("{}") @map("bio_data")
+  // ── Cross-reference IDs ─────────────────────────────────────────────────────
+  mlbamId     Int?    @map("mlbam_id")     // MLBID
+  fangraphsId String? @map("fangraphs_id") // IDFANGRAPHS (numeric or "sa…" minor-league prefix)
+  cbsId       Int?    @map("cbs_id")       // CBSID
+  espnId      Int?    @map("espn_id")      // ESPNID
+  yahooId     Int?    @map("yahoo_id")     // YAHOOID
+  fantraxId   String? @map("fantrax_id")   // FANTRAXID
+  retroId     String? @map("retro_id")     // RETROID
+  nfbcId      Int?    @map("nfbc_id")      // NFBCID
+  bRefId      String? @map("bref_id")      // BREFID
+  ottoneuId   Int?    @map("ottoneu_id")   // OTTONEUID
+
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
   stats         PlayerStat[]
   rosterHistory RosterHistory[]
+  universe      PlayerUniverse[]
+  override      PlayerOverride?
 
   @@index([positions], type: Gin)
   @@map("players")
+}
+
+model PlayerUniverse {
+  id         String   @id @default(uuid())
+  /// "ottoneu" — format key for future multi-format support
+  format     String
+  ottoneuId  Int      @map("ottoneu_id")
+  playerName String   @map("player_name")
+  /// Format-specific eligible positions (e.g. ["SP","RP"], ["Util"])
+  positions  String[] @default([])
+  /// Combined FG key: major-league Int as string, or "sa…" minor-league string
+  fangraphsId String?   @map("fangraphs_id")
+  mlbamId    Int?      @map("mlbam_id")
+  birthday   DateTime? @db.Date
+  /// FK to canonical Player; null if player not found in SFBB map
+  playerId   String?  @map("player_id")
+  player     Player?  @relation(fields: [playerId], references: [id])
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+
+  @@unique([format, ottoneuId])
+  @@index([playerId])
+  @@map("player_universe")
+}
+
+model PlayerOverride {
+  id          String    @id @default(uuid())
+  /// FK to canonical Player; null for manual players not yet in SFBB
+  playerId    String?   @unique @map("player_id")
+  player      Player?   @relation(fields: [playerId], references: [id])
+  /// true = manually added (not from SFBB). Stays true even after auto-linking.
+  isManual    Boolean   @default(false) @map("is_manual")
+  /// Used for dedup matching during sync/upload
+  fangraphsId String?   @map("fangraphs_id")
+  mlbamId     Int?      @map("mlbam_id")
+  ottoneuId   Int?      @map("ottoneu_id")
+  /// Display overrides — null = use the canonical Player field
+  displayName String?   @map("display_name")
+  firstName   String?   @map("first_name")
+  lastName    String?   @map("last_name")
+  nickname    String?
+  birthday    DateTime? @db.Date
+  team        String?
+  mlbLevel    String?   @map("mlb_level")
+  active      Boolean?
+  bats        String?
+  throws      String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  @@map("player_overrides")
 }
 
 model StatDefinition {

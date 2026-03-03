@@ -14,11 +14,12 @@ import { POST } from './route';
 
 const prismaMock = prisma as unknown as DeepMockProxy<PrismaClient>;
 
-// Minimal valid SFBB CSV with the confirmed column layout
+// Minimal valid SFBB CSV — columns match confirmed Player ID Map layout
+const HDR = 'IDPLAYER,PLAYERNAME,BIRTHDATE,FIRSTNAME,LASTNAME,POS,TEAM,LG,ACTIVE,MLBID,IDFANGRAPHS,CBSID,ESPNID,YAHOOID,FANTRAXID,RETROID,NFBCID,BREFID,BATS,THROWS,OTTONEUID,FGSPECIALCHAR';
 const VALID_CSV = [
-  'IDPLAYER,PLAYERNAME,BIRTHDATE,POS,TEAM,LG,ACTIVE,MLBID,IDFANGRAPHS,FANGRAPHSMINORSID,CBSID,ESPNID,YAHOOID,FANTRAXID,RETROID,NFBCID,BREFID',
-  '15640,Aaron Judge,1992-04-26,OF,NYY,MLB,Y,592450,15640,,79578,3900,,73927,judgaaa01,,judgear01',
-  '19755,Shohei Ohtani,1994-07-05,SP,LAD,MLB,Y,660271,19755,,105270,36028,,73703,ohtash001,,ohtansh01',
+  HDR,
+  '15640,Aaron Judge,1992-04-26,Aaron,Judge,OF,NYY,MLB,Y,592450,15640,79578,3900,,73927,judgaaa01,,judgear01,R,R,1001',
+  '19755,Shohei Ohtani,1994-07-05,Shohei,Ohtani,SP,LAD,MLB,Y,660271,19755,105270,36028,,73703,ohtash001,,ohtansh01,L,R,1002',
 ].join('\n');
 
 function mockFetch(csv: string, status = 200) {
@@ -40,6 +41,8 @@ function makeRequest(body: Record<string, unknown> = {}) {
 
 function setupHappyPath() {
   prismaMock.player.findMany.mockResolvedValue([]);
+  prismaMock.playerUniverse.findMany.mockResolvedValue([]);
+  prismaMock.playerOverride.findMany.mockResolvedValue([]);
   prismaMock.$transaction.mockResolvedValue([]);
   prismaMock.player.updateMany.mockResolvedValue({ count: 0 });
 }
@@ -117,10 +120,10 @@ describe('POST /api/admin/sync-players — CSV parsing', () => {
   it('skips rows with empty IDPLAYER or PLAYERNAME', async () => {
     mockAuth.mockResolvedValue({ userId: 'u1', sessionClaims: { metadata: { role: 'admin' } } });
     const csv = [
-      'IDPLAYER,PLAYERNAME,BIRTHDATE,POS,TEAM,LG,ACTIVE,MLBID,IDFANGRAPHS,FANGRAPHSMINORSID,CBSID,ESPNID,YAHOOID,FANTRAXID,RETROID,NFBCID,BREFID',
-      ',No ID Player,,,,,Y,,,,,,,,,',
-      '999,,,,,,Y,,,,,,,,,',
-      '888,Valid Player,,,,,Y,,,,,,,,,',
+      HDR,
+      ',No ID Player,,,,,,,,,,,,,,,,,,',
+      '999,,,,,,,,,,,,,,,,,,,',
+      '888,Valid Player,,,,,,Y,,,,,,,,,,,',
     ].join('\n');
     vi.stubGlobal('fetch', mockFetch(csv));
     setupHappyPath();
@@ -150,7 +153,9 @@ describe('POST /api/admin/sync-players — upsert logic', () => {
   it('counts existing sfbbIds as updated, not inserted', async () => {
     mockAuth.mockResolvedValue({ userId: 'u1', sessionClaims: { metadata: { role: 'admin' } } });
     vi.stubGlobal('fetch', mockFetch(VALID_CSV));
-    prismaMock.player.findMany.mockResolvedValue([{ sfbbId: '15640' } as any]);
+    prismaMock.player.findMany.mockResolvedValue([{ sfbbId: '15640', fangraphsId: null, mlbamId: null, ottoneuId: null, universe: [] } as any]);
+    prismaMock.playerUniverse.findMany.mockResolvedValue([]);
+    prismaMock.playerOverride.findMany.mockResolvedValue([]);
     prismaMock.$transaction.mockResolvedValue([]);
     prismaMock.player.updateMany.mockResolvedValue({ count: 0 });
 
@@ -163,8 +168,10 @@ describe('POST /api/admin/sync-players — upsert logic', () => {
   it('passes correct fields to upsert', async () => {
     mockAuth.mockResolvedValue({ userId: 'u1', sessionClaims: { metadata: { role: 'admin' } } });
     const csv = [
-      'IDPLAYER,PLAYERNAME,BIRTHDATE,POS,TEAM,LG,ACTIVE,MLBID,IDFANGRAPHS,FANGRAPHSMINORSID,CBSID,ESPNID,YAHOOID,FANTRAXID,RETROID,NFBCID,BREFID',
-      '15640,Aaron Judge,1992-04-26,OF,NYY,MLB,Y,592450,15640,,79578,,,,,,'
+      HDR,
+      // ESPNID,YAHOOID,FANTRAXID,RETROID,NFBCID,BREFID are empty (6 cols); BATS=R, THROWS=R, OTTONEUID=1001, FGSPECIALCHAR
+      // Judge has no diacritics; using "Aaron Judge" confirms the field passes through unchanged
+      '15640,Aaron Judge,1992-04-26,Aaron,Judge,OF,NYY,MLB,Y,592450,15640,79578,,,,,,,R,R,1001,Aaron Judge',
     ].join('\n');
     vi.stubGlobal('fetch', mockFetch(csv));
     setupHappyPath();
@@ -177,12 +184,18 @@ describe('POST /api/admin/sync-players — upsert logic', () => {
         create: expect.objectContaining({
           sfbbId: '15640',
           playerName: 'Aaron Judge',
+          fgSpecialChar: 'Aaron Judge',
+          firstName: 'Aaron',
+          lastName: 'Judge',
           team: 'NYY',
           mlbLevel: 'MLB',
           active: true,
           mlbamId: 592450,
-          fangraphsId: 15640,
+          fangraphsId: '15640',
           cbsId: 79578,
+          bats: 'R',
+          throws: 'R',
+          ottoneuId: 1001,
         }),
       }),
     );
@@ -191,8 +204,8 @@ describe('POST /api/admin/sync-players — upsert logic', () => {
   it('correctly parses active: false when ACTIVE = N', async () => {
     mockAuth.mockResolvedValue({ userId: 'u1', sessionClaims: { metadata: { role: 'admin' } } });
     const csv = [
-      'IDPLAYER,PLAYERNAME,BIRTHDATE,POS,TEAM,LG,ACTIVE,MLBID,IDFANGRAPHS,FANGRAPHSMINORSID,CBSID,ESPNID,YAHOOID,FANTRAXID,RETROID,NFBCID,BREFID',
-      '999,Old Timer,1975-01-01,OF,FA,MLB,N,,,,,,,,,,'
+      HDR,
+      '999,Old Timer,1975-01-01,Old,Timer,OF,FA,MLB,N,,,,,,,,,,',
     ].join('\n');
     vi.stubGlobal('fetch', mockFetch(csv));
     setupHappyPath();
