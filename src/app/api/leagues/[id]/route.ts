@@ -6,32 +6,37 @@ import { LeagueMemberRole } from "@/generated/prisma/client";
 
 type Params = { params: Promise<{ id: string }> };
 
-async function resolveLeague(id: string, orgId: string) {
-  return prisma.league.findFirst({
-    where: { id, clerkOrgId: orgId, deletedAt: null },
+async function resolveLeague(id: string, userId: string) {
+  const league = await prisma.league.findFirst({ where: { id, deletedAt: null } });
+  if (!league) return null;
+  const member = await prisma.leagueMember.findUnique({
+    where: { clerkUserId_leagueId: { clerkUserId: userId, leagueId: id } },
+    select: { role: true },
   });
+  return member ? league : null;
 }
 
 export async function GET(_request: NextRequest, { params }: Params) {
-  const { orgId } = await auth.protect();
+  const { userId } = await auth.protect();
   const { id } = await params;
 
-  const league = await resolveLeague(id, orgId!);
+  const league = await resolveLeague(id, userId!);
   if (!league) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   return NextResponse.json(league);
 }
 
 export async function PATCH(request: NextRequest, { params }: Params) {
-  const { orgId, userId } = await auth.protect();
-  const denied = await assertLeagueRole(orgId!, userId!, [
+  const { userId } = await auth.protect();
+  const { id } = await params;
+
+  const denied = await assertLeagueRole(id, userId!, [
     LeagueMemberRole.COMMISSIONER,
     LeagueMemberRole.CO_COMMISSIONER,
   ]);
   if (denied) return denied;
-  const { id } = await params;
 
-  const league = await resolveLeague(id, orgId!);
+  const league = await prisma.league.findFirst({ where: { id, deletedAt: null } });
   if (!league) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const body = await request.json();
@@ -54,12 +59,13 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(_request: NextRequest, { params }: Params) {
-  const { orgId, userId } = await auth.protect();
-  const denied = await assertLeagueRole(orgId!, userId!, [LeagueMemberRole.COMMISSIONER]);
-  if (denied) return denied;
+  const { userId } = await auth.protect();
   const { id } = await params;
 
-  const league = await resolveLeague(id, orgId!);
+  const denied = await assertLeagueRole(id, userId!, [LeagueMemberRole.COMMISSIONER]);
+  if (denied) return denied;
+
+  const league = await prisma.league.findFirst({ where: { id, deletedAt: null } });
   if (!league) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   await prisma.league.update({ where: { id }, data: { deletedAt: new Date() } });

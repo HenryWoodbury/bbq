@@ -4,16 +4,19 @@ import { prisma } from "@/lib/prisma";
 import { assertLeagueRole } from "@/lib/auth-helpers";
 import { LeagueMemberRole } from "@/generated/prisma/client";
 
-export async function GET() {
-  const { orgId } = await auth.protect();
+export async function GET(request: NextRequest) {
+  const { userId } = await auth.protect();
 
-  const league = await prisma.league.findFirst({
-    where: { clerkOrgId: orgId!, deletedAt: null },
+  const leagueId = request.nextUrl.searchParams.get("leagueId");
+  if (!leagueId) return NextResponse.json({ error: "leagueId required" }, { status: 400 });
+
+  const member = await prisma.leagueMember.findUnique({
+    where: { clerkUserId_leagueId: { clerkUserId: userId!, leagueId } },
   });
-  if (!league) return NextResponse.json({ error: "No league for this organization" }, { status: 404 });
+  if (!member) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const teams = await prisma.team.findMany({
-    where: { leagueId: league.id, deletedAt: null },
+    where: { leagueId, deletedAt: null },
     include: { managers: true },
     orderBy: { teamName: "asc" },
   });
@@ -22,28 +25,26 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const { orgId, userId } = await auth.protect();
-  const denied = await assertLeagueRole(orgId!, userId!, [
+  const { userId } = await auth.protect();
+
+  const body = await request.json();
+  const { leagueId, teamName, financeData } = body;
+
+  if (!leagueId) return NextResponse.json({ error: "leagueId required" }, { status: 400 });
+  if (!teamName) return NextResponse.json({ error: "teamName is required" }, { status: 400 });
+
+  const denied = await assertLeagueRole(leagueId, userId!, [
     LeagueMemberRole.COMMISSIONER,
     LeagueMemberRole.CO_COMMISSIONER,
   ]);
   if (denied) return denied;
 
-  const league = await prisma.league.findFirst({
-    where: { clerkOrgId: orgId!, deletedAt: null },
-  });
-  if (!league) return NextResponse.json({ error: "No league for this organization" }, { status: 404 });
-
-  const body = await request.json();
-  const { teamName, financeData } = body;
-
-  if (!teamName) {
-    return NextResponse.json({ error: "teamName is required" }, { status: 400 });
-  }
+  const league = await prisma.league.findFirst({ where: { id: leagueId, deletedAt: null } });
+  if (!league) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const team = await prisma.team.create({
     data: {
-      leagueId: league.id,
+      leagueId,
       teamName,
       financeData: financeData ?? { loans_in: 0, loans_out: 0, budget: league.leagueCap ?? 0, spent: 0 },
       managers: {

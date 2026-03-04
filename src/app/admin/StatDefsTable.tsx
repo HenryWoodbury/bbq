@@ -13,7 +13,8 @@ export type StatDefRow = {
 const columns: ColumnDef<StatDefRow, unknown>[] = [
   {
     accessorKey: "abbreviation",
-    header: "Abbreviation",
+    header: "Abbr",
+    size: 80,
     cell: ({ getValue }) => (
       <span className="font-mono text-xs font-semibold text-zinc-900 dark:text-zinc-50">
         {getValue() as string}
@@ -28,10 +29,22 @@ const columns: ColumnDef<StatDefRow, unknown>[] = [
   {
     accessorKey: "format",
     header: "Format",
-    cell: ({ getValue }) => (getValue() as string | null) ?? "—",
+    size: 80,
+    cell: ({ getValue }) => (
+      <span className="font-mono text-xs text-zinc-500 dark:text-zinc-400">
+        {(getValue() as string | null) ?? "—"}
+      </span>
+    ),
   },
 ];
 
 export function StatDefsTable({ data }: { data: StatDefRow[] }) {
-  return <DataTable columns={columns} data={data} />;
+  return (
+    <DataTable
+      columns={columns}
+      data={data}
+      defaultPageSize={100}
+      defaultSorting={[{ id: "abbreviation", desc: false }]}
+    />
+  );
 }

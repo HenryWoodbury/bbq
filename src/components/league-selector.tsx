@@ -1,6 +1,5 @@
 "use client";
 
-import { useOrganization, useClerk } from "@clerk/nextjs";
 import { useRouter, usePathname } from "next/navigation";
 import { CheckIcon, ChevronDownIcon } from "lucide-react";
 import { BaseballIcon } from "@/components/icons/baseball-icon";
@@ -17,18 +16,11 @@ type Props = {
 };
 
 export function LeagueSelector({ leagues }: Props) {
-  const { organization } = useOrganization();
-  const { setActive } = useClerk();
   const router = useRouter();
   const pathname = usePathname();
 
-  const activeLeague = leagues.find((l) => l.clerkOrgId === organization?.id);
-  const label = pathname?.startsWith("/leagues/") ? (activeLeague?.leagueName ?? "Leagues") : "Leagues";
-
-  async function selectLeague(league: UserMenuLeague) {
-    await setActive({ organization: league.clerkOrgId });
-    router.push(`/leagues/${league.id}`);
-  }
+  const currentLeague = leagues.find((l) => pathname?.startsWith(`/leagues/${l.id}`));
+  const label = currentLeague?.leagueName ?? "Leagues";
 
   return (
     <DropdownMenu>
@@ -44,17 +36,17 @@ export function LeagueSelector({ leagues }: Props) {
           <div className="px-3 py-2 text-sm text-zinc-500">No leagues found</div>
         ) : (
           leagues.map((league) => {
-            const isActive = league.clerkOrgId === organization?.id;
+            const isCurrent = league.id === currentLeague?.id;
             return (
               <DropdownMenuItem
                 key={league.id}
-                onClick={() => selectLeague(league)}
+                onClick={() => router.push(`/leagues/${league.id}`)}
                 className="flex items-center gap-2"
               >
-                <span className={`min-w-0 truncate ${isActive ? "font-semibold text-primary" : ""}`}>
+                <span className={`min-w-0 truncate ${isCurrent ? "font-semibold text-primary" : ""}`}>
                   {league.leagueName}
                 </span>
-                {isActive && <CheckIcon size={14} className="shrink-0 ml-auto text-primary" />}
+                {isCurrent && <CheckIcon size={14} className="shrink-0 ml-auto text-primary" />}
               </DropdownMenuItem>
             );
           })

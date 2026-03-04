@@ -3,16 +3,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
-  const { orgId } = await auth.protect();
+  const { userId } = await auth.protect();
 
-  const league = await prisma.league.findFirst({
-    where: { clerkOrgId: orgId!, deletedAt: null },
+  const leagues = await prisma.league.findMany({
+    where: { members: { some: { clerkUserId: userId } }, deletedAt: null },
+    orderBy: { leagueName: "asc" },
     include: { teams: { where: { deletedAt: null } }, members: true },
   });
 
-  if (!league) return NextResponse.json({ error: "No league found for this organization" }, { status: 404 });
-
-  return NextResponse.json(league);
+  return NextResponse.json(leagues);
 }
 
 export async function POST(request: NextRequest) {

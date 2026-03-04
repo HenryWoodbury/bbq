@@ -1,38 +1,31 @@
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { SignInButton, SignUpButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
 export default async function HomePage() {
-  const { userId, orgId } = await auth();
+  const { userId } = await auth();
 
   if (!userId) {
     return <WelcomePage />;
   }
 
-  const clerk = await clerkClient();
-  const memberships = await clerk.users.getOrganizationMembershipList({ userId });
-  const orgIds = memberships.data.map((m) => m.organization.id);
-
-  const leagues = orgIds.length
-    ? await prisma.league.findMany({
-        where: { clerkOrgId: { in: orgIds }, deletedAt: null },
-        orderBy: { leagueName: "asc" },
+  const leagues = await prisma.league.findMany({
+    where: { members: { some: { clerkUserId: userId } }, deletedAt: null },
+    orderBy: { leagueName: "asc" },
+    select: {
+      id: true,
+      leagueName: true,
+      leagueFormat: true,
+      seasons: true,
+      _count: {
         select: {
-          id: true,
-          clerkOrgId: true,
-          leagueName: true,
-          leagueFormat: true,
-          seasons: true,
-          _count: {
-            select: {
-              members: true,
-              teams: { where: { deletedAt: null } },
-            },
-          },
+          members: true,
+          teams: { where: { deletedAt: null } },
         },
-      })
-    : [];
+      },
+    },
+  });
 
   return (
     <div className="flex flex-col gap-8">
@@ -50,11 +43,7 @@ export default async function HomePage() {
       ) : (
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
           {leagues.map((league) => (
-            <LeagueCard
-              key={league.id}
-              league={league}
-              active={league.clerkOrgId === orgId}
-            />
+            <LeagueCard key={league.id} league={league} />
           ))}
         </section>
       )}
@@ -93,34 +82,22 @@ function WelcomePage() {
 
 type LeagueSummary = {
   id: string;
-  clerkOrgId: string;
   leagueName: string;
   leagueFormat: string | null;
   seasons: number[];
   _count: { members: number; teams: number };
 };
 
-function LeagueCard({ league, active }: { league: LeagueSummary; active: boolean }) {
+function LeagueCard({ league }: { league: LeagueSummary }) {
   const currentSeason =
     league.seasons.length > 0 ? Math.max(...league.seasons) : null;
 
   return (
     <Link
-      href="/league"
-      className={`flex flex-col gap-4 rounded-lg border p-6 shadow-sm transition-shadow hover:shadow-md ${
-        active
-          ? "border-zinc-900 bg-zinc-50 dark:border-zinc-100 dark:bg-zinc-900"
-          : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"
-      }`}
+      href={`/leagues/${league.id}`}
+      className="flex flex-col gap-4 rounded-lg border border-zinc-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md dark:border-zinc-800 dark:bg-zinc-950"
     >
-      <div className="flex items-start justify-between gap-2">
-        <h2 className="font-semibold text-zinc-900 dark:text-zinc-50">{league.leagueName}</h2>
-        {active && (
-          <span className="shrink-0 rounded-full bg-zinc-900 px-2 py-0.5 text-xs font-medium text-white dark:bg-zinc-50 dark:text-zinc-900">
-            Active
-          </span>
-        )}
-      </div>
+      <h2 className="font-semibold text-zinc-900 dark:text-zinc-50">{league.leagueName}</h2>
       <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
         <Stat label="Format" value={league.leagueFormat ?? "—"} />
         <Stat label="Season" value={currentSeason?.toString() ?? "—"} />

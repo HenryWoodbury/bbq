@@ -1,7 +1,6 @@
 export function mockAuthResolved(overrides: Record<string, unknown> = {}) {
   return {
     userId: 'user_test',
-    orgId: 'org_test',
     sessionClaims: { metadata: {} },
     ...overrides,
   };
@@ -12,5 +11,5 @@ export function mockAdminAuth() {
 }
 
 export function mockUnauthenticated() {
-  return mockAuthResolved({ userId: null, orgId: null, sessionClaims: null });
+  return mockAuthResolved({ userId: null, sessionClaims: null });
 }

@@ -1,4 +1,3 @@
-import { auth } from "@clerk/nextjs/server";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 
@@ -7,11 +6,10 @@ type Props = {
 };
 
 export default async function LeaguePage({ params }: Props) {
-  const { orgId } = await auth.protect();
   const { id } = await params;
 
   const league = await prisma.league.findFirst({
-    where: { id, clerkOrgId: orgId, deletedAt: null },
+    where: { id, deletedAt: null },
     select: {
       leagueName: true,
       leagueFormat: true,

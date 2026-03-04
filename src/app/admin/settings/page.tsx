@@ -2,17 +2,16 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { StatDefsTable } from "../StatDefsTable";
 
-export const metadata = { title: "Manage Leagues — BBQ" };
+export const metadata = { title: "Settings — BBQ" };
 
 export default async function AdminSettingsPage() {
   await requireAdmin();
 
-  const [statDefs] = await Promise.all([
-    prisma.statDefinition.findMany({
-      where: { deletedAt: null },
-      orderBy: { abbreviation: "asc" },
-      select: { id: true, abbreviation: true, name: true, format: true },
-    }),
+  const base = { where: { deletedAt: null }, orderBy: { abbreviation: "asc" }, select: { id: true, abbreviation: true, name: true, format: true } } as const;
+
+  const [batterStats, pitcherStats] = await Promise.all([
+    prisma.statDefinition.findMany({ ...base, where: { deletedAt: null, playerType: "BATTER" } }),
+    prisma.statDefinition.findMany({ ...base, where: { deletedAt: null, playerType: "PITCHER" } }),
   ]);
 
   return (
@@ -25,9 +24,16 @@ export default async function AdminSettingsPage() {
 
       <section>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-zinc-500">
-          Stats Definitions
+          Batter Stats
         </h2>
-        <StatDefsTable data={statDefs} />
+        <StatDefsTable data={batterStats} />
+      </section>
+
+      <section>
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-zinc-500">
+          Pitcher Stats
+        </h2>
+        <StatDefsTable data={pitcherStats} />
       </section>
     </div>
   );

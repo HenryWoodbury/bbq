@@ -19,8 +19,6 @@ import { PATCH } from './route';
 
 const prismaMock = prisma as unknown as DeepMockProxy<PrismaClient>;
 
-const mockLeague = { id: 'league-1', clerkOrgId: 'org_test', deletedAt: null } as any;
-
 const mockTeamOwnedByUser = {
   id: 'team-1',
   leagueId: 'league-1',
@@ -39,11 +37,10 @@ function makeParams(id: string) {
   return { params: Promise.resolve({ id }) };
 }
 
-// resolveTeam calls league.findFirst then team.findFirst.
-// getLeagueRole also calls league.findFirst — both run in parallel via Promise.all.
-// mockResolvedValue (not Once) returns the same value for all parallel calls.
-function setupTeamAndLeague(team: any) {
-  prismaMock.league.findFirst.mockResolvedValue(mockLeague);
+// resolveTeam calls team.findFirst then leagueMember.findUnique (membership check).
+// getLeagueRole also calls leagueMember.findUnique (role check, sequential after resolveTeam).
+// mockResolvedValue (not Once) returns the same value for all calls.
+function setupTeam(team: any) {
   prismaMock.team.findFirst.mockResolvedValue(team);
 }
 
@@ -54,8 +51,8 @@ beforeEach(() => {
 
 describe('PATCH /api/teams/[id]', () => {
   it('returns 200 for manager patching their own team', async () => {
-    mockAuthProtect.mockResolvedValue({ orgId: 'org_test', userId: 'user_1' });
-    setupTeamAndLeague(mockTeamOwnedByUser);
+    mockAuthProtect.mockResolvedValue({ userId: 'user_1' });
+    setupTeam(mockTeamOwnedByUser);
     prismaMock.leagueMember.findUnique.mockResolvedValue({ role: LeagueMemberRole.MANAGER } as any);
     prismaMock.team.update.mockResolvedValue({ ...mockTeamOwnedByUser, teamName: 'Updated' } as any);
 
@@ -68,8 +65,8 @@ describe('PATCH /api/teams/[id]', () => {
   });
 
   it('returns 403 for manager patching another team', async () => {
-    mockAuthProtect.mockResolvedValue({ orgId: 'org_test', userId: 'user_1' });
-    setupTeamAndLeague(mockTeamOwnedByOther);
+    mockAuthProtect.mockResolvedValue({ userId: 'user_1' });
+    setupTeam(mockTeamOwnedByOther);
     prismaMock.leagueMember.findUnique.mockResolvedValue({ role: LeagueMemberRole.MANAGER } as any);
 
     const req = new NextRequest('http://localhost/api/teams/team-1', {
@@ -81,8 +78,8 @@ describe('PATCH /api/teams/[id]', () => {
   });
 
   it('returns 200 for commissioner patching any team', async () => {
-    mockAuthProtect.mockResolvedValue({ orgId: 'org_test', userId: 'admin_user' });
-    setupTeamAndLeague(mockTeamOwnedByOther);
+    mockAuthProtect.mockResolvedValue({ userId: 'admin_user' });
+    setupTeam(mockTeamOwnedByOther);
     prismaMock.leagueMember.findUnique.mockResolvedValue({
       role: LeagueMemberRole.COMMISSIONER,
     } as any);

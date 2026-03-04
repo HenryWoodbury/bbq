@@ -87,48 +87,39 @@ describe('assertAdmin', () => {
 });
 
 describe('getLeagueRole', () => {
-  it('returns null when no league found', async () => {
-    prismaMock.league.findFirst.mockResolvedValue(null);
-    expect(await getLeagueRole('org_1', 'user_1')).toBeNull();
-  });
-
   it('returns null when user is not a member', async () => {
-    prismaMock.league.findFirst.mockResolvedValue({ id: 'league-1' } as any);
     prismaMock.leagueMember.findUnique.mockResolvedValue(null);
-    expect(await getLeagueRole('org_1', 'user_1')).toBeNull();
+    expect(await getLeagueRole('league-1', 'user_1')).toBeNull();
   });
 
   it('returns the member role', async () => {
-    prismaMock.league.findFirst.mockResolvedValue({ id: 'league-1' } as any);
     prismaMock.leagueMember.findUnique.mockResolvedValue({
       role: LeagueMemberRole.COMMISSIONER,
     } as any);
-    expect(await getLeagueRole('org_1', 'user_1')).toBe(LeagueMemberRole.COMMISSIONER);
+    expect(await getLeagueRole('league-1', 'user_1')).toBe(LeagueMemberRole.COMMISSIONER);
   });
 });
 
 describe('assertLeagueRole', () => {
   it('returns 403 when role is not in allowed list', async () => {
-    prismaMock.league.findFirst.mockResolvedValue({ id: 'league-1' } as any);
     prismaMock.leagueMember.findUnique.mockResolvedValue({
       role: LeagueMemberRole.ONLOOKER,
     } as any);
-    const res = await assertLeagueRole('org_1', 'user_1', [LeagueMemberRole.COMMISSIONER]);
+    const res = await assertLeagueRole('league-1', 'user_1', [LeagueMemberRole.COMMISSIONER]);
     expect(res?.status).toBe(403);
   });
 
   it('returns 403 when user has no league role', async () => {
-    prismaMock.league.findFirst.mockResolvedValue(null);
-    const res = await assertLeagueRole('org_1', 'user_1', [LeagueMemberRole.COMMISSIONER]);
+    prismaMock.leagueMember.findUnique.mockResolvedValue(null);
+    const res = await assertLeagueRole('league-1', 'user_1', [LeagueMemberRole.COMMISSIONER]);
     expect(res?.status).toBe(403);
   });
 
   it('returns undefined for allowed role', async () => {
-    prismaMock.league.findFirst.mockResolvedValue({ id: 'league-1' } as any);
     prismaMock.leagueMember.findUnique.mockResolvedValue({
       role: LeagueMemberRole.COMMISSIONER,
     } as any);
-    const res = await assertLeagueRole('org_1', 'user_1', [LeagueMemberRole.COMMISSIONER]);
+    const res = await assertLeagueRole('league-1', 'user_1', [LeagueMemberRole.COMMISSIONER]);
     expect(res).toBeUndefined();
   });
 });

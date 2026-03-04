@@ -39,21 +39,15 @@ export async function assertAdmin(): Promise<NextResponse | undefined> {
 }
 
 /**
- * Fetches the caller's LeagueMemberRole for the active org from Prisma.
- * Returns null if no league exists for the org or the user is not a member.
+ * Fetches the caller's LeagueMemberRole for the given league directly from Prisma.
+ * Returns null if the user is not a member.
  */
 export async function getLeagueRole(
-  orgId: string,
+  leagueId: string,
   userId: string
 ): Promise<LeagueMemberRole | null> {
-  const league = await prisma.league.findFirst({
-    where: { clerkOrgId: orgId, deletedAt: null },
-    select: { id: true },
-  });
-  if (!league) return null;
-
   const member = await prisma.leagueMember.findUnique({
-    where: { clerkUserId_leagueId: { clerkUserId: userId, leagueId: league.id } },
+    where: { clerkUserId_leagueId: { clerkUserId: userId, leagueId } },
     select: { role: true },
   });
   return member?.role ?? null;
@@ -62,15 +56,15 @@ export async function getLeagueRole(
 /**
  * API route guard: returns a 403 NextResponse if the caller's league role is
  * not in the allowed set. Returns undefined when access is granted.
- * Usage: const denied = await assertLeagueRole(orgId, userId, [...]);
+ * Usage: const denied = await assertLeagueRole(leagueId, userId, [...]);
  *        if (denied) return denied;
  */
 export async function assertLeagueRole(
-  orgId: string,
+  leagueId: string,
   userId: string,
   allowed: LeagueMemberRole[]
 ): Promise<NextResponse | undefined> {
-  const role = await getLeagueRole(orgId, userId);
+  const role = await getLeagueRole(leagueId, userId);
   if (!role || !allowed.includes(role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

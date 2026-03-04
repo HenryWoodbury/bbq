@@ -1,4 +1,4 @@
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { isAdminFromClaims } from "@/lib/auth-helpers";
 import { ClerkLoaded, ClerkLoading, SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
 import Link from "next/link";
@@ -14,36 +14,14 @@ export async function Header() {
   let isAdmin = false;
 
   if (userId) {
-    const clerk = await clerkClient();
-    const [orgMemberships, adminFlag] = await Promise.all([
-      clerk.users.getOrganizationMembershipList({ userId }),
+    [leagues, isAdmin] = await Promise.all([
+      prisma.league.findMany({
+        where: { members: { some: { clerkUserId: userId } }, deletedAt: null },
+        select: { id: true, leagueName: true, clerkOrgId: true },
+        orderBy: { leagueName: "asc" },
+      }),
       isAdminFromClaims(),
     ]);
-
-    const clerkOrgs = orgMemberships.data.map((m) => ({
-      id: m.organization.id,
-      name: m.organization.name,
-    }));
-
-    if (clerkOrgs.length > 0) {
-      // Ensure a League row exists for every Clerk org (idempotent — Clerk is source of truth)
-      await prisma.league.createMany({
-        data: clerkOrgs.map((org) => ({
-          clerkOrgId: org.id,
-          leagueName: org.name,
-          rosterConfig: {},
-          seasons: [],
-        })),
-        skipDuplicates: true,
-      });
-
-      leagues = await prisma.league.findMany({
-        where: { clerkOrgId: { in: clerkOrgs.map((o) => o.id) }, deletedAt: null },
-        select: { id: true, leagueName: true, clerkOrgId: true },
-      });
-    }
-
-    isAdmin = adminFlag;
   }
 
   return (

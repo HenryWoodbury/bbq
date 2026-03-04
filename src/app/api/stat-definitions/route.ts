@@ -19,14 +19,14 @@ export async function POST(request: NextRequest) {
   if (denied) return denied;
 
   const body = await request.json();
-  const { abbreviation, name, description, format } = body;
+  const { abbreviation, playerType, name, description, format } = body;
 
-  if (!abbreviation) {
-    return NextResponse.json({ error: "abbreviation is required" }, { status: 400 });
+  if (!abbreviation || !playerType) {
+    return NextResponse.json({ error: "abbreviation and playerType are required" }, { status: 400 });
   }
 
   const stat = await prisma.statDefinition.create({
-    data: { abbreviation, name, description, format },
+    data: { abbreviation, playerType, name, description, format },
   });
 
   return NextResponse.json(stat, { status: 201 });
