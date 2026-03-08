@@ -27,14 +27,16 @@ interface DataTableProps<T> {
   data: T[];
   defaultPageSize?: PageSizeOption;
   defaultSorting?: SortingState;
+  pagination?: boolean;
 }
 
-export function DataTable<T>({ columns, data, defaultPageSize = 20, defaultSorting = [] }: DataTableProps<T>) {
+export function DataTable<T>({ columns, data, defaultPageSize = 20, defaultSorting = [], pagination = true }: DataTableProps<T>) {
   const [sorting, setSorting] = useState<SortingState>(defaultSorting);
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSizeOption, setPageSizeOption] = useState<PageSizeOption>(defaultPageSize);
-  const pageSize = resolvePageSize(pageSizeOption);
+  const pageSize = pagination === false ? Number.MAX_SAFE_INTEGER : resolvePageSize(pageSizeOption);
 
+  // Warning message is sufficient to identify future upgrade
   const table = useReactTable({
     data,
     columns,
@@ -130,7 +132,7 @@ export function DataTable<T>({ columns, data, defaultPageSize = 20, defaultSorti
       </div>
 
       {/* Pagination footer */}
-      <div className="flex items-center justify-between gap-4 text-xs text-zinc-500 dark:text-zinc-400">
+      {pagination !== false && <div className="flex items-center justify-between gap-4 text-xs text-zinc-500 dark:text-zinc-400">
         {/* Left: count */}
         <span className="tabular-nums">
           {totalRows === 0
@@ -182,7 +184,7 @@ export function DataTable<T>({ columns, data, defaultPageSize = 20, defaultSorti
             ))}
           </Select>
         </div>
-      </div>
+      </div>}
     </div>
   );
 }

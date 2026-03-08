@@ -43,7 +43,7 @@ export function StatDefsTable({ data }: { data: StatDefRow[] }) {
     <DataTable
       columns={columns}
       data={data}
-      defaultPageSize={100}
+      pagination={false}
       defaultSorting={[{ id: "abbreviation", desc: false }]}
     />
   );

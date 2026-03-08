@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-helpers";
-import { StatDefsTable } from "../StatDefsTable";
+import { StatDefsTable } from "../stat-defs-table";
+import { SectionCollapsible } from "@/components/section-collapsible";
 
 export const metadata = { title: "Settings — BBQ" };
 
@@ -22,19 +23,13 @@ export default async function AdminSettingsPage() {
         </h1>
       </section>
 
-      <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-zinc-500">
-          Batter Stats
-        </h2>
+      <SectionCollapsible title="Batter Stats">
         <StatDefsTable data={batterStats} />
-      </section>
+      </SectionCollapsible>
 
-      <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-zinc-500">
-          Pitcher Stats
-        </h2>
+      <SectionCollapsible title="Pitcher Stats">
         <StatDefsTable data={pitcherStats} />
-      </section>
+      </SectionCollapsible>
     </div>
   );
 }

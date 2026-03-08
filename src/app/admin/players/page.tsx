@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-helpers";
-import { SyncPlayers } from "../SyncPlayers";
-import { UploadPlayerUniverse } from "../UploadPlayerUniverse";
+import { SyncPlayers } from "../sync-players";
+import { UploadPlayerUniverse } from "../upload-player-universe";
 import { PlayersTableAdmin } from "./players-table-admin";
 import { type PlayerRow } from "@/components/players-table";
 

@@ -370,7 +370,7 @@ function AddManualModal({ onClose }: { onClose: () => void }) {
           <Input
             autoFocus
             className="flex-1"
-            placeholder="Player name…"
+            placeholder="Player name"
             value={nameQuery}
             onChange={(e) => { setNameQuery(e.target.value); setIdQuery(""); }}
           />
@@ -382,42 +382,35 @@ function AddManualModal({ onClose }: { onClose: () => void }) {
           />
         </div>
 
-        <div className="mt-2 max-h-72 overflow-y-auto rounded-md border border-zinc-200 dark:border-zinc-700">
-          {searching && (
-            <p className="px-3 py-2 text-sm text-zinc-400">Searching…</p>
-          )}
-          {!searching && (nameQuery || idQuery) && results.length === 0 && (
-            <p className="px-3 py-2 text-sm text-zinc-400">No results</p>
-          )}
-          {!searching && !nameQuery && !idQuery && (
-            <p className="px-3 py-2 text-sm text-zinc-400 dark:text-zinc-500">
-              Results
-            </p>
-          )}
-          {results.map((r) => (
-            <button
-              key={r.ottoneuId}
-              disabled={r.alreadyTracked}
-              onClick={() => selectPlayer(r)}
-              className={cn(
-                "flex w-full items-center justify-between px-3 py-2 text-left text-sm",
-                "border-b border-zinc-100 last:border-0 dark:border-zinc-800",
-                r.alreadyTracked
-                  ? "cursor-not-allowed text-zinc-300 dark:text-zinc-500"
-                  : "hover:bg-zinc-50 dark:hover:bg-zinc-800",
-              )}
-            >
-              <span className="font-medium">{r.playerName}</span>
-              <span className="flex items-center gap-3 text-xs">
-                {r.positions.length > 0 && <span>{r.positions.join("/")}</span>}
-                <span>#{r.ottoneuId}</span>
-                {r.alreadyTracked && (
-                  <span>Tracked</span>
+        {!searching && (nameQuery || idQuery) && (
+          <div className="mt-2 max-h-72 overflow-y-auto rounded-md border border-zinc-200 dark:border-zinc-700">
+            {results.length === 0 ? (
+              <p className="px-3 py-2 text-sm text-zinc-400">No results</p>
+            ) : 
+            results.map((r) => (
+              <button
+                key={r.ottoneuId}
+                disabled={r.alreadyTracked}
+                onClick={() => selectPlayer(r)}
+                className={cn(
+                  "flex w-full items-center justify-between px-3 py-2 text-left text-sm",
+                  "border-b border-zinc-100 last:border-0 dark:border-zinc-800",
+                  r.alreadyTracked
+                    ? "cursor-not-allowed text-zinc-300 dark:text-zinc-500"
+                    : "hover:bg-zinc-50 dark:hover:bg-zinc-800",
                 )}
-              </span>
-            </button>
-          ))}
-        </div>
+              >
+                <span className="font-medium">
+                  {r.playerName}
+                </span>
+                <span className="flex items-center gap-3 text-xs">
+                  {r.positions.length > 0 && <span>{r.positions.join("/")}</span>}
+                  <span>#{r.ottoneuId}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="mt-4 flex justify-end">
           <Button variant="secondary" size="sm" onClick={onClose}>

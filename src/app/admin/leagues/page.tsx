@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-helpers";
-import { LeaguesTable } from "../LeaguesTable";
+import { LeaguesTable } from "../leagues-table";
 import { StatCard } from "@/components/stat-card";
 
 export const metadata = { title: "Manage Leagues — BBQ" };
