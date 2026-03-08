@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-helpers";
 import { SyncPlayers } from "../SyncPlayers";
 import { UploadPlayerUniverse } from "../UploadPlayerUniverse";
-import { PlayersTableAdmin } from "./PlayersTableAdmin";
+import { PlayersTableAdmin } from "./players-table-admin";
 import { type PlayerRow } from "@/components/players-table";
 
 export const metadata = { title: "Manage Players — BBQ" };

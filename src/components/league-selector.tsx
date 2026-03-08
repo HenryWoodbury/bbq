@@ -3,6 +3,7 @@
 import { useRouter, usePathname } from "next/navigation";
 import { CheckIcon, ChevronDownIcon } from "lucide-react";
 import { BaseballIcon } from "@/components/icons/baseball-icon";
+import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,7 +44,7 @@ export function LeagueSelector({ leagues }: Props) {
                 onClick={() => router.push(`/leagues/${league.id}`)}
                 className="flex items-center gap-2"
               >
-                <span className={`min-w-0 truncate ${isCurrent ? "font-semibold text-primary" : ""}`}>
+                <span className={cn("min-w-0 truncate", isCurrent && "font-semibold text-primary")}>
                   {league.leagueName}
                 </span>
                 {isCurrent && <CheckIcon size={14} className="shrink-0 ml-auto text-primary" />}

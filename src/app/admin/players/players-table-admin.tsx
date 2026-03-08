@@ -16,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 
 // ── Shared field types ────────────────────────────────────────────────────────
 
@@ -143,7 +144,7 @@ function EditOverrideModal({
   return (
     <DialogContent className="max-h-[90vh] overflow-y-auto">
       <DialogHeader>
-        <DialogTitle>Edit Player Override</DialogTitle>
+        <DialogTitle>Edit Player</DialogTitle>
         <p className="text-xs text-zinc-400 dark:text-zinc-500">
           {row.fgSpecialChar ?? row.playerName}
           {row.isManual && (
@@ -398,13 +399,13 @@ function AddManualModal({ onClose }: { onClose: () => void }) {
               key={r.ottoneuId}
               disabled={r.alreadyTracked}
               onClick={() => selectPlayer(r)}
-              className={[
+              className={cn(
                 "flex w-full items-center justify-between px-3 py-2 text-left text-sm",
                 "border-b border-zinc-100 last:border-0 dark:border-zinc-800",
                 r.alreadyTracked
-                  ? "cursor-not-allowed opacity-40"
+                  ? "cursor-not-allowed text-zinc-300 dark:text-zinc-500"
                   : "hover:bg-zinc-50 dark:hover:bg-zinc-800",
-              ].join(" ")}
+              )}
             >
               <span className="font-medium">{r.playerName}</span>
               <span className="flex items-center gap-3 text-xs">

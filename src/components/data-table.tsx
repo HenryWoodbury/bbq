@@ -13,6 +13,7 @@ import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight } from "luci
 import { useState } from "react";
 import { IconButton } from "@/components/ui/icon-button";
 import { Select } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 const PAGE_SIZE_OPTIONS = [20, 30, 50, 100, "All"] as const;
 type PageSizeOption = (typeof PAGE_SIZE_OPTIONS)[number];
@@ -79,10 +80,10 @@ export function DataTable<T>({ columns, data, defaultPageSize = 20, defaultSorti
                   return (
                     <th
                       key={header.id}
-                      className={[
+                      className={cn(
                         "px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 select-none overflow-hidden text-ellipsis whitespace-nowrap",
-                        canSort ? "cursor-pointer hover:text-zinc-700 dark:hover:text-zinc-300" : "",
-                      ].join(" ")}
+                        canSort && "cursor-pointer hover:text-zinc-700 dark:hover:text-zinc-300",
+                      )}
                       onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
                     >
                       <span className="inline-flex items-center gap-1">

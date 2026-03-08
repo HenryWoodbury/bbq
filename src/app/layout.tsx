@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Lato, Geist_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Header } from "@/components/header";
+import { cn } from "@/lib/utils";
 import "./globals.css";
 
 const lato = Lato({
@@ -32,7 +33,7 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en">
         <body
-          className={`${lato.variable} ${geistMono.variable} min-h-screen bg-zinc-50 antialiased dark:bg-zinc-950`}
+          className={cn(lato.variable, geistMono.variable, "min-h-screen bg-zinc-50 antialiased dark:bg-zinc-950")}
         >
           <Header />
           <main className="mx-auto max-w-screen-2xl px-4 py-8 sm:px-6 lg:px-8">

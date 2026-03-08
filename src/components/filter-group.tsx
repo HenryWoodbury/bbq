@@ -1,5 +1,7 @@
 "use client";
 
+import { cn } from "@/lib/utils";
+
 interface FilterGroupProps {
   label: string;
   options: { value: string; label: string }[];
@@ -16,12 +18,12 @@ export function FilterGroup({ label, options, value, onChange }: FilterGroupProp
           <button
             key={opt.value}
             onClick={() => onChange(opt.value)}
-            className={[
+            className={cn(
               "px-2.5 py-1 text-xs transition-colors",
               value === opt.value
                 ? "bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900"
                 : "bg-white text-zinc-600 hover:bg-zinc-50 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800",
-            ].join(" ")}
+            )}
           >
             {opt.label}
           </button>
