@@ -1,13 +1,14 @@
-import { auth } from "@clerk/nextjs/server";
-import { SignInButton, SignUpButton } from "@clerk/nextjs";
-import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { SignInButton, SignUpButton } from "@clerk/nextjs"
+import { auth } from "@clerk/nextjs/server"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { prisma } from "@/lib/prisma"
 
 export default async function HomePage() {
-  const { userId } = await auth();
+  const { userId } = await auth()
 
   if (!userId) {
-    return <WelcomePage />;
+    return <WelcomePage />
   }
 
   const leagues = await prisma.league.findMany({
@@ -25,7 +26,7 @@ export default async function HomePage() {
         },
       },
     },
-  });
+  })
 
   return (
     <div className="flex flex-col gap-8">
@@ -37,8 +38,8 @@ export default async function HomePage() {
 
       {leagues.length === 0 ? (
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          You&apos;re not in any leagues yet. Create or join one via the org switcher in the
-          header.
+          You&apos;re not in any leagues yet. Create or join one via the org
+          switcher in the header.
         </p>
       ) : (
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
@@ -48,7 +49,7 @@ export default async function HomePage() {
         </section>
       )}
     </div>
-  );
+  )
 }
 
 function WelcomePage() {
@@ -60,44 +61,45 @@ function WelcomePage() {
             BBQ
           </h1>
           <p className="max-w-prose text-lg text-zinc-500 dark:text-zinc-400">
-            Fantasy baseball league management — drafts, rosters, and auction tools.
+            Fantasy baseball league management — drafts, rosters, and auction
+            tools.
           </p>
         </div>
         <div className="flex gap-3">
           <SignUpButton mode="redirect">
-            <button className="rounded-md bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200">
-              Get started
-            </button>
+            <Button className="px-5 py-2.5">Get started</Button>
           </SignUpButton>
           <SignInButton mode="redirect">
-            <button className="rounded-md border border-zinc-300 px-5 py-2.5 text-sm font-semibold text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900">
+            <Button variant="secondary" className="px-5 py-2.5">
               Sign in
-            </button>
+            </Button>
           </SignInButton>
         </div>
       </section>
     </div>
-  );
+  )
 }
 
 type LeagueSummary = {
-  id: string;
-  leagueName: string;
-  leagueFormat: string | null;
-  seasons: number[];
-  _count: { members: number; teams: number };
-};
+  id: string
+  leagueName: string
+  leagueFormat: string | null
+  seasons: number[]
+  _count: { members: number; teams: number }
+}
 
 function LeagueCard({ league }: { league: LeagueSummary }) {
   const currentSeason =
-    league.seasons.length > 0 ? Math.max(...league.seasons) : null;
+    league.seasons.length > 0 ? Math.max(...league.seasons) : null
 
   return (
     <Link
       href={`/leagues/${league.id}`}
       className="flex flex-col gap-4 rounded-lg border border-zinc-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md dark:border-zinc-800 dark:bg-zinc-950"
     >
-      <h2 className="font-semibold text-zinc-900 dark:text-zinc-50">{league.leagueName}</h2>
+      <h2 className="font-semibold text-zinc-900 dark:text-zinc-50">
+        {league.leagueName}
+      </h2>
       <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
         <Stat label="Format" value={league.leagueFormat ?? "—"} />
         <Stat label="Season" value={currentSeason?.toString() ?? "—"} />
@@ -105,7 +107,7 @@ function LeagueCard({ league }: { league: LeagueSummary }) {
         <Stat label="Members" value={league._count.members} />
       </dl>
     </Link>
-  );
+  )
 }
 
 function Stat({ label, value }: { label: string; value: string | number }) {
@@ -114,5 +116,5 @@ function Stat({ label, value }: { label: string; value: string | number }) {
       <dt className="text-xs text-zinc-400 dark:text-zinc-500">{label}</dt>
       <dd className="font-medium text-zinc-700 dark:text-zinc-300">{value}</dd>
     </div>
-  );
+  )
 }

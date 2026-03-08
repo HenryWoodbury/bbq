@@ -1,17 +1,25 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { ChevronRight } from "lucide-react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronRight } from "lucide-react"
+import { useState } from "react"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 
 interface SectionCollapsibleProps {
-  title: React.ReactNode;
-  defaultOpen?: boolean;
-  children: React.ReactNode;
+  title: React.ReactNode
+  defaultOpen?: boolean
+  children: React.ReactNode
 }
 
-export function SectionCollapsible({ title, defaultOpen = true, children }: SectionCollapsibleProps) {
-  const [open, setOpen] = useState(defaultOpen);
+export function SectionCollapsible({
+  title,
+  defaultOpen = true,
+  children,
+}: SectionCollapsibleProps) {
+  const [open, setOpen] = useState(defaultOpen)
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
@@ -22,9 +30,7 @@ export function SectionCollapsible({ title, defaultOpen = true, children }: Sect
         />
         {title}
       </CollapsibleTrigger>
-      <CollapsibleContent className="mt-3">
-        {children}
-      </CollapsibleContent>
+      <CollapsibleContent className="mt-3">{children}</CollapsibleContent>
     </Collapsible>
-  );
+  )
 }

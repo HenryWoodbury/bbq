@@ -1,7 +1,7 @@
-"use client";
+"use client"
 
-import { Collapsible as CollapsiblePrimitive } from "radix-ui";
+import { Collapsible as CollapsiblePrimitive } from "radix-ui"
 
-export const Collapsible = CollapsiblePrimitive.Root;
-export const CollapsibleTrigger = CollapsiblePrimitive.CollapsibleTrigger;
-export const CollapsibleContent = CollapsiblePrimitive.CollapsibleContent;
+export const Collapsible = CollapsiblePrimitive.Root
+export const CollapsibleTrigger = CollapsiblePrimitive.CollapsibleTrigger
+export const CollapsibleContent = CollapsiblePrimitive.CollapsibleContent

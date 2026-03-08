@@ -1,12 +1,12 @@
-import { notFound } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { notFound } from "next/navigation"
+import { prisma } from "@/lib/prisma"
 
 type Props = {
-  params: Promise<{ id: string }>;
-};
+  params: Promise<{ id: string }>
+}
 
 export default async function LeaguePage({ params }: Props) {
-  const { id } = await params;
+  const { id } = await params
 
   const league = await prisma.league.findFirst({
     where: { id, deletedAt: null },
@@ -21,11 +21,12 @@ export default async function LeaguePage({ params }: Props) {
       seasons: true,
       _count: { select: { members: true, teams: true } },
     },
-  });
+  })
 
-  if (!league) notFound();
+  if (!league) notFound()
 
-  const latestSeason = league.seasons.length > 0 ? Math.max(...league.seasons) : null;
+  const latestSeason =
+    league.seasons.length > 0 ? Math.max(...league.seasons) : null
 
   return (
     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -60,7 +61,7 @@ export default async function LeaguePage({ params }: Props) {
         </div>
       )}
     </div>
-  );
+  )
 }
 
 function InfoCard({ label, value }: { label: string; value: string }) {
@@ -69,7 +70,9 @@ function InfoCard({ label, value }: { label: string; value: string }) {
       <p className="mb-1 text-xs font-medium uppercase tracking-wider text-zinc-500">
         {label}
       </p>
-      <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{value}</p>
+      <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+        {value}
+      </p>
     </div>
-  );
+  )
 }

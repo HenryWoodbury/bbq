@@ -1,10 +1,9 @@
-import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth-helpers";
+import { requireAdmin } from "@/lib/auth-helpers"
 
-export const metadata = { title: "Manage Leagues — BBQ" };
+export const metadata = { title: "Manage Leagues — BBQ" }
 
 export default async function AdminReportsPage() {
-  await requireAdmin();
+  await requireAdmin()
 
   return (
     <div className="flex flex-col gap-10">
@@ -14,5 +13,5 @@ export default async function AdminReportsPage() {
         </h1>
       </section>
     </div>
-  );
+  )
 }

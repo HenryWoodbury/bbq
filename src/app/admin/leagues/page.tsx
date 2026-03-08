@@ -1,12 +1,12 @@
-import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth-helpers";
-import { LeaguesTable } from "../leagues-table";
-import { StatCard } from "@/components/stat-card";
+import { StatCard } from "@/components/stat-card"
+import { requireAdmin } from "@/lib/auth-helpers"
+import { prisma } from "@/lib/prisma"
+import { LeaguesTable } from "../leagues-table"
 
-export const metadata = { title: "Manage Leagues — BBQ" };
+export const metadata = { title: "Manage Leagues — BBQ" }
 
 export default async function AdminLeaguesPage() {
-  await requireAdmin();
+  await requireAdmin()
 
   const [leagueCount, teamCount, leagues] = await Promise.all([
     prisma.league.count({ where: { deletedAt: null } }),
@@ -20,10 +20,12 @@ export default async function AdminLeaguesPage() {
         leagueFormat: true,
         fantasyPlatform: true,
         seasons: true,
-        _count: { select: { members: true, teams: { where: { deletedAt: null } } } },
+        _count: {
+          select: { members: true, teams: { where: { deletedAt: null } } },
+        },
       },
     }),
-  ]);
+  ])
 
   return (
     <div className="flex flex-col gap-10">
@@ -46,8 +48,6 @@ export default async function AdminLeaguesPage() {
         </h2>
         <LeaguesTable data={leagues} />
       </section>
-
     </div>
-  );
+  )
 }
-

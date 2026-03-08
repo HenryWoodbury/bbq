@@ -1,28 +1,28 @@
-import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { LeagueMemberRole } from "@/generated/prisma/client";
+import { auth } from "@clerk/nextjs/server"
+import { redirect } from "next/navigation"
+import { NextResponse } from "next/server"
+import type { LeagueMemberRole } from "@/generated/prisma/client"
+import { prisma } from "@/lib/prisma"
 
 // Extend Clerk session claims to include embedded publicMetadata.
 // Requires Clerk Dashboard → Sessions → Customize session token:
 //   { "metadata": "{{user.public_metadata}}" }
 declare global {
   interface CustomJwtSessionClaims {
-    metadata?: { role?: string };
+    metadata?: { role?: string }
   }
 }
 
 /** Returns true if the current session has admin role via session claims (no API call). */
 export async function isAdminFromClaims(): Promise<boolean> {
-  const { sessionClaims } = await auth();
-  return sessionClaims?.metadata?.role === "admin";
+  const { sessionClaims } = await auth()
+  return sessionClaims?.metadata?.role === "admin"
 }
 
 /** Page guard: redirects to / if unauthenticated or not admin. */
 export async function requireAdmin(): Promise<void> {
-  const { userId, sessionClaims } = await auth();
-  if (!userId || sessionClaims?.metadata?.role !== "admin") redirect("/");
+  const { userId, sessionClaims } = await auth()
+  if (!userId || sessionClaims?.metadata?.role !== "admin") redirect("/")
 }
 
 /**
@@ -31,10 +31,11 @@ export async function requireAdmin(): Promise<void> {
  * Usage: const denied = await assertAdmin(); if (denied) return denied;
  */
 export async function assertAdmin(): Promise<NextResponse | undefined> {
-  const { userId, sessionClaims } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { userId, sessionClaims } = await auth()
+  if (!userId)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   if (sessionClaims?.metadata?.role !== "admin") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 }
 
@@ -44,13 +45,13 @@ export async function assertAdmin(): Promise<NextResponse | undefined> {
  */
 export async function getLeagueRole(
   leagueId: string,
-  userId: string
+  userId: string,
 ): Promise<LeagueMemberRole | null> {
   const member = await prisma.leagueMember.findUnique({
     where: { clerkUserId_leagueId: { clerkUserId: userId, leagueId } },
     select: { role: true },
-  });
-  return member?.role ?? null;
+  })
+  return member?.role ?? null
 }
 
 /**
@@ -62,10 +63,10 @@ export async function getLeagueRole(
 export async function assertLeagueRole(
   leagueId: string,
   userId: string,
-  allowed: LeagueMemberRole[]
+  allowed: LeagueMemberRole[],
 ): Promise<NextResponse | undefined> {
-  const role = await getLeagueRole(leagueId, userId);
+  const role = await getLeagueRole(leagueId, userId)
   if (!role || !allowed.includes(role)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 }

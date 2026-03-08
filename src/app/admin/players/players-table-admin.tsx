@@ -1,37 +1,37 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { UserPlus, ChevronLeft } from "lucide-react";
-import type { UniverseSearchResult } from "@/app/api/admin/players/universe-search/route";
-import { PlayersTable, type PlayerRow } from "@/components/players-table";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
-import { Field } from "@/components/ui/field";
-import { Badge } from "@/components/ui/badge";
+import { ChevronLeft, UserPlus } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import type { UniverseSearchResult } from "@/app/api/admin/players/universe-search/route"
+import { type PlayerRow, PlayersTable } from "@/components/players-table"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
+} from "@/components/ui/dialog"
+import { Field } from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
+import { Select } from "@/components/ui/select"
+import { cn } from "@/lib/utils"
 
 // ── Shared field types ────────────────────────────────────────────────────────
 
 type OverrideFields = {
-  displayName: string;
-  firstName: string;
-  lastName: string;
-  nickname: string;
-  birthday: string;
-  team: string;
-  mlbLevel: string;
-  active: boolean | null;
-  bats: string;
-  throws: string;
-};
+  displayName: string
+  firstName: string
+  lastName: string
+  nickname: string
+  birthday: string
+  team: string
+  mlbLevel: string
+  active: boolean | null
+  bats: string
+  throws: string
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -47,7 +47,7 @@ function emptyOverride(): OverrideFields {
     active: null,
     bats: "",
     throws: "",
-  };
+  }
 }
 
 function rowToOverride(row: PlayerRow): OverrideFields {
@@ -62,11 +62,11 @@ function rowToOverride(row: PlayerRow): OverrideFields {
     active: row.active,
     bats: row.bats ?? "",
     throws: row.throws ?? "",
-  };
+  }
 }
 
 function nullify(s: string): string | null {
-  return s.trim() || null;
+  return s.trim() || null
 }
 
 // ── Edit Override Modal ───────────────────────────────────────────────────────
@@ -75,69 +75,71 @@ function EditOverrideModal({
   row,
   onClose,
 }: {
-  row: PlayerRow;
-  onClose: () => void;
+  row: PlayerRow
+  onClose: () => void
 }) {
-  const router = useRouter();
-  const [fields, setFields] = useState<OverrideFields>(rowToOverride(row));
-  const [status, setStatus] = useState<"idle" | "saving" | "error">("idle");
-  const [error, setError] = useState("");
+  const router = useRouter()
+  const [fields, setFields] = useState<OverrideFields>(rowToOverride(row))
+  const [status, setStatus] = useState<"idle" | "saving" | "error">("idle")
+  const [error, setError] = useState("")
 
   function set<K extends keyof OverrideFields>(key: K, val: OverrideFields[K]) {
-    setFields((f) => ({ ...f, [key]: val }));
+    setFields((f) => ({ ...f, [key]: val }))
   }
 
   async function handleSave() {
-    setStatus("saving");
-    setError("");
+    setStatus("saving")
+    setError("")
     try {
       const res = await fetch(`/api/admin/players/${row.id}/override`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           displayName: nullify(fields.displayName),
-          firstName:   nullify(fields.firstName),
-          lastName:    nullify(fields.lastName),
-          nickname:    nullify(fields.nickname),
-          birthday:    nullify(fields.birthday),
-          team:        nullify(fields.team),
-          mlbLevel:    nullify(fields.mlbLevel),
-          active:      fields.active,
-          bats:        nullify(fields.bats),
-          throws:      nullify(fields.throws),
+          firstName: nullify(fields.firstName),
+          lastName: nullify(fields.lastName),
+          nickname: nullify(fields.nickname),
+          birthday: nullify(fields.birthday),
+          team: nullify(fields.team),
+          mlbLevel: nullify(fields.mlbLevel),
+          active: fields.active,
+          bats: nullify(fields.bats),
+          throws: nullify(fields.throws),
         }),
-      });
+      })
       if (!res.ok) {
-        const d = await res.json() as { error: string };
-        setError(d.error ?? "Save failed");
-        setStatus("error");
-        return;
+        const d = (await res.json()) as { error: string }
+        setError(d.error ?? "Save failed")
+        setStatus("error")
+        return
       }
-      router.refresh();
-      onClose();
+      router.refresh()
+      onClose()
     } catch {
-      setError("Network error");
-      setStatus("error");
+      setError("Network error")
+      setStatus("error")
     }
   }
 
   async function handleRemove() {
-    if (!row.overrideId) return;
-    setStatus("saving");
-    setError("");
+    if (!row.overrideId) return
+    setStatus("saving")
+    setError("")
     try {
-      const res = await fetch(`/api/admin/players/${row.id}/override`, { method: "DELETE" });
+      const res = await fetch(`/api/admin/players/${row.id}/override`, {
+        method: "DELETE",
+      })
       if (!res.ok) {
-        const d = await res.json() as { error: string };
-        setError(d.error ?? "Delete failed");
-        setStatus("error");
-        return;
+        const d = (await res.json()) as { error: string }
+        setError(d.error ?? "Delete failed")
+        setStatus("error")
+        return
       }
-      router.refresh();
-      onClose();
+      router.refresh()
+      onClose()
     } catch {
-      setError("Network error");
-      setStatus("error");
+      setError("Network error")
+      setStatus("error")
     }
   }
 
@@ -148,7 +150,9 @@ function EditOverrideModal({
         <p className="text-xs text-zinc-400 dark:text-zinc-500">
           {row.fgSpecialChar ?? row.playerName}
           {row.isManual && (
-            <Badge variant="warning" className="ml-2">manual</Badge>
+            <Badge variant="warning" className="ml-2">
+              manual
+            </Badge>
           )}
         </p>
       </DialogHeader>
@@ -209,7 +213,10 @@ function EditOverrideModal({
           <Select
             value={fields.active === null ? "" : String(fields.active)}
             onChange={(e) =>
-              set("active", e.target.value === "" ? null : e.target.value === "true")
+              set(
+                "active",
+                e.target.value === "" ? null : e.target.value === "true",
+              )
             }
           >
             <option value="">— inherit —</option>
@@ -267,91 +274,101 @@ function EditOverrideModal({
         </div>
       </div>
     </DialogContent>
-  );
+  )
 }
 
 // ── Add Manual Player Modal (two-step: search → fill) ────────────────────────
 
 function AddManualModal({ onClose }: { onClose: () => void }) {
-  const router = useRouter();
+  const router = useRouter()
 
   // ── Step 1: Search ──────────────────────────────────────────────────────────
-  const [nameQuery, setNameQuery] = useState("");
-  const [idQuery, setIdQuery]     = useState("");
-  const [results, setResults]     = useState<UniverseSearchResult[]>([]);
-  const [searching, setSearching] = useState(false);
+  const [nameQuery, setNameQuery] = useState("")
+  const [idQuery, setIdQuery] = useState("")
+  const [results, setResults] = useState<UniverseSearchResult[]>([])
+  const [searching, setSearching] = useState(false)
 
   // ── Step 2: Fill ────────────────────────────────────────────────────────────
-  const [selected, setSelected]   = useState<UniverseSearchResult | null>(null);
-  const [fields, setFields]       = useState<OverrideFields>(emptyOverride());
-  const [status, setStatus]       = useState<"idle" | "saving" | "error">("idle");
-  const [error, setError]         = useState("");
+  const [selected, setSelected] = useState<UniverseSearchResult | null>(null)
+  const [fields, setFields] = useState<OverrideFields>(emptyOverride())
+  const [status, setStatus] = useState<"idle" | "saving" | "error">("idle")
+  const [error, setError] = useState("")
 
   // Debounced universe search
   useEffect(() => {
-    if (!nameQuery && !idQuery) { setResults([]); return; }
-    setSearching(true);
-    const params = new URLSearchParams();
-    if (idQuery)       params.set("ottoneuId", idQuery);
-    else if (nameQuery) params.set("q", nameQuery);
+    if (!nameQuery && !idQuery) {
+      setResults([])
+      return
+    }
+    setSearching(true)
+    const params = new URLSearchParams()
+    if (idQuery) params.set("ottoneuId", idQuery)
+    else if (nameQuery) params.set("q", nameQuery)
     const t = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/admin/players/universe-search?${params}`);
-        setResults(await res.json() as UniverseSearchResult[]);
+        const res = await fetch(`/api/admin/players/universe-search?${params}`)
+        setResults((await res.json()) as UniverseSearchResult[])
       } finally {
-        setSearching(false);
+        setSearching(false)
       }
-    }, 300);
-    return () => clearTimeout(t);
-  }, [nameQuery, idQuery]);
+    }, 300)
+    return () => clearTimeout(t)
+  }, [nameQuery, idQuery])
 
   function selectPlayer(u: UniverseSearchResult) {
-    setSelected(u);
-    setFields({ ...emptyOverride(), displayName: u.playerName, birthday: u.birthday ?? "" });
+    setSelected(u)
+    setFields({
+      ...emptyOverride(),
+      displayName: u.playerName,
+      birthday: u.birthday ?? "",
+    })
   }
 
   function set<K extends keyof OverrideFields>(key: K, val: OverrideFields[K]) {
-    setFields((f) => ({ ...f, [key]: val }));
+    setFields((f) => ({ ...f, [key]: val }))
   }
 
   async function handleSave() {
-    if (!selected) return;
-    setStatus("saving");
-    setError("");
+    if (!selected) return
+    setStatus("saving")
+    setError("")
     try {
       const res = await fetch("/api/admin/players/manual", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           displayName: nullify(fields.displayName),
-          firstName:   nullify(fields.firstName),
-          lastName:    nullify(fields.lastName),
-          nickname:    nullify(fields.nickname),
-          birthday:    nullify(fields.birthday),
-          team:        nullify(fields.team),
-          mlbLevel:    nullify(fields.mlbLevel),
-          active:      fields.active,
-          bats:        nullify(fields.bats),
-          throws:      nullify(fields.throws),
+          firstName: nullify(fields.firstName),
+          lastName: nullify(fields.lastName),
+          nickname: nullify(fields.nickname),
+          birthday: nullify(fields.birthday),
+          team: nullify(fields.team),
+          mlbLevel: nullify(fields.mlbLevel),
+          active: fields.active,
+          bats: nullify(fields.bats),
+          throws: nullify(fields.throws),
           fangraphsId: selected.fangraphsId,
-          mlbamId:     selected.mlbamId,
-          ottoneuId:   selected.ottoneuId,
+          mlbamId: selected.mlbamId,
+          ottoneuId: selected.ottoneuId,
         }),
-      });
+      })
       if (!res.ok) {
-        const d = await res.json() as { error: string | { formErrors: string[] } };
-        const msg = typeof d.error === "string"
-          ? d.error
-          : (d.error?.formErrors?.[0] ?? "Save failed");
-        setError(msg);
-        setStatus("error");
-        return;
+        const d = (await res.json()) as {
+          error: string | { formErrors: string[] }
+        }
+        const msg =
+          typeof d.error === "string"
+            ? d.error
+            : (d.error?.formErrors?.[0] ?? "Save failed")
+        setError(msg)
+        setStatus("error")
+        return
       }
-      router.refresh();
-      onClose();
+      router.refresh()
+      onClose()
     } catch {
-      setError("Network error");
-      setStatus("error");
+      setError("Network error")
+      setStatus("error")
     }
   }
 
@@ -372,13 +389,19 @@ function AddManualModal({ onClose }: { onClose: () => void }) {
             className="flex-1"
             placeholder="Player name"
             value={nameQuery}
-            onChange={(e) => { setNameQuery(e.target.value); setIdQuery(""); }}
+            onChange={(e) => {
+              setNameQuery(e.target.value)
+              setIdQuery("")
+            }}
           />
           <Input
             className="w-24"
             placeholder="ID"
             value={idQuery}
-            onChange={(e) => { setIdQuery(e.target.value); setNameQuery(""); }}
+            onChange={(e) => {
+              setIdQuery(e.target.value)
+              setNameQuery("")
+            }}
           />
         </div>
 
@@ -386,29 +409,32 @@ function AddManualModal({ onClose }: { onClose: () => void }) {
           <div className="mt-2 max-h-72 overflow-y-auto rounded-md border border-zinc-200 dark:border-zinc-700">
             {results.length === 0 ? (
               <p className="px-3 py-2 text-sm text-zinc-400">No results</p>
-            ) : 
-            results.map((r) => (
-              <button
-                key={r.ottoneuId}
-                disabled={r.alreadyTracked}
-                onClick={() => selectPlayer(r)}
-                className={cn(
-                  "flex w-full items-center justify-between px-3 py-2 text-left text-sm",
-                  "border-b border-zinc-100 last:border-0 dark:border-zinc-800",
-                  r.alreadyTracked
-                    ? "cursor-not-allowed text-zinc-300 dark:text-zinc-500"
-                    : "hover:bg-zinc-50 dark:hover:bg-zinc-800",
-                )}
-              >
-                <span className="font-medium">
-                  {r.playerName}
-                </span>
-                <span className="flex items-center gap-3 text-xs">
-                  {r.positions.length > 0 && <span>{r.positions.join("/")}</span>}
-                  <span>#{r.ottoneuId}</span>
-                </span>
-              </button>
-            ))}
+            ) : (
+              results.map((r) => (
+                <Button
+                  key={r.ottoneuId}
+                  type="button"
+                  variant="ghost"
+                  disabled={r.alreadyTracked}
+                  onClick={() => selectPlayer(r)}
+                  className={cn(
+                    "flex w-full items-center justify-between px-3 py-2 text-left text-sm rounded-none",
+                    "border-b border-zinc-100 last:border-0 dark:border-zinc-800",
+                    r.alreadyTracked
+                      ? "cursor-not-allowed text-zinc-300 dark:text-zinc-500"
+                      : "hover:bg-zinc-50 dark:hover:bg-zinc-800",
+                  )}
+                >
+                  <span className="font-medium">{r.playerName}</span>
+                  <span className="flex items-center gap-3 text-xs">
+                    {r.positions.length > 0 && (
+                      <span>{r.positions.join("/")}</span>
+                    )}
+                    <span>#{r.ottoneuId}</span>
+                  </span>
+                </Button>
+              ))
+            )}
           </div>
         )}
 
@@ -418,7 +444,7 @@ function AddManualModal({ onClose }: { onClose: () => void }) {
           </Button>
         </div>
       </DialogContent>
-    );
+    )
   }
 
   // ── Step 2: Fill UI ─────────────────────────────────────────────────────────
@@ -501,7 +527,10 @@ function AddManualModal({ onClose }: { onClose: () => void }) {
           <Select
             value={fields.active === null ? "" : String(fields.active)}
             onChange={(e) =>
-              set("active", e.target.value === "" ? null : e.target.value === "true")
+              set(
+                "active",
+                e.target.value === "" ? null : e.target.value === "true",
+              )
             }
           >
             <option value="">— not set —</option>
@@ -556,14 +585,14 @@ function AddManualModal({ onClose }: { onClose: () => void }) {
         </div>
       </div>
     </DialogContent>
-  );
+  )
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export function PlayersTableAdmin({ data }: { data: PlayerRow[] }) {
-  const [editingRow, setEditingRow] = useState<PlayerRow | null>(null);
-  const [addingManual, setAddingManual] = useState(false);
+  const [editingRow, setEditingRow] = useState<PlayerRow | null>(null)
+  const [addingManual, setAddingManual] = useState(false)
 
   const addButton = (
     <Button
@@ -575,21 +604,31 @@ export function PlayersTableAdmin({ data }: { data: PlayerRow[] }) {
       <UserPlus className="h-4 w-4" />
       Add Player
     </Button>
-  );
+  )
 
   return (
     <>
       <PlayersTable data={data} onEdit={setEditingRow} action={addButton} />
 
-      <Dialog open={!!editingRow} onOpenChange={(open) => { if (!open) setEditingRow(null); }}>
+      <Dialog
+        open={!!editingRow}
+        onOpenChange={(open) => {
+          if (!open) setEditingRow(null)
+        }}
+      >
         {editingRow && (
-          <EditOverrideModal row={editingRow} onClose={() => setEditingRow(null)} />
+          <EditOverrideModal
+            row={editingRow}
+            onClose={() => setEditingRow(null)}
+          />
         )}
       </Dialog>
 
       <Dialog open={addingManual} onOpenChange={setAddingManual}>
-        {addingManual && <AddManualModal onClose={() => setAddingManual(false)} />}
+        {addingManual && (
+          <AddManualModal onClose={() => setAddingManual(false)} />
+        )}
       </Dialog>
     </>
-  );
+  )
 }

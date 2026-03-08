@@ -1,40 +1,56 @@
-"use client";
+"use client"
 
 import {
-  ColumnDef,
-  SortingState,
+  type ColumnDef,
   flexRender,
   getCoreRowModel,
   getPaginationRowModel,
   getSortedRowModel,
+  type SortingState,
   useReactTable,
-} from "@tanstack/react-table";
-import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
-import { useState } from "react";
-import { IconButton } from "@/components/ui/icon-button";
-import { Select } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
+} from "@tanstack/react-table"
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react"
+import { useState } from "react"
+import { IconButton } from "@/components/ui/icon-button"
+import { Select } from "@/components/ui/select"
+import { cn } from "@/lib/utils"
 
-const PAGE_SIZE_OPTIONS = [20, 30, 50, 100, "All"] as const;
-type PageSizeOption = (typeof PAGE_SIZE_OPTIONS)[number];
+const PAGE_SIZE_OPTIONS = [20, 30, 50, 100, "All"] as const
+type PageSizeOption = (typeof PAGE_SIZE_OPTIONS)[number]
 
 function resolvePageSize(opt: PageSizeOption): number {
-  return opt === "All" ? Number.MAX_SAFE_INTEGER : opt;
+  return opt === "All" ? Number.MAX_SAFE_INTEGER : opt
 }
 
 interface DataTableProps<T> {
-  columns: ColumnDef<T, unknown>[];
-  data: T[];
-  defaultPageSize?: PageSizeOption;
-  defaultSorting?: SortingState;
-  pagination?: boolean;
+  columns: ColumnDef<T, unknown>[]
+  data: T[]
+  defaultPageSize?: PageSizeOption
+  defaultSorting?: SortingState
+  pagination?: boolean
 }
 
-export function DataTable<T>({ columns, data, defaultPageSize = 20, defaultSorting = [], pagination = true }: DataTableProps<T>) {
-  const [sorting, setSorting] = useState<SortingState>(defaultSorting);
-  const [pageIndex, setPageIndex] = useState(0);
-  const [pageSizeOption, setPageSizeOption] = useState<PageSizeOption>(defaultPageSize);
-  const pageSize = pagination === false ? Number.MAX_SAFE_INTEGER : resolvePageSize(pageSizeOption);
+export function DataTable<T>({
+  columns,
+  data,
+  defaultPageSize = 20,
+  defaultSorting = [],
+  pagination = true,
+}: DataTableProps<T>) {
+  const [sorting, setSorting] = useState<SortingState>(defaultSorting)
+  const [pageIndex, setPageIndex] = useState(0)
+  const [pageSizeOption, setPageSizeOption] =
+    useState<PageSizeOption>(defaultPageSize)
+  const pageSize =
+    pagination === false
+      ? Number.MAX_SAFE_INTEGER
+      : resolvePageSize(pageSizeOption)
 
   // Warning message is sufficient to identify future upgrade
   const table = useReactTable({
@@ -42,22 +58,22 @@ export function DataTable<T>({ columns, data, defaultPageSize = 20, defaultSorti
     columns,
     state: { sorting, pagination: { pageIndex, pageSize } },
     onSortingChange: (updater) => {
-      setSorting(updater);
-      setPageIndex(0);
+      setSorting(updater)
+      setPageIndex(0)
     },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     manualPagination: false,
-  });
+  })
 
-  const { rows } = table.getRowModel();
-  const totalRows = table.getFilteredRowModel().rows.length;
-  const from = totalRows === 0 ? 0 : pageIndex * pageSize + 1;
-  const to = Math.min(pageIndex * pageSize + pageSize, totalRows);
-  const pageCount = table.getPageCount();
-  const canPrev = pageIndex > 0;
-  const canNext = pageIndex < pageCount - 1;
+  const { rows } = table.getRowModel()
+  const totalRows = table.getFilteredRowModel().rows.length
+  const from = totalRows === 0 ? 0 : pageIndex * pageSize + 1
+  const to = Math.min(pageIndex * pageSize + pageSize, totalRows)
+  const pageCount = table.getPageCount()
+  const canPrev = pageIndex > 0
+  const canNext = pageIndex < pageCount - 1
 
   return (
     <div className="flex flex-col gap-2">
@@ -77,31 +93,38 @@ export function DataTable<T>({ columns, data, defaultPageSize = 20, defaultSorti
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id}>
                 {hg.headers.map((header) => {
-                  const sorted = header.column.getIsSorted();
-                  const canSort = header.column.getCanSort();
+                  const sorted = header.column.getIsSorted()
+                  const canSort = header.column.getCanSort()
                   return (
                     <th
                       key={header.id}
                       className={cn(
                         "px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 select-none overflow-hidden text-ellipsis whitespace-nowrap",
-                        canSort && "cursor-pointer hover:text-zinc-700 dark:hover:text-zinc-300",
+                        canSort &&
+                          "cursor-pointer hover:text-zinc-700 dark:hover:text-zinc-300",
                       )}
-                      onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
+                      onClick={
+                        canSort
+                          ? header.column.getToggleSortingHandler()
+                          : undefined
+                      }
                     >
                       <span className="inline-flex items-center gap-1">
-                        {flexRender(header.column.columnDef.header, header.getContext())}
-                        {canSort && (
-                          sorted === "asc" ? (
+                        {flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
+                        {canSort &&
+                          (sorted === "asc" ? (
                             <ArrowUp className="h-3 w-3" />
                           ) : sorted === "desc" ? (
                             <ArrowDown className="h-3 w-3" />
                           ) : (
                             <ArrowUpDown className="h-3 w-3 text-zinc-400" />
-                          )
-                        )}
+                          ))}
                       </span>
                     </th>
-                  );
+                  )
                 })}
               </tr>
             ))}
@@ -118,10 +141,19 @@ export function DataTable<T>({ columns, data, defaultPageSize = 20, defaultSorti
               </tr>
             ) : (
               rows.map((row) => (
-                <tr key={row.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-900">
+                <tr
+                  key={row.id}
+                  className="hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                >
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="overflow-hidden text-ellipsis whitespace-nowrap px-4 py-3 text-zinc-600 dark:text-zinc-400">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    <td
+                      key={cell.id}
+                      className="overflow-hidden text-ellipsis whitespace-nowrap px-4 py-3 text-zinc-600 dark:text-zinc-400"
+                    >
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
                     </td>
                   ))}
                 </tr>
@@ -132,59 +164,69 @@ export function DataTable<T>({ columns, data, defaultPageSize = 20, defaultSorti
       </div>
 
       {/* Pagination footer */}
-      {pagination !== false && <div className="flex items-center justify-between gap-4 text-xs text-zinc-500 dark:text-zinc-400">
-        {/* Left: count */}
-        <span className="tabular-nums">
-          {totalRows === 0
-            ? "No results"
-            : `Showing ${from}–${to} of ${totalRows}`}
-        </span>
-
-        {/* Center: prev / indicator / next */}
-        <div className="flex items-center gap-2">
-          <IconButton
-            onClick={() => setPageIndex((p) => p - 1)}
-            disabled={!canPrev}
-            aria-label="Previous page"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </IconButton>
+      {pagination !== false && (
+        <div className="flex items-center justify-between gap-4 text-xs text-zinc-500 dark:text-zinc-400">
+          {/* Left: count */}
           <span className="tabular-nums">
-            {pageCount === 0 ? "—" : `${pageIndex + 1} / ${pageCount}`}
+            {totalRows === 0
+              ? "No results"
+              : `Showing ${from}–${to} of ${totalRows}`}
           </span>
-          <IconButton
-            onClick={() => setPageIndex((p) => p + 1)}
-            disabled={!canNext}
-            aria-label="Next page"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </IconButton>
-        </div>
 
-        {/* Right: page size */}
-        <div className="flex items-center gap-1">
-          <span>Rows:</span>
-          <Select
-            value={pageSizeOption}
-            onChange={(e) => {
-              const val = e.target.value;
-              const numVal = Number(val);
-              const isAll = val === "All";
-              const isValidNum = !isNaN(numVal) && ([20, 30, 50, 100] as const).includes(numVal as 20 | 30 | 50 | 100);
-              const opt: PageSizeOption = isAll ? "All" : isValidNum ? (numVal as 20 | 30 | 50 | 100) : defaultPageSize;
-              setPageSizeOption(opt);
-              setPageIndex(0);
-            }}
-            className="px-1.5 py-0.5 text-xs"
-          >
-            {PAGE_SIZE_OPTIONS.map((o) => (
-              <option key={o} value={o}>
-                {o}
-              </option>
-            ))}
-          </Select>
+          {/* Center: prev / indicator / next */}
+          <div className="flex items-center gap-2">
+            <IconButton
+              onClick={() => setPageIndex((p) => p - 1)}
+              disabled={!canPrev}
+              aria-label="Previous page"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </IconButton>
+            <span className="tabular-nums">
+              {pageCount === 0 ? "—" : `${pageIndex + 1} / ${pageCount}`}
+            </span>
+            <IconButton
+              onClick={() => setPageIndex((p) => p + 1)}
+              disabled={!canNext}
+              aria-label="Next page"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </IconButton>
+          </div>
+
+          {/* Right: page size */}
+          <div className="flex items-center gap-1">
+            <span>Rows:</span>
+            <Select
+              value={pageSizeOption}
+              onChange={(e) => {
+                const val = e.target.value
+                const numVal = Number(val)
+                const isAll = val === "All"
+                const isValidNum =
+                  !Number.isNaN(numVal) &&
+                  ([20, 30, 50, 100] as const).includes(
+                    numVal as 20 | 30 | 50 | 100,
+                  )
+                const opt: PageSizeOption = isAll
+                  ? "All"
+                  : isValidNum
+                    ? (numVal as 20 | 30 | 50 | 100)
+                    : defaultPageSize
+                setPageSizeOption(opt)
+                setPageIndex(0)
+              }}
+              className="px-1.5 py-0.5 text-xs"
+            >
+              {PAGE_SIZE_OPTIONS.map((o) => (
+                <option key={o} value={o}>
+                  {o}
+                </option>
+              ))}
+            </Select>
+          </div>
         </div>
-      </div>}
+      )}
     </div>
-  );
+  )
 }

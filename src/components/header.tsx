@@ -1,27 +1,34 @@
-import { auth } from "@clerk/nextjs/server";
-import { isAdminFromClaims } from "@/lib/auth-helpers";
-import { ClerkLoaded, ClerkLoading, SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
-import Link from "next/link";
-import { prisma } from "@/lib/prisma";
-import { UserMenu, type UserMenuLeague } from "./user-menu";
-import { LeagueSelector } from "./league-selector";
-import { AdminMenu } from "./admin-menu";
+import {
+  ClerkLoaded,
+  ClerkLoading,
+  SignedIn,
+  SignedOut,
+  SignInButton,
+} from "@clerk/nextjs"
+import { auth } from "@clerk/nextjs/server"
+import Link from "next/link"
+import { isAdminFromClaims } from "@/lib/auth-helpers"
+import { prisma } from "@/lib/prisma"
+import { AdminMenu } from "./admin-menu"
+import { LeagueSelector } from "./league-selector"
+import { Button } from "./ui/button"
+import { UserMenu, type UserMenuLeague } from "./user-menu"
 
 export async function Header() {
-  const { userId } = await auth();
+  const { userId } = await auth()
 
-  let leagues: UserMenuLeague[] = [];
-  let isAdmin = false;
+  let leagues: UserMenuLeague[] = []
+  let isAdmin = false
 
   if (userId) {
-    [leagues, isAdmin] = await Promise.all([
+    ;[leagues, isAdmin] = await Promise.all([
       prisma.league.findMany({
         where: { members: { some: { clerkUserId: userId } }, deletedAt: null },
         select: { id: true, leagueName: true, clerkOrgId: true },
         orderBy: { leagueName: "asc" },
       }),
       isAdminFromClaims(),
-    ]);
+    ])
   }
 
   return (
@@ -43,19 +50,17 @@ export async function Header() {
           <ClerkLoaded>
             <SignedIn>
               <LeagueSelector leagues={leagues} />
-              {isAdmin && <AdminMenu className="mr-2"/>}
+              {isAdmin && <AdminMenu className="mr-2" />}
               <UserMenu />
             </SignedIn>
             <SignedOut>
               <SignInButton mode="redirect">
-                <button className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200">
-                  Sign in
-                </button>
+                <Button>Sign in</Button>
               </SignInButton>
             </SignedOut>
           </ClerkLoaded>
         </div>
       </div>
     </header>
-  );
+  )
 }

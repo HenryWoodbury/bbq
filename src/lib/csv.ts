@@ -1,30 +1,30 @@
 export function parseCSVLine(line: string): string[] {
-  const fields: string[] = [];
-  let current = "";
-  let inQuotes = false;
+  const fields: string[] = []
+  let current = ""
+  let inQuotes = false
 
   for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
+    const ch = line[i]
     if (ch === '"') {
       if (inQuotes && line[i + 1] === '"') {
-        current += '"';
-        i++;
+        current += '"'
+        i++
       } else {
-        inQuotes = !inQuotes;
+        inQuotes = !inQuotes
       }
     } else if (ch === "," && !inQuotes) {
-      fields.push(current);
-      current = "";
+      fields.push(current)
+      current = ""
     } else {
-      current += ch;
+      current += ch
     }
   }
-  fields.push(current);
-  return fields;
+  fields.push(current)
+  return fields
 }
 
 export function chunk<T>(arr: T[], size: number): T[][] {
-  const chunks: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) chunks.push(arr.slice(i, i + size));
-  return chunks;
+  const chunks: T[][] = []
+  for (let i = 0; i < arr.length; i += size) chunks.push(arr.slice(i, i + size))
+  return chunks
 }

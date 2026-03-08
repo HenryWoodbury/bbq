@@ -1,16 +1,16 @@
-"use client";
+"use client"
 
-import { ColumnDef } from "@tanstack/react-table";
-import { DataTable } from "@/components/data-table";
+import type { ColumnDef } from "@tanstack/react-table"
+import { DataTable } from "@/components/data-table"
 
 export type LeagueRow = {
-  id: string;
-  leagueName: string;
-  leagueFormat: string | null;
-  fantasyPlatform: string | null;
-  seasons: number[];
-  _count: { members: number; teams: number };
-};
+  id: string
+  leagueName: string
+  leagueFormat: string | null
+  fantasyPlatform: string | null
+  seasons: number[]
+  _count: { members: number; teams: number }
+}
 
 const columns: ColumnDef<LeagueRow, unknown>[] = [
   {
@@ -36,13 +36,15 @@ const columns: ColumnDef<LeagueRow, unknown>[] = [
     accessorKey: "seasons",
     header: "Seasons",
     sortingFn: (a, b) => {
-      const aMax = a.original.seasons.length > 0 ? Math.max(...a.original.seasons) : 0;
-      const bMax = b.original.seasons.length > 0 ? Math.max(...b.original.seasons) : 0;
-      return aMax - bMax;
+      const aMax =
+        a.original.seasons.length > 0 ? Math.max(...a.original.seasons) : 0
+      const bMax =
+        b.original.seasons.length > 0 ? Math.max(...b.original.seasons) : 0
+      return aMax - bMax
     },
     cell: ({ getValue }) => {
-      const s = getValue() as number[];
-      return s.length > 0 ? s.join(", ") : "—";
+      const s = getValue() as number[]
+      return s.length > 0 ? s.join(", ") : "—"
     },
   },
   {
@@ -57,8 +59,8 @@ const columns: ColumnDef<LeagueRow, unknown>[] = [
     accessorFn: (row) => row._count.teams,
     cell: ({ getValue }) => getValue() as number,
   },
-];
+]
 
 export function LeaguesTable({ data }: { data: LeagueRow[] }) {
-  return <DataTable columns={columns} data={data} />;
+  return <DataTable columns={columns} data={data} />
 }

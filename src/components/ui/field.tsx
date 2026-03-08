@@ -1,9 +1,9 @@
-import * as React from "react";
-import { Label } from "@/components/ui/label";
+import type * as React from "react"
+import { Label } from "@/components/ui/label"
 
 interface FieldProps {
-  label: string;
-  children: React.ReactNode;
+  label: string
+  children: React.ReactNode
 }
 
 function Field({ label, children }: FieldProps) {
@@ -12,7 +12,7 @@ function Field({ label, children }: FieldProps) {
       <Label>{label}</Label>
       {children}
     </div>
-  );
+  )
 }
 
-export { Field };
+export { Field }

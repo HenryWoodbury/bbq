@@ -14,7 +14,6 @@ Rollout: Focus on working prototype using free-tier services. Design architectur
 - Use kebab-case for all .ts and .tsx file names.
 <!-- END:nextjs-agent-rules -->
 
-
 ## 📚 Essential Documentation Links
 - **Next.js 16**: node_modules/next/dist/docs/
 - **React 19**: https://react.dev/reference/react
@@ -53,9 +52,13 @@ Rollout: Focus on working prototype using free-tier services. Design architectur
 - **Cloud Transition**: Schema must remain provider-agnostic (avoid provider-specific extensions).
 - **Prisma Schema**: Maintain strict PascalCase for Models and camelCase for fields.
 
+## 🤖 Specific Typescript Rules
+- **No `any`**: Accurate TypeScript interfaces/types are mandatory. No `any`.
+- **Avoid type coercion** Always use `Number.isNaN`, not `isNaN` by itself.
+- **Do not use nonNull assertion** Use explicit checks over the `!` nonNull assertion.
+
 ## ✍️ Interaction Protocol
 - **Efficiency**: Expert-level brevity. Do not explain basic concepts.
-- **Code Quality**: Accurate TypeScript interfaces/types are mandatory. No `any`.
 - **No Placeholders**: Output full code blocks for modified files.
 - **Verification**: Remind the user to run `npx prisma validate` and `npx tsc` after structural changes.
 - **Plan Mode**: Do not implement from plan mode without verification.

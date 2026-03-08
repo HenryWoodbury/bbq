@@ -1,14 +1,14 @@
-import { auth } from "@clerk/nextjs/server";
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { assertAdmin } from "@/lib/auth-helpers";
+import { auth } from "@clerk/nextjs/server"
+import { type NextRequest, NextResponse } from "next/server"
+import { assertAdmin } from "@/lib/auth-helpers"
+import { prisma } from "@/lib/prisma"
 
 export async function GET(request: NextRequest) {
-  await auth.protect();
+  await auth.protect()
 
-  const { searchParams } = request.nextUrl;
-  const playerId = searchParams.get("playerId");
-  const season = searchParams.get("season");
+  const { searchParams } = request.nextUrl
+  const playerId = searchParams.get("playerId")
+  const season = searchParams.get("season")
 
   const stats = await prisma.playerStat.findMany({
     where: {
@@ -16,29 +16,34 @@ export async function GET(request: NextRequest) {
       ...(playerId ? { playerId } : {}),
       ...(season ? { season: parseInt(season, 10) } : {}),
     },
-    include: { player: { select: { id: true, playerName: true, sfbbId: true } } },
+    include: {
+      player: { select: { id: true, playerName: true, sfbbId: true } },
+    },
     orderBy: [{ season: "desc" }, { player: { playerName: "asc" } }],
-  });
+  })
 
-  return NextResponse.json({ data: stats, total: stats.length });
+  return NextResponse.json({ data: stats, total: stats.length })
 }
 
 export async function POST(request: NextRequest) {
-  const denied = await assertAdmin();
-  if (denied) return denied;
+  const denied = await assertAdmin()
+  if (denied) return denied
 
-  const body = await request.json();
-  const { playerId, season, mlbTeam, stats } = body;
+  const body = await request.json()
+  const { playerId, season, mlbTeam, stats } = body
 
   if (!playerId || !season || !stats) {
-    return NextResponse.json({ error: "playerId, season, and stats are required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "playerId, season, and stats are required" },
+      { status: 400 },
+    )
   }
 
   const stat = await prisma.playerStat.upsert({
     where: { playerId_season: { playerId, season } },
     update: { mlbTeam, stats },
     create: { playerId, season, mlbTeam, stats },
-  });
+  })
 
-  return NextResponse.json(stat, { status: 201 });
+  return NextResponse.json(stat, { status: 201 })
 }

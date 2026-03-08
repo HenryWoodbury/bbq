@@ -1,19 +1,29 @@
-import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth-helpers";
-import { StatDefsTable } from "../stat-defs-table";
-import { SectionCollapsible } from "@/components/section-collapsible";
+import { SectionCollapsible } from "@/components/section-collapsible"
+import { requireAdmin } from "@/lib/auth-helpers"
+import { prisma } from "@/lib/prisma"
+import { StatDefsTable } from "../stat-defs-table"
 
-export const metadata = { title: "Settings — BBQ" };
+export const metadata = { title: "Settings — BBQ" }
 
 export default async function AdminSettingsPage() {
-  await requireAdmin();
+  await requireAdmin()
 
-  const base = { where: { deletedAt: null }, orderBy: { abbreviation: "asc" }, select: { id: true, abbreviation: true, name: true, format: true } } as const;
+  const base = {
+    where: { deletedAt: null },
+    orderBy: { abbreviation: "asc" },
+    select: { id: true, abbreviation: true, name: true, format: true },
+  } as const
 
   const [batterStats, pitcherStats] = await Promise.all([
-    prisma.statDefinition.findMany({ ...base, where: { deletedAt: null, playerType: "BATTER" } }),
-    prisma.statDefinition.findMany({ ...base, where: { deletedAt: null, playerType: "PITCHER" } }),
-  ]);
+    prisma.statDefinition.findMany({
+      ...base,
+      where: { deletedAt: null, playerType: "BATTER" },
+    }),
+    prisma.statDefinition.findMany({
+      ...base,
+      where: { deletedAt: null, playerType: "PITCHER" },
+    }),
+  ])
 
   return (
     <div className="flex flex-col gap-10">
@@ -31,5 +41,5 @@ export default async function AdminSettingsPage() {
         <StatDefsTable data={pitcherStats} />
       </SectionCollapsible>
     </div>
-  );
+  )
 }

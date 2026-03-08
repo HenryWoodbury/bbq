@@ -1,56 +1,59 @@
-"use client";
+"use client"
 
-import { useMemo, useState, type ReactNode } from "react";
-import { ColumnDef } from "@tanstack/react-table";
-import { DataTable } from "@/components/data-table";
-import { FilterGroup } from "@/components/filter-group";
-import { Input } from "@/components/ui/input";
-import { IconButton } from "@/components/ui/icon-button";
-import { Pencil } from "lucide-react";
+import type { ColumnDef } from "@tanstack/react-table"
+import { Pencil } from "lucide-react"
+import { type ReactNode, useMemo, useState } from "react"
+import { DataTable } from "@/components/data-table"
+import { FilterGroup } from "@/components/filter-group"
+import { IconButton } from "@/components/ui/icon-button"
+import { Input } from "@/components/ui/input"
 
 export type PlayerRow = {
-  id: string;
-  ottoneuId: number | null;
+  id: string
+  ottoneuId: number | null
   /** ASCII name from SFBB PLAYERNAME — search fallback */
-  playerName: string;
+  playerName: string
   /** Preferred display name from SFBB FGSPECIALCHAR — includes diacritics/accents */
-  fgSpecialChar: string | null;
-  firstName: string | null;
+  fgSpecialChar: string | null
+  firstName: string | null
   /** For sort */
-  lastName: string | null;
-  active: boolean;
+  lastName: string | null
+  active: boolean
   /** ISO date string "YYYY-MM-DD" */
-  birthday: string | null;
-  team: string | null;
-  mlbLevel: string | null;
-  fangraphsId: string | null;
-  bats: string | null;
-  throws: string | null;
+  birthday: string | null
+  team: string | null
+  mlbLevel: string | null
+  fangraphsId: string | null
+  bats: string | null
+  throws: string | null
   /** Ottoneu-specific eligible positions; empty if no universe entry */
-  ottoneuPositions: string[];
+  ottoneuPositions: string[]
   /** PlayerUniverse.fangraphsId — "sa…" prefix indicates MiLB */
-  universeFgId: string | null;
+  universeFgId: string | null
   /** ID of the PlayerOverride record, if one exists and is active */
-  overrideId: string | null;
+  overrideId: string | null
   /** true if this row originates from a manual PlayerOverride (no SFBB record) */
-  isManual: boolean;
-};
+  isManual: boolean
+}
 
 /** Strip diacritics so "ramirez" matches "Ramírez", "rodriguez" matches "Rodríguez", etc. */
 function normalize(s: string): string {
-  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  return s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
 }
 
 function isMajorLeague(row: PlayerRow): boolean {
-  return row.universeFgId !== null && !row.universeFgId.startsWith("sa");
+  return row.universeFgId !== null && !row.universeFgId.startsWith("sa")
 }
 
 function isMinorLeague(row: PlayerRow): boolean {
-  return row.universeFgId?.startsWith("sa") ?? false;
+  return row.universeFgId?.startsWith("sa") ?? false
 }
 
-type ActiveFilter = "yes" | "no" | "all";
-type LevelFilter = "all" | "mlb" | "milb";
+type ActiveFilter = "yes" | "no" | "all"
+type LevelFilter = "all" | "mlb" | "milb"
 
 const columns: ColumnDef<PlayerRow, unknown>[] = [
   {
@@ -58,8 +61,8 @@ const columns: ColumnDef<PlayerRow, unknown>[] = [
     header: "Ott ID",
     size: 72,
     cell: ({ getValue }) => {
-      const v = getValue() as number | null;
-      return v ?? <span className="text-zinc-300 dark:text-zinc-600">—</span>;
+      const v = getValue() as number | null
+      return v ?? <span className="text-zinc-300 dark:text-zinc-600">—</span>
     },
   },
   {
@@ -69,11 +72,11 @@ const columns: ColumnDef<PlayerRow, unknown>[] = [
     size: 160,
     sortingFn: (a, b) => {
       const key = (row: PlayerRow) => {
-        if (row.lastName) return row.lastName;
-        const words = row.playerName.trim().split(/\s+/);
-        return words[words.length - 1];
-      };
-      return key(a.original).localeCompare(key(b.original));
+        if (row.lastName) return row.lastName
+        const words = row.playerName.trim().split(/\s+/)
+        return words[words.length - 1]
+      }
+      return key(a.original).localeCompare(key(b.original))
     },
     cell: ({ getValue }) => (
       <span className="font-medium text-zinc-900 dark:text-zinc-50">
@@ -86,8 +89,8 @@ const columns: ColumnDef<PlayerRow, unknown>[] = [
     header: "Born",
     size: 90,
     cell: ({ getValue }) => {
-      const v = getValue() as string | null;
-      return v ?? <span className="text-zinc-300 dark:text-zinc-600">—</span>;
+      const v = getValue() as string | null
+      return v ?? <span className="text-zinc-300 dark:text-zinc-600">—</span>
     },
   },
   {
@@ -95,8 +98,8 @@ const columns: ColumnDef<PlayerRow, unknown>[] = [
     header: "Team",
     size: 64,
     cell: ({ getValue }) => {
-      const v = getValue() as string | null;
-      return v ?? <span className="text-zinc-300 dark:text-zinc-600">—</span>;
+      const v = getValue() as string | null
+      return v ?? <span className="text-zinc-300 dark:text-zinc-600">—</span>
     },
   },
   {
@@ -104,8 +107,8 @@ const columns: ColumnDef<PlayerRow, unknown>[] = [
     header: "LG",
     size: 56,
     cell: ({ getValue }) => {
-      const v = getValue() as string | null;
-      return v ?? <span className="text-zinc-300 dark:text-zinc-600">—</span>;
+      const v = getValue() as string | null
+      return v ?? <span className="text-zinc-300 dark:text-zinc-600">—</span>
     },
   },
   {
@@ -114,8 +117,8 @@ const columns: ColumnDef<PlayerRow, unknown>[] = [
     header: "FG ID",
     size: 80,
     cell: ({ getValue }) => {
-      const v = getValue() as string | null;
-      if (!v) return <span className="text-zinc-300 dark:text-zinc-600">—</span>;
+      const v = getValue() as string | null
+      if (!v) return <span className="text-zinc-300 dark:text-zinc-600">—</span>
       return (
         <a
           href={`https://www.fangraphs.com/statss.aspx?playerid=${v}`}
@@ -125,7 +128,7 @@ const columns: ColumnDef<PlayerRow, unknown>[] = [
         >
           {v}
         </a>
-      );
+      )
     },
   },
   {
@@ -133,8 +136,8 @@ const columns: ColumnDef<PlayerRow, unknown>[] = [
     header: "B",
     size: 40,
     cell: ({ getValue }) => {
-      const v = getValue() as string | null;
-      return v ?? <span className="text-zinc-300 dark:text-zinc-600">—</span>;
+      const v = getValue() as string | null
+      return v ?? <span className="text-zinc-300 dark:text-zinc-600">—</span>
     },
   },
   {
@@ -142,8 +145,8 @@ const columns: ColumnDef<PlayerRow, unknown>[] = [
     header: "T",
     size: 40,
     cell: ({ getValue }) => {
-      const v = getValue() as string | null;
-      return v ?? <span className="text-zinc-300 dark:text-zinc-600">—</span>;
+      const v = getValue() as string | null
+      return v ?? <span className="text-zinc-300 dark:text-zinc-600">—</span>
     },
   },
   {
@@ -151,39 +154,43 @@ const columns: ColumnDef<PlayerRow, unknown>[] = [
     header: "Positions",
     size: 110,
     sortingFn: (a, b) =>
-      a.original.ottoneuPositions.join("/").localeCompare(b.original.ottoneuPositions.join("/")),
+      a.original.ottoneuPositions
+        .join("/")
+        .localeCompare(b.original.ottoneuPositions.join("/")),
     cell: ({ getValue }) => {
-      const pos = getValue() as string[];
-      return pos.length > 0
-        ? pos.join("/")
-        : <span className="text-zinc-300 dark:text-zinc-600">—</span>;
+      const pos = getValue() as string[]
+      return pos.length > 0 ? (
+        pos.join("/")
+      ) : (
+        <span className="text-zinc-300 dark:text-zinc-600">—</span>
+      )
     },
   },
-];
+]
 
 export function PlayersTable({
   data,
   onEdit,
   action,
 }: {
-  data: PlayerRow[];
-  onEdit?: (row: PlayerRow) => void;
-  action?: ReactNode;
+  data: PlayerRow[]
+  onEdit?: (row: PlayerRow) => void
+  action?: ReactNode
 }) {
-  const [search, setSearch] = useState("");
-  const [activeFilter, setActiveFilter] = useState<ActiveFilter>("yes");
-  const [levelFilter, setLevelFilter] = useState<LevelFilter>("all");
+  const [search, setSearch] = useState("")
+  const [activeFilter, setActiveFilter] = useState<ActiveFilter>("yes")
+  const [levelFilter, setLevelFilter] = useState<LevelFilter>("all")
 
   const displayed = useMemo(() => {
-    let rows = data;
+    let rows = data
 
-    if (activeFilter === "yes") rows = rows.filter((r) => r.active);
-    else if (activeFilter === "no") rows = rows.filter((r) => !r.active);
+    if (activeFilter === "yes") rows = rows.filter((r) => r.active)
+    else if (activeFilter === "no") rows = rows.filter((r) => !r.active)
 
-    if (levelFilter === "mlb") rows = rows.filter(isMajorLeague);
-    else if (levelFilter === "milb") rows = rows.filter(isMinorLeague);
+    if (levelFilter === "mlb") rows = rows.filter(isMajorLeague)
+    else if (levelFilter === "milb") rows = rows.filter(isMinorLeague)
 
-    const q = normalize(search.trim());
+    const q = normalize(search.trim())
     if (q) {
       rows = rows.filter(
         (r) =>
@@ -194,28 +201,31 @@ export function PlayersTable({
           normalize(r.mlbLevel ?? "").includes(q) ||
           r.ottoneuPositions.join("/").toLowerCase().includes(q) ||
           String(r.ottoneuId ?? "").includes(q) ||
-          String(r.fangraphsId ?? "").includes(q)
-      );
+          String(r.fangraphsId ?? "").includes(q),
+      )
     }
 
-    return rows;
-  }, [data, activeFilter, levelFilter, search]);
+    return rows
+  }, [data, activeFilter, levelFilter, search])
 
   const allColumns = useMemo<ColumnDef<PlayerRow, unknown>[]>(() => {
-    if (!onEdit) return columns;
+    if (!onEdit) return columns
     const editCol: ColumnDef<PlayerRow, unknown> = {
       id: "_edit",
       header: "",
       size: 36,
       enableSorting: false,
       cell: ({ row }) => (
-        <IconButton onClick={() => onEdit(row.original)} aria-label="Edit player">
+        <IconButton
+          onClick={() => onEdit(row.original)}
+          aria-label="Edit player"
+        >
           <Pencil className="h-3.5 w-3.5" />
         </IconButton>
       ),
-    };
-    return [...columns, editCol];
-  }, [onEdit]);
+    }
+    return [...columns, editCol]
+  }, [onEdit])
 
   return (
     <div className="flex flex-col gap-3">
@@ -249,7 +259,12 @@ export function PlayersTable({
         />
         {action && <div className="ml-auto">{action}</div>}
       </div>
-      <DataTable columns={allColumns} data={displayed} defaultPageSize={50} defaultSorting={[{ id: "displayName", desc: false }]} />
+      <DataTable
+        columns={allColumns}
+        data={displayed}
+        defaultPageSize={50}
+        defaultSorting={[{ id: "displayName", desc: false }]}
+      />
     </div>
-  );
+  )
 }

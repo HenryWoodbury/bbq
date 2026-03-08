@@ -1,12 +1,12 @@
-"use client";
+"use client"
 
-import { UserButton } from "@clerk/nextjs";
+import { UserButton } from "@clerk/nextjs"
 
 export type UserMenuLeague = {
-  id: string;
-  leagueName: string;
-  clerkOrgId: string;
-};
+  id: string
+  leagueName: string
+  clerkOrgId: string
+}
 
 export function UserMenu() {
   return (
@@ -23,5 +23,5 @@ export function UserMenu() {
         }}
       />
     </div>
-  );
+  )
 }

@@ -1,49 +1,65 @@
-"use client";
+"use client"
 
-import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Alert } from "@/components/ui/alert";
+import { useRouter } from "next/navigation"
+import { useRef, useState } from "react"
+import { Alert } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
 
-type UploadResult = { total: number; inserted: number; updated: number; deleted: number; uploadedAt: string };
+type UploadResult = {
+  total: number
+  inserted: number
+  updated: number
+  deleted: number
+  uploadedAt: string
+}
 
 type State =
   | { status: "idle" }
   | { status: "loading" }
   | { status: "success"; result: UploadResult }
-  | { status: "error"; message: string };
+  | { status: "error"; message: string }
 
-export function UploadPlayerUniverse({ lastUploadedAt }: { lastUploadedAt: Date | null }) {
-  const router = useRouter();
-  const [state, setState] = useState<State>({ status: "idle" });
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [fileName, setFileName] = useState<string | null>(null);
+export function UploadPlayerUniverse({
+  lastUploadedAt,
+}: {
+  lastUploadedAt: Date | null
+}) {
+  const router = useRouter()
+  const [state, setState] = useState<State>({ status: "idle" })
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [fileName, setFileName] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const file = fileRef.current?.files?.[0];
-    if (!file) return;
+    e.preventDefault()
+    const file = fileRef.current?.files?.[0]
+    if (!file) return
 
-    setState({ status: "loading" });
+    setState({ status: "loading" })
 
-    const body = new FormData();
-    body.append("file", file);
-    body.append("mode", "replace");
+    const body = new FormData()
+    body.append("file", file)
+    body.append("mode", "replace")
 
     try {
-      const res = await fetch("/api/admin/upload-universe", { method: "POST", body });
-      const data = await res.json();
+      const res = await fetch("/api/admin/upload-universe", {
+        method: "POST",
+        body,
+      })
+      const data = await res.json()
 
       if (res.ok) {
-        setState({ status: "success", result: data as UploadResult });
-        if (fileRef.current) fileRef.current.value = "";
-        setFileName(null);
-        router.refresh();
+        setState({ status: "success", result: data as UploadResult })
+        if (fileRef.current) fileRef.current.value = ""
+        setFileName(null)
+        router.refresh()
       } else {
-        setState({ status: "error", message: (data as { error?: string }).error ?? "Upload failed" });
+        setState({
+          status: "error",
+          message: (data as { error?: string }).error ?? "Upload failed",
+        })
       }
     } catch {
-      setState({ status: "error", message: "Network error" });
+      setState({ status: "error", message: "Network error" })
     }
   }
 
@@ -72,19 +88,26 @@ export function UploadPlayerUniverse({ lastUploadedAt }: { lastUploadedAt: Date 
           {state.status === "loading" ? "Uploading…" : "Upload"}
         </Button>
         {state.status === "loading" && (
-          <span className="text-sm text-zinc-500">This may take a moment for large files…</span>
+          <span className="text-sm text-zinc-500">
+            This may take a moment for large files…
+          </span>
         )}
       </form>
 
       {state.status === "success" && (
         <Alert variant="success">
           <div>
-            Upload complete — <strong>{state.result.total.toLocaleString()}</strong> players (
+            Upload complete —{" "}
+            <strong>{state.result.total.toLocaleString()}</strong> players (
             <strong>{state.result.inserted.toLocaleString()}</strong> inserted,{" "}
             <strong>{state.result.updated.toLocaleString()}</strong> updated
             {state.result.deleted > 0 && (
-              <>, <strong>{state.result.deleted.toLocaleString()}</strong> removed</>
-            )})
+              <>
+                , <strong>{state.result.deleted.toLocaleString()}</strong>{" "}
+                removed
+              </>
+            )}
+            )
           </div>
           <div className="mt-1 text-xs opacity-70">
             Uploaded {new Date(state.result.uploadedAt).toLocaleString()}
@@ -96,5 +119,5 @@ export function UploadPlayerUniverse({ lastUploadedAt }: { lastUploadedAt: Date 
         <Alert variant="error">{state.message}</Alert>
       )}
     </div>
-  );
+  )
 }

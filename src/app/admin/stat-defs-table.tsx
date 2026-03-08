@@ -1,14 +1,14 @@
-"use client";
+"use client"
 
-import { ColumnDef } from "@tanstack/react-table";
-import { DataTable } from "@/components/data-table";
+import type { ColumnDef } from "@tanstack/react-table"
+import { DataTable } from "@/components/data-table"
 
 export type StatDefRow = {
-  id: string;
-  abbreviation: string;
-  name: string | null;
-  format: string | null;
-};
+  id: string
+  abbreviation: string
+  name: string | null
+  format: string | null
+}
 
 const columns: ColumnDef<StatDefRow, unknown>[] = [
   {
@@ -36,7 +36,7 @@ const columns: ColumnDef<StatDefRow, unknown>[] = [
       </span>
     ),
   },
-];
+]
 
 export function StatDefsTable({ data }: { data: StatDefRow[] }) {
   return (
@@ -46,5 +46,5 @@ export function StatDefsTable({ data }: { data: StatDefRow[] }) {
       pagination={false}
       defaultSorting={[{ id: "abbreviation", desc: false }]}
     />
-  );
+  )
 }

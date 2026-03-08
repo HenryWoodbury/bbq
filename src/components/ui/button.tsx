@@ -1,6 +1,6 @@
-import * as React from "react";
-import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from "@/lib/utils";
+import { cva, type VariantProps } from "class-variance-authority"
+import * as React from "react"
+import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-1.5 font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed",
@@ -13,8 +13,7 @@ const buttonVariants = cva(
           "rounded-md border border-zinc-200 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800",
         destructive:
           "rounded-md text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950",
-        ghost:
-          "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200",
+        ghost: "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200",
       },
       size: {
         md: "px-4 py-2 text-sm",
@@ -25,8 +24,8 @@ const buttonVariants = cva(
       variant: "primary",
       size: "md",
     },
-  }
-);
+  },
+)
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
@@ -39,8 +38,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       className={cn(buttonVariants({ variant, size }), className)}
       {...props}
     />
-  )
-);
-Button.displayName = "Button";
+  ),
+)
+Button.displayName = "Button"
 
-export { Button, buttonVariants };
+export { Button, buttonVariants }
