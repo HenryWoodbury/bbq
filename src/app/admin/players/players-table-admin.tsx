@@ -147,7 +147,7 @@ function EditOverrideModal({
     <DialogContent className="max-h-[90vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle>Edit Player</DialogTitle>
-        <p className="text-xs text-zinc-400 dark:text-zinc-500">
+        <p className="caption">
           {row.fgSpecialChar ?? row.playerName}
           {row.isManual && (
             <Badge variant="warning" className="ml-2">
@@ -248,7 +248,7 @@ function EditOverrideModal({
       </div>
 
       {error && (
-        <p className="mt-3 text-xs text-red-600 dark:text-red-400">{error}</p>
+        <p className="mt-3 text-xs text-destructive">{error}</p>
       )}
 
       <div className="mt-5 flex items-center justify-between gap-2">
@@ -378,7 +378,7 @@ function AddManualModal({ onClose }: { onClose: () => void }) {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Add Player</DialogTitle>
-          <p className="text-xs text-zinc-400 dark:text-zinc-500">
+          <p className="caption">
             Search the Ottoneu Player Universe by name or ID
           </p>
         </DialogHeader>
@@ -406,9 +406,9 @@ function AddManualModal({ onClose }: { onClose: () => void }) {
         </div>
 
         {!searching && (nameQuery || idQuery) && (
-          <div className="mt-2 max-h-72 overflow-y-auto rounded-md border border-zinc-200 dark:border-zinc-700">
+          <div className="mt-2 max-h-72 overflow-y-auto rounded-md border border-border">
             {results.length === 0 ? (
-              <p className="px-3 py-2 text-sm text-zinc-400">No results</p>
+              <p className="px-3 py-2 text-sm text-muted-foreground">No results</p>
             ) : (
               results.map((r) => (
                 <Button
@@ -419,10 +419,10 @@ function AddManualModal({ onClose }: { onClose: () => void }) {
                   onClick={() => selectPlayer(r)}
                   className={cn(
                     "flex w-full items-center justify-between px-3 py-2 text-left text-sm rounded-none",
-                    "border-b border-zinc-100 last:border-0 dark:border-zinc-800",
+                    "border-b border-border last:border-0",
                     r.alreadyTracked
-                      ? "cursor-not-allowed text-zinc-300 dark:text-zinc-500"
-                      : "hover:bg-zinc-50 dark:hover:bg-zinc-800",
+                      ? "cursor-not-allowed text-muted-foreground/40"
+                      : "hover:bg-muted",
                   )}
                 >
                   <span className="font-medium">{r.playerName}</span>
@@ -455,18 +455,18 @@ function AddManualModal({ onClose }: { onClose: () => void }) {
       </DialogHeader>
 
       {/* Read-only universe data */}
-      <div className="mt-3 flex gap-4 rounded-md bg-zinc-50 px-3 py-2 text-sm dark:bg-zinc-800/50">
+      <div className="mt-3 flex gap-4 rounded-md bg-muted px-3 py-2 text-sm">
         <span>
-          <span className="text-zinc-400 dark:text-zinc-500">Ott</span>{" "}
+          <span className="text-muted-foreground">Ott</span>{" "}
           <span className="font-medium">{selected.ottoneuId}</span>
         </span>
         <span>
-          <span className="text-zinc-400 dark:text-zinc-500">FG</span>{" "}
+          <span className="text-muted-foreground">FG</span>{" "}
           <span className="font-medium">{selected.fangraphsId ?? "—"}</span>
         </span>
         {selected.positions.length > 0 && (
           <span>
-            <span className="text-zinc-400 dark:text-zinc-500">Pos</span>{" "}
+            <span className="text-muted-foreground">Pos</span>{" "}
             <span className="font-medium">{selected.positions.join("/")}</span>
           </span>
         )}
@@ -562,7 +562,7 @@ function AddManualModal({ onClose }: { onClose: () => void }) {
       </div>
 
       {error && (
-        <p className="mt-3 text-xs text-red-600 dark:text-red-400">{error}</p>
+        <p className="mt-3 text-xs text-destructive">{error}</p>
       )}
 
       <div className="mt-5 flex items-center justify-between gap-2">

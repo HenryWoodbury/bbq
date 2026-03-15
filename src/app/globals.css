@@ -45,11 +45,23 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
+  /* ── Semantic status colors ──────────────────────────────────────────────── */
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-border: var(--success-border);
+  --color-error: var(--error);
+  --color-error-foreground: var(--error-foreground);
+  --color-error-border: var(--error-border);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-border: var(--warning-border);
+  /* ── Positive / active indicator ─────────────────────────────────────────── */
+  --color-positive: var(--positive);
 }
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
+  --background: oklch(0.985 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
@@ -80,6 +92,20 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  /* ── Status: success (emerald scale) ─────────────────────────────────────── */
+  --success: oklch(0.979 0.021 166.113);
+  --success-foreground: oklch(0.432 0.095 166.913);
+  --success-border: oklch(0.905 0.093 164.15);
+  /* ── Status: error (red scale) ───────────────────────────────────────────── */
+  --error: oklch(0.971 0.013 17.38);
+  --error-foreground: oklch(0.444 0.177 26.899);
+  --error-border: oklch(0.885 0.062 18.334);
+  /* ── Status: warning (amber scale) ──────────────────────────────────────── */
+  --warning: oklch(0.987 0.022 95.277);
+  --warning-foreground: oklch(0.555 0.163 48.998);
+  --warning-border: oklch(0.924 0.12 95.746);
+  /* ── Positive / active indicator (emerald-600) ───────────────────────────── */
+  --positive: oklch(0.596 0.145 163.225);
 }
 
 .dark {
@@ -114,6 +140,20 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  /* ── Status: success ─────────────────────────────────────────────────────── */
+  --success: oklch(0.265 0.071 160.44);
+  --success-foreground: oklch(0.905 0.093 164.15);
+  --success-border: oklch(0.432 0.095 166.913);
+  /* ── Status: error ───────────────────────────────────────────────────────── */
+  --error: oklch(0.258 0.092 26.072);
+  --error-foreground: oklch(0.885 0.062 18.334);
+  --error-border: oklch(0.444 0.177 26.899);
+  /* ── Status: warning ─────────────────────────────────────────────────────── */
+  --warning: oklch(0.279 0.077 45.635);
+  --warning-foreground: oklch(0.924 0.12 95.746);
+  --warning-border: oklch(0.555 0.163 48.998);
+  /* ── Positive / active indicator (emerald-400) ───────────────────────────── */
+  --positive: oklch(0.765 0.177 163.223);
 }
 
 /* ── Clerk UserButton overrides ─────────────────────────────────────────── */
@@ -154,5 +194,124 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  a {
+    @apply text-blue-600 underline-offset-2 hover:underline dark:text-blue-400;
+  }
+}
+
+@layer components {
+  /* ── Layout ─────────────────────────────────────────────────────────── */
+
+  .site-header {
+    @apply sticky top-0 z-50 border-b border-border bg-card;
+  }
+
+  /* Standard page content wrapper */
+  .page-layout {
+    @apply flex flex-col gap-10;
+  }
+
+  /* ── Cards ───────────────────────────────────────────────────────────── */
+
+  /* Borderless card surface; callers add padding */
+  .card {
+    @apply rounded-lg border border-border bg-card;
+  }
+
+  /* Interactive card (hover shadow lift) */
+  .card-interactive {
+    @apply rounded-lg border border-border bg-card shadow-sm transition-shadow hover:shadow-md;
+  }
+
+  /* ── Typography ──────────────────────────────────────────────────────── */
+
+  .page-title {
+    @apply text-2xl font-bold tracking-tight text-foreground;
+  }
+
+  .section-label {
+    @apply text-xs font-semibold uppercase tracking-wider text-muted-foreground;
+  }
+
+  .card-title {
+    @apply text-sm font-semibold text-foreground;
+  }
+
+  .stat-value {
+    @apply text-3xl font-bold tabular-nums text-foreground;
+  }
+
+  .stat-label {
+    @apply text-xs text-muted-foreground;
+  }
+
+  .body-muted {
+    @apply text-sm text-muted-foreground;
+  }
+
+  .caption {
+    @apply text-xs text-muted-foreground;
+  }
+
+  .link {
+    @apply font-medium text-blue-600 underline-offset-2 hover:underline dark:text-blue-400;
+  }
+
+  /* Hero / landing page */
+  .hero-heading {
+    @apply text-4xl font-bold tracking-tight text-foreground sm:text-5xl;
+  }
+
+  .hero-subtitle {
+    @apply max-w-prose text-lg text-muted-foreground;
+  }
+
+  /* Section collapsible trigger */
+  .collapsible-trigger {
+    @apply text-sm font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground;
+  }
+
+  /* ── Forms ──────────────────────────────────────────────────────────── */
+
+  /* Raw <select> / <textarea> styled to match shadcn Input */
+  .form-control {
+    @apply rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring;
+  }
+
+  /* Icon action button (edit/delete rows etc.) */
+  .icon-action {
+    @apply rounded p-1 text-muted-foreground hover:text-foreground;
+  }
+
+  /* File picker label button */
+  .file-label {
+    @apply flex cursor-pointer items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground shadow-sm transition-colors hover:bg-muted;
+  }
+
+  /* ── Tables ──────────────────────────────────────────────────────────── */
+
+  .table-container {
+    @apply overflow-x-auto rounded-lg border border-border;
+  }
+
+  .table-head {
+    @apply bg-muted;
+  }
+
+  .table-head-cell {
+    @apply select-none overflow-hidden text-ellipsis whitespace-nowrap px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground;
+  }
+
+  .table-body {
+    @apply divide-y divide-border bg-card;
+  }
+
+  .table-row {
+    @apply hover:bg-muted;
+  }
+
+  .table-cell {
+    @apply overflow-hidden text-ellipsis whitespace-nowrap px-4 py-3 text-muted-foreground;
   }
 }

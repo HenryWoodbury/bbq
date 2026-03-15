@@ -27,13 +27,8 @@ const mockLeague = {
   id: "league-1",
   clerkOrgId: "org_test",
   leagueName: "Test League",
-  leagueFormat: null,
-  fantasyPlatform: null,
+  templateId: null,
   hostLeagueUrl: null,
-  rosterConfig: {},
-  isAuction: false,
-  isH2H: false,
-  leagueCap: null,
   seasons: [],
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -56,6 +51,7 @@ describe("PATCH /api/leagues/[id]", () => {
       clerkUserId: "user_1",
       leagueId: "league-1",
       role: LeagueMemberRole.ONLOOKER,
+      createdAt: new Date(),
     } satisfies LeagueMember)
 
     const req = new NextRequest("http://localhost/api/leagues/league-1", {
@@ -72,6 +68,7 @@ describe("PATCH /api/leagues/[id]", () => {
       clerkUserId: "user_1",
       leagueId: "league-1",
       role: LeagueMemberRole.MANAGER,
+      createdAt: new Date(),
     } satisfies LeagueMember)
 
     const req = new NextRequest("http://localhost/api/leagues/league-1", {
@@ -88,6 +85,7 @@ describe("PATCH /api/leagues/[id]", () => {
       clerkUserId: "user_1",
       leagueId: "league-1",
       role: LeagueMemberRole.COMMISSIONER,
+      createdAt: new Date(),
     } satisfies LeagueMember)
     prismaMock.league.findFirst.mockResolvedValue(mockLeague)
     prismaMock.league.update.mockResolvedValue({
@@ -113,6 +111,7 @@ describe("DELETE /api/leagues/[id]", () => {
       clerkUserId: "user_1",
       leagueId: "league-1",
       role: LeagueMemberRole.CO_COMMISSIONER,
+      createdAt: new Date(),
     } satisfies LeagueMember)
 
     const req = new NextRequest("http://localhost/api/leagues/league-1", {
@@ -128,6 +127,7 @@ describe("DELETE /api/leagues/[id]", () => {
       clerkUserId: "user_1",
       leagueId: "league-1",
       role: LeagueMemberRole.COMMISSIONER,
+      createdAt: new Date(),
     } satisfies LeagueMember)
     prismaMock.league.findFirst.mockResolvedValue(mockLeague)
     prismaMock.league.update.mockResolvedValue(mockLeague)

@@ -1,6 +1,9 @@
 "use client"
 
 import { useRef, useState } from "react"
+import { Alert } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 
 type ImportResult = {
   total: number
@@ -61,7 +64,7 @@ export function PlayerImport() {
   return (
     <div className="flex flex-col gap-4">
       <form onSubmit={handleSubmit} className="flex items-center gap-3">
-        <label className="flex cursor-pointer items-center gap-2 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800">
+        <label className="file-label">
           <input
             ref={fileRef}
             type="file"
@@ -71,31 +74,28 @@ export function PlayerImport() {
           />
           {fileName ?? "Choose CSV…"}
         </label>
-        <button
+        <Button
           type="submit"
           disabled={!fileName || state.status === "loading"}
-          className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
         >
           {state.status === "loading" ? "Importing…" : "Import"}
-        </button>
+        </Button>
         {state.status === "loading" && (
-          <span className="text-sm text-zinc-500">
+          <span className="body-muted">
             This may take a moment for large files…
           </span>
         )}
       </form>
-      <label className="flex cursor-pointer items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
-        <input
-          type="checkbox"
+      <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
+        <Checkbox
           checked={additive}
           onChange={(e) => setAdditive(e.target.checked)}
-          className="rounded border-zinc-300 dark:border-zinc-600"
         />
         Append players only
       </label>
 
       {state.status === "success" && (
-        <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+        <Alert variant="success">
           <div>
             Import complete —{" "}
             <strong>{state.result.total.toLocaleString()}</strong> rows (
@@ -112,49 +112,44 @@ export function PlayerImport() {
           <div className="mt-1 text-xs opacity-70">
             Last updated {new Date(state.result.importedAt).toLocaleString()}
           </div>
-        </div>
+        </Alert>
       )}
 
       {state.status === "fatal" && (
-        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
-          {state.message}
-        </div>
+        <Alert variant="error">{state.message}</Alert>
       )}
 
       {state.status === "error" && (
         <div className="flex flex-col gap-2">
-          <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
+          <Alert variant="error">
             {state.errorCount.toLocaleString()} validation error
             {state.errorCount !== 1 ? "s" : ""}
             {state.errorCount > state.errors.length
               ? " — showing first 10"
               : ""}
             . Fix these and re-upload. No rows were written.
-          </div>
-          <div className="max-h-64 overflow-y-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
+          </Alert>
+          <div className="table-container max-h-64 overflow-y-auto">
             <table className="min-w-full text-sm">
-              <thead className="sticky top-0 bg-zinc-50 dark:bg-zinc-900">
+              <thead className="table-head sticky top-0">
                 <tr>
                   {["Row", "Field", "Message"].map((h) => (
-                    <th
-                      key={h}
-                      className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-zinc-500"
-                    >
+                    <th key={h} className="table-head-cell">
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100 bg-white dark:divide-zinc-800 dark:bg-zinc-950">
+              <tbody className="table-body">
                 {state.errors.map((err) => (
                   <tr key={err.row}>
-                    <td className="px-4 py-2 tabular-nums text-zinc-600 dark:text-zinc-400">
+                    <td className="px-4 py-2 tabular-nums text-muted-foreground">
                       {err.row}
                     </td>
-                    <td className="px-4 py-2 font-mono text-xs text-zinc-900 dark:text-zinc-50">
+                    <td className="px-4 py-2 font-mono text-xs text-foreground">
                       {err.field}
                     </td>
-                    <td className="px-4 py-2 text-zinc-600 dark:text-zinc-400">
+                    <td className="px-4 py-2 text-muted-foreground">
                       {err.message}
                     </td>
                   </tr>

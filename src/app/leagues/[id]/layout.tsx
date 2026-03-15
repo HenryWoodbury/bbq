@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server"
 import { notFound } from "next/navigation"
 import { OrgSync } from "@/components/org-sync"
 import { prisma } from "@/lib/prisma"
+import { getLeagueById } from "@/lib/queries/leagues"
 
 type Props = {
   children: React.ReactNode
@@ -12,10 +13,7 @@ export default async function LeagueLayout({ children, params }: Props) {
   const { userId } = await auth.protect()
   const { id } = await params
 
-  const league = await prisma.league.findFirst({
-    where: { id, deletedAt: null },
-    select: { id: true, leagueName: true, clerkOrgId: true },
-  })
+  const league = await getLeagueById(id)
   if (!league) notFound()
 
   const member = await prisma.leagueMember.findUnique({
@@ -29,10 +27,8 @@ export default async function LeagueLayout({ children, params }: Props) {
   return (
     <div className="mx-auto max-w-screen-2xl px-4 py-6 sm:px-6 lg:px-8">
       <OrgSync clerkOrgId={league.clerkOrgId} />
-      <div className="mb-6 border-b border-zinc-200 pb-4 dark:border-zinc-800">
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-          {league.leagueName}
-        </h1>
+      <div className="mb-6 border-b border-border pb-4">
+        <h1 className="page-title">{league.leagueName}</h1>
       </div>
       {children}
     </div>

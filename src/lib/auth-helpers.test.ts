@@ -113,6 +113,7 @@ describe("getLeagueRole", () => {
       clerkUserId: "user_1",
       leagueId: "league-1",
       role: LeagueMemberRole.COMMISSIONER,
+      createdAt: new Date(),
     } satisfies LeagueMember)
     expect(await getLeagueRole("league-1", "user_1")).toBe(
       LeagueMemberRole.COMMISSIONER,
@@ -126,6 +127,7 @@ describe("assertLeagueRole", () => {
       clerkUserId: "user_1",
       leagueId: "league-1",
       role: LeagueMemberRole.ONLOOKER,
+      createdAt: new Date(),
     } satisfies LeagueMember)
     const res = await assertLeagueRole("league-1", "user_1", [
       LeagueMemberRole.COMMISSIONER,
@@ -146,6 +148,7 @@ describe("assertLeagueRole", () => {
       clerkUserId: "user_1",
       leagueId: "league-1",
       role: LeagueMemberRole.COMMISSIONER,
+      createdAt: new Date(),
     } satisfies LeagueMember)
     const res = await assertLeagueRole("league-1", "user_1", [
       LeagueMemberRole.COMMISSIONER,

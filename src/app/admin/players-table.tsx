@@ -19,7 +19,7 @@ const columns: ColumnDef<PlayerRow, unknown>[] = [
     accessorKey: "playerName",
     header: "Name",
     cell: ({ getValue }) => (
-      <span className="font-medium text-zinc-900 dark:text-zinc-50">
+      <span className="font-medium text-foreground">
         {getValue() as string}
       </span>
     ),
@@ -46,9 +46,9 @@ const columns: ColumnDef<PlayerRow, unknown>[] = [
     header: "Active",
     cell: ({ getValue }) =>
       getValue() ? (
-        <span className="text-emerald-600 dark:text-emerald-400">Y</span>
+        <span className="text-positive">Y</span>
       ) : (
-        <span className="text-zinc-400">N</span>
+        <span className="text-muted-foreground">N</span>
       ),
   },
   {

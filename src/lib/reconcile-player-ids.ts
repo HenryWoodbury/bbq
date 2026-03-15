@@ -80,7 +80,7 @@ export async function reconcilePlayerIds(): Promise<ReconcileResult> {
     },
   })
   for (const p of linkedWithoutOttoneuId) {
-    const oid = p.universe[0]?.ottoneuId
+    const oid = p.universe?.[0]?.ottoneuId
     if (oid !== undefined && !filledPlayerIds.has(p.id)) {
       ottoneuFills.push({ id: p.id, ottoneuId: oid })
       filledPlayerIds.add(p.id)

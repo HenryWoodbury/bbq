@@ -1,5 +1,6 @@
 "use client"
 
+import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 interface FilterGroupProps {
@@ -17,24 +18,26 @@ export function FilterGroup({
 }: FilterGroupProps) {
   return (
     <div className="flex items-center gap-1.5">
-      <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+      <span className="text-xs font-medium text-muted-foreground">
         {label}:
       </span>
-      <div className="flex overflow-hidden rounded-md border border-zinc-200 dark:border-zinc-700">
+      <div className="flex overflow-hidden rounded-md border border-border">
         {options.map((opt) => (
-          <button
+          <Button
             key={opt.value}
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={() => onChange(opt.value)}
             className={cn(
-              "px-2.5 py-1 text-xs transition-colors",
+              "rounded-none px-2.5 py-1 text-xs",
               value === opt.value
-                ? "bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900"
-                : "bg-white text-zinc-600 hover:bg-zinc-50 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800",
+                ? "bg-primary text-primary-foreground hover:bg-primary/80"
+                : "bg-card text-muted-foreground hover:bg-muted",
             )}
           >
             {opt.label}
-          </button>
+          </Button>
         ))}
       </div>
     </div>

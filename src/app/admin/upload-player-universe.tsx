@@ -66,12 +66,12 @@ export function UploadPlayerUniverse({
   return (
     <div className="flex flex-col gap-4">
       {lastUploadedAt && state.status !== "success" && (
-        <p className="text-xs text-zinc-400 dark:text-zinc-500">
+        <p className="caption">
           Last imported {new Date(lastUploadedAt).toLocaleString()}
         </p>
       )}
       <form onSubmit={handleSubmit} className="flex items-center gap-3">
-        <label className="flex cursor-pointer items-center gap-2 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700 shadow-sm transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800">
+        <label className="file-label">
           <input
             ref={fileRef}
             type="file"
@@ -88,7 +88,7 @@ export function UploadPlayerUniverse({
           {state.status === "loading" ? "Uploading…" : "Upload"}
         </Button>
         {state.status === "loading" && (
-          <span className="text-sm text-zinc-500">
+          <span className="body-muted">
             This may take a moment for large files…
           </span>
         )}

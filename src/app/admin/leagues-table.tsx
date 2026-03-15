@@ -6,8 +6,7 @@ import { DataTable } from "@/components/data-table"
 export type LeagueRow = {
   id: string
   leagueName: string
-  leagueFormat: string | null
-  fantasyPlatform: string | null
+  template: { name: string; platform: string; scoring: string } | null
   seasons: number[]
   _count: { members: number; teams: number }
 }
@@ -17,19 +16,15 @@ const columns: ColumnDef<LeagueRow, unknown>[] = [
     accessorKey: "leagueName",
     header: "Name",
     cell: ({ getValue }) => (
-      <span className="font-medium text-zinc-900 dark:text-zinc-50">
+      <span className="font-medium text-foreground">
         {getValue() as string}
       </span>
     ),
   },
   {
-    accessorKey: "leagueFormat",
-    header: "Format",
-    cell: ({ getValue }) => (getValue() as string | null) ?? "—",
-  },
-  {
-    accessorKey: "fantasyPlatform",
-    header: "Platform",
+    id: "template",
+    header: "Template",
+    accessorFn: (row) => row.template?.name ?? null,
     cell: ({ getValue }) => (getValue() as string | null) ?? "—",
   },
   {

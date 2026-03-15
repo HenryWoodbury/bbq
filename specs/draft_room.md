@@ -1,3 +1,5 @@
+> **Status: Future architecture** — Rivet actor pattern for a live draft room. Not yet implemented.
+
 # Draft Room
 
 Implementing the Draft Room with Next.js and Rivet creates a highly modern, "serverless yet stateful" architecture. Since Next.js is typically stateless (Lambdas), Rivet fills the gap by providing the long-lived memory needed for a draft room.

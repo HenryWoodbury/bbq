@@ -17,9 +17,8 @@ export default async function AdminLeaguesPage() {
       select: {
         id: true,
         leagueName: true,
-        leagueFormat: true,
-        fantasyPlatform: true,
         seasons: true,
+        template: { select: { name: true, platform: true, scoring: true } },
         _count: {
           select: { members: true, teams: { where: { deletedAt: null } } },
         },
@@ -28,11 +27,9 @@ export default async function AdminLeaguesPage() {
   ])
 
   return (
-    <div className="flex flex-col gap-10">
+    <div className="page-layout">
       <section>
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-          Manage Leagues
-        </h1>
+        <h1 className="page-title">Manage Leagues</h1>
       </section>
 
       <section>
@@ -43,9 +40,7 @@ export default async function AdminLeaguesPage() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-zinc-500">
-          Leagues
-        </h2>
+        <h2 className="mb-3 section-label">Leagues</h2>
         <LeaguesTable data={leagues} />
       </section>
     </div>

@@ -62,7 +62,7 @@ const columns: ColumnDef<PlayerRow, unknown>[] = [
     size: 72,
     cell: ({ getValue }) => {
       const v = getValue() as number | null
-      return v ?? <span className="text-zinc-300 dark:text-zinc-600">—</span>
+      return v ?? <span className="text-muted-foreground/40">—</span>
     },
   },
   {
@@ -79,7 +79,7 @@ const columns: ColumnDef<PlayerRow, unknown>[] = [
       return key(a.original).localeCompare(key(b.original))
     },
     cell: ({ getValue }) => (
-      <span className="font-medium text-zinc-900 dark:text-zinc-50">
+      <span className="font-medium text-foreground">
         {getValue() as string}
       </span>
     ),
@@ -90,7 +90,7 @@ const columns: ColumnDef<PlayerRow, unknown>[] = [
     size: 90,
     cell: ({ getValue }) => {
       const v = getValue() as string | null
-      return v ?? <span className="text-zinc-300 dark:text-zinc-600">—</span>
+      return v ?? <span className="text-muted-foreground/40">—</span>
     },
   },
   {
@@ -99,7 +99,7 @@ const columns: ColumnDef<PlayerRow, unknown>[] = [
     size: 64,
     cell: ({ getValue }) => {
       const v = getValue() as string | null
-      return v ?? <span className="text-zinc-300 dark:text-zinc-600">—</span>
+      return v ?? <span className="text-muted-foreground/40">—</span>
     },
   },
   {
@@ -108,7 +108,7 @@ const columns: ColumnDef<PlayerRow, unknown>[] = [
     size: 56,
     cell: ({ getValue }) => {
       const v = getValue() as string | null
-      return v ?? <span className="text-zinc-300 dark:text-zinc-600">—</span>
+      return v ?? <span className="text-muted-foreground/40">—</span>
     },
   },
   {
@@ -118,13 +118,12 @@ const columns: ColumnDef<PlayerRow, unknown>[] = [
     size: 80,
     cell: ({ getValue }) => {
       const v = getValue() as string | null
-      if (!v) return <span className="text-zinc-300 dark:text-zinc-600">—</span>
+      if (!v) return <span className="text-muted-foreground/40">—</span>
       return (
         <a
           href={`https://www.fangraphs.com/statss.aspx?playerid=${v}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-blue-600 hover:underline dark:text-blue-400"
         >
           {v}
         </a>
@@ -137,7 +136,7 @@ const columns: ColumnDef<PlayerRow, unknown>[] = [
     size: 40,
     cell: ({ getValue }) => {
       const v = getValue() as string | null
-      return v ?? <span className="text-zinc-300 dark:text-zinc-600">—</span>
+      return v ?? <span className="text-muted-foreground/40">—</span>
     },
   },
   {
@@ -146,7 +145,7 @@ const columns: ColumnDef<PlayerRow, unknown>[] = [
     size: 40,
     cell: ({ getValue }) => {
       const v = getValue() as string | null
-      return v ?? <span className="text-zinc-300 dark:text-zinc-600">—</span>
+      return v ?? <span className="text-muted-foreground/40">—</span>
     },
   },
   {
@@ -162,7 +161,7 @@ const columns: ColumnDef<PlayerRow, unknown>[] = [
       return pos.length > 0 ? (
         pos.join("/")
       ) : (
-        <span className="text-zinc-300 dark:text-zinc-600">—</span>
+        <span className="text-muted-foreground/40">—</span>
       )
     },
   },

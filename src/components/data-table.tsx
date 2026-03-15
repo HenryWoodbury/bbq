@@ -77,7 +77,7 @@ export function DataTable<T>({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
+      <div className="table-container">
         <table className="w-full text-sm" style={{ tableLayout: "fixed" }}>
           <colgroup>
             {table.getFlatHeaders().map((header) => (
@@ -89,7 +89,7 @@ export function DataTable<T>({
               />
             ))}
           </colgroup>
-          <thead className="bg-zinc-50 dark:bg-zinc-900">
+          <thead className="table-head">
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id}>
                 {hg.headers.map((header) => {
@@ -99,9 +99,8 @@ export function DataTable<T>({
                     <th
                       key={header.id}
                       className={cn(
-                        "px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 select-none overflow-hidden text-ellipsis whitespace-nowrap",
-                        canSort &&
-                          "cursor-pointer hover:text-zinc-700 dark:hover:text-zinc-300",
+                        "table-head-cell",
+                        canSort && "cursor-pointer hover:text-foreground",
                       )}
                       onClick={
                         canSort
@@ -120,7 +119,7 @@ export function DataTable<T>({
                           ) : sorted === "desc" ? (
                             <ArrowDown className="h-3 w-3" />
                           ) : (
-                            <ArrowUpDown className="h-3 w-3 text-zinc-400" />
+                            <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
                           ))}
                       </span>
                     </th>
@@ -129,12 +128,12 @@ export function DataTable<T>({
               </tr>
             ))}
           </thead>
-          <tbody className="divide-y divide-zinc-100 bg-white dark:divide-zinc-800 dark:bg-zinc-950">
+          <tbody className="table-body">
             {rows.length === 0 ? (
               <tr>
                 <td
                   colSpan={columns.length}
-                  className="px-4 py-6 text-center text-zinc-400"
+                  className="px-4 py-6 text-center text-muted-foreground"
                 >
                   No data.
                 </td>
@@ -143,12 +142,12 @@ export function DataTable<T>({
               rows.map((row) => (
                 <tr
                   key={row.id}
-                  className="hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                  className="table-row"
                 >
                   {row.getVisibleCells().map((cell) => (
                     <td
                       key={cell.id}
-                      className="overflow-hidden text-ellipsis whitespace-nowrap px-4 py-3 text-zinc-600 dark:text-zinc-400"
+                      className="table-cell"
                     >
                       {flexRender(
                         cell.column.columnDef.cell,
@@ -165,7 +164,7 @@ export function DataTable<T>({
 
       {/* Pagination footer */}
       {pagination !== false && (
-        <div className="flex items-center justify-between gap-4 text-xs text-zinc-500 dark:text-zinc-400">
+        <div className="flex items-center justify-between gap-4 text-xs text-muted-foreground">
           {/* Left: count */}
           <span className="tabular-nums">
             {totalRows === 0

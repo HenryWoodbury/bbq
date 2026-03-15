@@ -1,3 +1,5 @@
+> **Status: Reference** — SFBB Player ID Map data source description.
+
 # Player Metadata and Statistics
 
 ## Smart Fantasy Baseball Player Universe

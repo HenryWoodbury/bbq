@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation"
-import { prisma } from "@/lib/prisma"
+import { getLeagueById } from "@/lib/queries/leagues"
 
 type Props = {
   params: Promise<{ id: string }>
@@ -8,53 +8,46 @@ type Props = {
 export default async function LeaguePage({ params }: Props) {
   const { id } = await params
 
-  const league = await prisma.league.findFirst({
-    where: { id, deletedAt: null },
-    select: {
-      leagueName: true,
-      leagueFormat: true,
-      fantasyPlatform: true,
-      hostLeagueUrl: true,
-      isAuction: true,
-      isH2H: true,
-      leagueCap: true,
-      seasons: true,
-      _count: { select: { members: true, teams: true } },
-    },
-  })
-
+  const league = await getLeagueById(id)
   if (!league) notFound()
 
   const latestSeason =
     league.seasons.length > 0 ? Math.max(...league.seasons) : null
 
+  const scoringLabel = (() => {
+    switch (league.template?.scoring) {
+      case "FiveX5": return "5×5"
+      case "FourX4": return "4×4"
+      case "Fangraphs": return "FGPTs"
+      case "SABR": return "SABR"
+      case "Points": return "Points"
+      default: return "—"
+    }
+  })()
+
+  const typeLabel = league.template
+    ? [league.template.draftType, league.template.playType].join(" · ")
+    : "—"
+
   return (
     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      <InfoCard label="Format" value={league.leagueFormat ?? "—"} />
-      <InfoCard label="Platform" value={league.fantasyPlatform ?? "—"} />
+      <InfoCard label="Format" value={scoringLabel} />
+      <InfoCard label="Platform" value={league.template?.platform ?? "—"} />
       <InfoCard label="Season" value={latestSeason?.toString() ?? "—"} />
       <InfoCard label="Teams" value={league._count.teams.toString()} />
       <InfoCard label="Members" value={league._count.members.toString()} />
-      <InfoCard
-        label="Type"
-        value={[
-          league.isAuction ? "Auction" : "Snake",
-          league.isH2H ? "H2H" : "Roto",
-        ].join(" · ")}
-      />
-      {league.isAuction && league.leagueCap != null && (
-        <InfoCard label="Cap" value={`$${league.leagueCap}`} />
+      <InfoCard label="Type" value={typeLabel} />
+      {league.template?.cap != null && (
+        <InfoCard label="Cap" value={`$${league.template.cap}`} />
       )}
       {league.hostLeagueUrl && (
-        <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-          <p className="mb-1 text-xs font-medium uppercase tracking-wider text-zinc-500">
-            Host League
-          </p>
+        <div className="card p-4">
+          <p className="mb-1 section-label">Host League</p>
           <a
             href={league.hostLeagueUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm font-medium text-blue-600 underline-offset-2 hover:underline dark:text-blue-400"
+            className="link text-sm"
           >
             {league.hostLeagueUrl}
           </a>
@@ -66,13 +59,9 @@ export default async function LeaguePage({ params }: Props) {
 
 function InfoCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-      <p className="mb-1 text-xs font-medium uppercase tracking-wider text-zinc-500">
-        {label}
-      </p>
-      <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-        {value}
-      </p>
+    <div className="card p-4">
+      <p className="mb-1 section-label">{label}</p>
+      <p className="card-title">{value}</p>
     </div>
   )
 }

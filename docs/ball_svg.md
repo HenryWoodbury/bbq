@@ -1,6 +1,6 @@
 ## Baseball SVG generators
 
-This project includes two Python scripts that generate 2D SVG renderings of a baseball with seams and stitches:
+The BBQ project includes two Python scripts that generate 2D SVG renderings of a baseball with seams and stitches:
 
 - **`scripts/generate_stitch_ball.py`**: Ball with seam underlay and interleaved zipper‑style stitches (216 individual threads), including optional jitter in stitch placement.
 - **`scripts/generate_seam_ball.py`**: Ball with the seam path stitches, simplified for iconic use.

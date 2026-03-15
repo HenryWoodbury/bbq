@@ -17,8 +17,8 @@ export default async function HomePage() {
     select: {
       id: true,
       leagueName: true,
-      leagueFormat: true,
       seasons: true,
+      template: { select: { scoring: true } },
       _count: {
         select: {
           members: true,
@@ -31,13 +31,11 @@ export default async function HomePage() {
   return (
     <div className="flex flex-col gap-8">
       <section>
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-          Your leagues
-        </h1>
+        <h1 className="page-title">Your leagues</h1>
       </section>
 
       {leagues.length === 0 ? (
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="body-muted">
           You&apos;re not in any leagues yet. Create or join one via the org
           switcher in the header.
         </p>
@@ -57,10 +55,8 @@ function WelcomePage() {
     <div className="flex flex-col gap-12">
       <section className="flex flex-col gap-6">
         <div className="flex flex-col gap-3">
-          <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-5xl">
-            BBQ
-          </h1>
-          <p className="max-w-prose text-lg text-zinc-500 dark:text-zinc-400">
+          <h1 className="hero-heading">BBQ</h1>
+          <p className="hero-subtitle">
             Fantasy baseball league management — drafts, rosters, and auction
             tools.
           </p>
@@ -83,8 +79,8 @@ function WelcomePage() {
 type LeagueSummary = {
   id: string
   leagueName: string
-  leagueFormat: string | null
   seasons: number[]
+  template: { scoring: string } | null
   _count: { members: number; teams: number }
 }
 
@@ -92,16 +88,27 @@ function LeagueCard({ league }: { league: LeagueSummary }) {
   const currentSeason =
     league.seasons.length > 0 ? Math.max(...league.seasons) : null
 
+  const scoringLabel = (() => {
+    switch (league.template?.scoring) {
+      case "FiveX5": return "5×5"
+      case "FourX4": return "4×4"
+      case "Fangraphs": return "FGPTs"
+      case "SABR": return "SABR"
+      case "Points": return "Points"
+      default: return "—"
+    }
+  })()
+
   return (
     <Link
       href={`/leagues/${league.id}`}
-      className="flex flex-col gap-4 rounded-lg border border-zinc-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md dark:border-zinc-800 dark:bg-zinc-950"
+      className="card-interactive flex flex-col gap-4 p-6"
     >
-      <h2 className="font-semibold text-zinc-900 dark:text-zinc-50">
+      <h2 className="font-semibold text-foreground">
         {league.leagueName}
       </h2>
       <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-        <Stat label="Format" value={league.leagueFormat ?? "—"} />
+        <Stat label="Format" value={scoringLabel} />
         <Stat label="Season" value={currentSeason?.toString() ?? "—"} />
         <Stat label="Teams" value={league._count.teams} />
         <Stat label="Members" value={league._count.members} />
@@ -113,8 +120,8 @@ function LeagueCard({ league }: { league: LeagueSummary }) {
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
     <div>
-      <dt className="text-xs text-zinc-400 dark:text-zinc-500">{label}</dt>
-      <dd className="font-medium text-zinc-700 dark:text-zinc-300">{value}</dd>
+      <dt className="caption">{label}</dt>
+      <dd className="font-medium text-foreground">{value}</dd>
     </div>
   )
 }

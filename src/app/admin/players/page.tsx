@@ -1,8 +1,11 @@
+import Link from "next/link"
 import type { PlayerRow } from "@/components/players-table"
+import { SectionCollapsible } from "@/components/section-collapsible"
 import { requireAdmin } from "@/lib/auth-helpers"
 import { prisma } from "@/lib/prisma"
 import { SyncPlayers } from "../sync-players"
 import { UploadPlayerUniverse } from "../upload-player-universe"
+import { UploadStats } from "../upload-stats"
 import { PlayersTableAdmin } from "./players-table-admin"
 
 export const metadata = { title: "Manage Players — BBQ" }
@@ -10,7 +13,7 @@ export const metadata = { title: "Manage Players — BBQ" }
 export default async function AdminPlayersPage() {
   await requireAdmin()
 
-  const [lastSyncedPlayer, lastUploadedUniverse, players, manualOverrides] =
+  const [lastSyncedPlayer, lastUploadedUniverse, lastUploadedStats, players, manualOverrides] =
     await Promise.all([
       prisma.player.findFirst({
         orderBy: { updatedAt: "desc" },
@@ -20,6 +23,11 @@ export default async function AdminPlayersPage() {
         where: { format: "ottoneu", deletedAt: null },
         orderBy: { updatedAt: "desc" },
         select: { updatedAt: true },
+      }),
+      prisma.playerStat.findFirst({
+        where: { deletedAt: null },
+        orderBy: { createdAt: "desc" },
+        select: { createdAt: true },
       }),
       prisma.player.findMany({
         where: { deletedAt: null },
@@ -132,30 +140,31 @@ export default async function AdminPlayersPage() {
   const allRows = [...playerRows, ...manualRows]
 
   return (
-    <div className="flex flex-col gap-10">
+    <div className="page-layout">
       <section>
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-          Manage Players
-        </h1>
+        <h1 className="page-title">Manage Players</h1>
       </section>
 
       <section>
-        <h2 className="mb-1 text-sm font-semibold uppercase tracking-wider text-zinc-500">
-          Sync Player IDs
-        </h2>
-        <p className="mb-4 text-xs text-zinc-400 dark:text-zinc-500">
-          Fetches the Smart Fantasy Baseball Player ID Map and upserts all
-          players.
+        <h2 className="mb-1 section-label">Sync Player IDs</h2>
+        <p className="mb-4 caption">
+          Fetches the{" "}
+          <Link href="https://www.smartfantasybaseball.com/tools/">
+            Smart Fantasy Baseball Player ID Map
+          </Link>
+          {" "} then upserts all players.
         </p>
         <SyncPlayers lastSyncedAt={lastSyncedPlayer?.updatedAt ?? null} />
       </section>
 
       <section>
-        <h2 className="mb-1 text-sm font-semibold uppercase tracking-wider text-zinc-500">
-          Import the Ottoneu Player Universe
-        </h2>
-        <p className="mb-4 text-xs text-zinc-400 dark:text-zinc-500">
-          Upload the full list of players in the format and their positions.
+        <h2 className="mb-1 section-label">Import the Ottoneu Player Universe</h2>
+        <p className="mb-4 caption">
+          Upload the full list of players in the {" "}
+          <Link href="https://community.ottoneu.com/t/list-of-players-and-their-ottoneu-positions-player-universe/7547">
+            Ottoneu Universe
+          </Link>
+          .
         </p>
         <UploadPlayerUniverse
           lastUploadedAt={lastUploadedUniverse?.updatedAt ?? null}
@@ -163,9 +172,20 @@ export default async function AdminPlayersPage() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-zinc-500">
-          Players
-        </h2>
+        <SectionCollapsible
+          title={<h2 className="section-label">Upload Stats</h2>}
+          defaultOpen={false}
+        >
+          <p className="mb-4 caption">
+            Upload a Fangraphs-format CSV (e.g. Steamer, ZiPS) and tag it with
+            season, projected, neutralized, and split metadata.
+          </p>
+          <UploadStats lastUploadedAt={lastUploadedStats?.createdAt ?? null} />
+        </SectionCollapsible>
+      </section>
+
+      <section>
+        <h2 className="mb-3 section-label">Players</h2>
         <PlayersTableAdmin data={allRows} />
       </section>
     </div>

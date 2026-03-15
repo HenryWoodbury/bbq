@@ -36,7 +36,7 @@ const mockTeamOwnedByUser = {
   updatedAt: new Date(),
   deletedAt: null,
   managers: [
-    { clerkUserId: "user_1", teamId: "team-1", isPrimary: true },
+    { clerkUserId: "user_1", teamId: "team-1", isPrimary: true, createdAt: new Date() },
   ] satisfies TeamManager[],
   rosterHistory: [],
 } satisfies TeamWithRelations
@@ -44,7 +44,7 @@ const mockTeamOwnedByUser = {
 const mockTeamOwnedByOther = {
   ...mockTeamOwnedByUser,
   managers: [
-    { clerkUserId: "other_user", teamId: "team-1", isPrimary: true },
+    { clerkUserId: "other_user", teamId: "team-1", isPrimary: true, createdAt: new Date() },
   ] satisfies TeamManager[],
 } satisfies TeamWithRelations
 
@@ -72,6 +72,7 @@ describe("PATCH /api/teams/[id]", () => {
       clerkUserId: "user_1",
       leagueId: "league-1",
       role: LeagueMemberRole.MANAGER,
+      createdAt: new Date(),
     } satisfies LeagueMember)
     prismaMock.team.update.mockResolvedValue({
       ...mockTeamOwnedByUser,
@@ -93,6 +94,7 @@ describe("PATCH /api/teams/[id]", () => {
       clerkUserId: "user_1",
       leagueId: "league-1",
       role: LeagueMemberRole.MANAGER,
+      createdAt: new Date(),
     } satisfies LeagueMember)
 
     const req = new NextRequest("http://localhost/api/teams/team-1", {
@@ -110,6 +112,7 @@ describe("PATCH /api/teams/[id]", () => {
       clerkUserId: "admin_user",
       leagueId: "league-1",
       role: LeagueMemberRole.COMMISSIONER,
+      createdAt: new Date(),
     } satisfies LeagueMember)
     prismaMock.team.update.mockResolvedValue({
       ...mockTeamOwnedByOther,

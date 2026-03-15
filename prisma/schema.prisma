@@ -55,6 +55,8 @@ model Player {
   override      PlayerOverride?
 
   @@index([positions], type: Gin)
+  @@index([fangraphsId])
+  @@index([mlbamId])
   @@map("players")
 }
 
@@ -116,6 +118,12 @@ enum StatPlayerType {
   PITCHER
 }
 
+enum StatSplit {
+  None    @map("none")
+  VsLeft  @map("vs_left")
+  VsRight @map("vs_right")
+}
+
 model StatDefinition {
   id           String         @id @default(uuid())
   abbreviation String
@@ -133,57 +141,48 @@ model StatDefinition {
 }
 
 model PlayerStat {
-  id        String    @id @default(uuid())
-  playerId  String    @map("player_id")
-  player    Player    @relation(fields: [playerId], references: [id])
-  season    Int
-  mlbTeam   String?   @map("mlb_team") @db.VarChar(10)
+  id          String         @id @default(uuid())
+  playerId    String         @map("player_id")
+  player      Player         @relation(fields: [playerId], references: [id])
+  season      Int
+  playerType  StatPlayerType @default(BATTER) @map("player_type")
+  projected   Boolean        @default(false)
+  neutralized Boolean        @default(false)
+  split       StatSplit      @default(None)
+  mlbTeam     String?        @map("mlb_team") @db.VarChar(10)
   /// JSONB: { "HR": 40, "AVG": 0.300, ... }
-  stats     Json
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
+  stats       Json
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+  deletedAt   DateTime?      @map("deleted_at")
 
-  @@unique([playerId, season])
+  @@unique([playerId, season, playerType, projected, neutralized, split])
   @@map("player_stats")
 }
 
 // ─── League & Multi-Tenancy (Clerk Linked) ───────────────────────────────────
 
 model League {
-  id              String        @id @default(uuid())
+  id            String          @id @default(uuid())
   /// Maps 1:1 to a Clerk Organization ID — the tenancy boundary
-  clerkOrgId      String        @unique @map("clerk_org_id")
-  leagueName      String        @map("league_name")
-  leagueFormat    LeagueFormat? @map("league_format")
-  /// e.g. "ottoneu", "fantrax", "espn". Nullable.
-  fantasyPlatform String?       @map("fantasy_platform")
+  clerkOrgId    String          @unique @map("clerk_org_id")
+  leagueName    String          @map("league_name")
+  /// FK to LeagueTemplate — drives format, platform, draft, roster config
+  templateId    String?         @map("template_id")
+  template      LeagueTemplate? @relation(fields: [templateId], references: [id])
   /// URL or deep-link to the league on its host platform. Nullable.
-  hostLeagueUrl   String?       @map("host_league_url")
-  /// JSONB: { "C": 2, "1B": 1, "OF": 5, "SP": 9, ... }
-  rosterConfig    Json          @map("roster_config")
-  isAuction       Boolean       @default(false) @map("is_auction")
-  isH2H           Boolean       @default(false) @map("is_h2h")
-  /// Null for non-auction leagues
-  leagueCap       Int?          @map("league_cap")
+  hostLeagueUrl String?         @map("host_league_url")
   /// Array of 4-digit years the league was active
-  seasons         Int[]
-  createdAt       DateTime      @default(now()) @map("created_at")
-  updatedAt       DateTime      @updatedAt @map("updated_at")
-  deletedAt       DateTime?     @map("deleted_at")
+  seasons       Int[]
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+  deletedAt     DateTime?       @map("deleted_at")
 
   members LeagueMember[]
   teams   Team[]
 
+  @@index([templateId])
   @@map("leagues")
-}
-
-enum LeagueFormat {
-  FGPTS
-  SABR
-  ROTO_5X5
-  ROTO_4X5
-  CUSTOM
 }
 
 enum LeagueMemberRole {
@@ -199,8 +198,10 @@ model LeagueMember {
   leagueId    String           @map("league_id")
   league      League           @relation(fields: [leagueId], references: [id])
   role        LeagueMemberRole
+  createdAt   DateTime         @default(now()) @map("created_at")
 
   @@id([clerkUserId, leagueId])
+  @@index([leagueId])
   @@map("league_members")
 }
 
@@ -222,16 +223,19 @@ model Team {
   managers      TeamManager[]
   rosterHistory RosterHistory[]
 
+  @@index([leagueId])
   @@map("teams")
 }
 
 model TeamManager {
-  clerkUserId String  @map("clerk_user_id")
-  teamId      String  @map("team_id")
-  team        Team    @relation(fields: [teamId], references: [id])
-  isPrimary   Boolean @default(true) @map("is_primary")
+  clerkUserId String   @map("clerk_user_id")
+  teamId      String   @map("team_id")
+  team        Team     @relation(fields: [teamId], references: [id])
+  isPrimary   Boolean  @default(true) @map("is_primary")
+  createdAt   DateTime @default(now()) @map("created_at")
 
   @@id([clerkUserId, teamId])
+  @@index([teamId])
   @@map("team_managers")
 }
 
@@ -248,5 +252,69 @@ model RosterHistory {
   updatedAt   DateTime  @updatedAt @map("updated_at")
   deletedAt   DateTime? @map("deleted_at")
 
+  @@index([teamId])
+  @@index([playerId])
   @@map("roster_history")
+}
+
+// ─── League Templates ─────────────────────────────────────────────────────────
+
+enum TemplatePlatform {
+  ESPN    @map("ESPN")
+  Ottoneu @map("Ottoneu")
+  Custom  @map("Custom")
+}
+
+enum TemplatePlayType {
+  H2H    @map("H2H")
+  Season @map("Season")
+}
+
+/// 5x5 = rotisserie 5×5 | 4x4 = rotisserie 4×4 | fangraphs = FanGraphs linear weights |
+/// sabr = SABR linear weights | points = platform-native points (e.g. ESPN)
+enum TemplateScoring {
+  FiveX5    @map("5x5")
+  FourX4    @map("4x4")
+  Fangraphs @map("fangraphs")
+  SABR      @map("sabr")
+  Points    @map("points")
+}
+
+enum TemplateDraftMode {
+  Live @map("live")
+  Slow @map("slow")
+}
+
+enum TemplateDraftType {
+  Snake   @map("snake")
+  Auction @map("auction")
+}
+
+model LeagueTemplate {
+  id         String            @id @default(uuid())
+  /// Human-readable name; unique across all templates
+  name       String            @unique
+  platform   TemplatePlatform
+  playType   TemplatePlayType  @map("play_type")
+  scoring    TemplateScoring
+  draftMode  TemplateDraftMode @map("draft_mode")
+  draftType  TemplateDraftType @map("draft_type")
+  teams      Int               @default(12)
+  rosterSize Int               @map("roster_size")
+  /// Auction salary cap per team. Null for snake drafts.
+  /// Typical defaults: 400 (Ottoneu), 260 (ESPN/Custom auction).
+  cap        Int?
+  /// Ordered array of roster slot positions, e.g. ["C","1B","OF","OF","P","BN"]
+  rosters    Json
+  isActive   Boolean           @default(true) @map("is_active")
+  version    Int               @default(1)
+  description String?
+  rulesText   String?          @map("rules_text")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+  deletedAt   DateTime?        @map("deleted_at")
+
+  leagues League[]
+
+  @@map("league_templates")
 }

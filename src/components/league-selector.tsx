@@ -33,7 +33,7 @@ export function LeagueSelector({ leagues }: Props) {
           variant="ghost"
           size="sm"
           aria-label="League selector"
-          className="max-w-60 text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          className="max-w-60 text-foreground hover:bg-muted"
         >
           <BaseballIcon size={15} className="shrink-0" />
           <span className="min-w-0 truncate">{label}</span>
@@ -45,7 +45,7 @@ export function LeagueSelector({ leagues }: Props) {
         className="w-50 max-h-64 overflow-y-auto"
       >
         {leagues.length === 0 ? (
-          <div className="px-3 py-2 text-sm text-zinc-500">
+          <div className="px-3 py-2 text-sm text-muted-foreground">
             No leagues found
           </div>
         ) : (

@@ -470,36 +470,22 @@ async function main() {
     data: [...batterStats, ...pitcherStats],
   })
 
+  // Templates must exist before the demo league references them
+  await seedLeagueTemplates()
+
   // ── Demo League (note: uses placeholder Clerk org ID for dev) ─────────────
+  const fgptsTemplate = await prisma.leagueTemplate.findUniqueOrThrow({
+    where: { name: "Ottoneu FGPTs" },
+  })
+
   const league = await prisma.league.upsert({
     where: { clerkOrgId: "org_dev_placeholder" },
-    update: {},
+    update: { templateId: fgptsTemplate.id },
     create: {
       clerkOrgId: "org_dev_placeholder",
       leagueName: "BBQ Demo League",
-      leagueFormat: "FGPTS",
-      fantasyPlatform: "ottoneu",
+      templateId: fgptsTemplate.id,
       hostLeagueUrl: null,
-      rosterConfig: {
-        C: 2,
-        "1B": 1,
-        "2B": 1,
-        "3B": 1,
-        SS: 1,
-        MI: 1,
-        OF: 5,
-        Util: 1,
-        "Bench (batters)": 3,
-        "Minors (batters)": 2,
-        IL60: 2,
-        SP: 9,
-        RP: 3,
-        "Bench (pitchers)": 3,
-        "Minors (pitchers)": 2,
-      },
-      isAuction: true,
-      isH2H: false,
-      leagueCap: 400,
       seasons: [2024, 2025],
     },
   })
@@ -531,6 +517,7 @@ async function main() {
       },
     })
   }
+
 }
 
 main()
@@ -539,3 +526,242 @@ main()
     process.exit(1)
   })
   .finally(() => prisma.$disconnect())
+
+async function seedLeagueTemplates() {
+  // Roster slot arrays — BN covers bench, minors, and IL (no separation at draft time)
+  const ESPN_ROSTER: string[] = [
+    "C",
+    "1B", "2B", "3B", "SS",
+    "OF", "OF", "OF",
+    "Util",
+    "P", "P", "P", "P", "P", "P", "P",
+    "BN", "BN", "BN",
+  ]
+
+  const CUSTOM_ROSTER: string[] = [
+    "C",
+    "1B", "2B", "3B", "SS",
+    "OF", "OF", "OF",
+    "Util",
+    "P", "P", "P", "P", "P", "P", "P",
+    "BN", "BN", "BN", "BN", "BN", "BN", "BN",
+  ]
+
+  const OTTONEU_ROSTER: string[] = [
+    "C", "C",
+    "1B", "2B", "3B", "SS",
+    "MI",
+    "OF", "OF", "OF", "OF", "OF",
+    "Util",
+    "P", "P", "P", "P", "P", "P", "P", "P", "P",
+    ...Array<string>(17).fill("BN"),
+  ]
+
+  // Prisma enum names (TS values) differ from @map DB values
+  type TemplateInput = {
+    name: string
+    platform: "ESPN" | "Ottoneu" | "Custom"
+    playType: "H2H" | "Season"
+    scoring: "FiveX5" | "FourX4" | "Fangraphs" | "SABR" | "Points"
+    draftMode: "Live" | "Slow"
+    draftType: "Snake" | "Auction"
+    teams: number
+    rosterSize: number
+    cap: number | null
+    rosters: string[]
+    description: string
+    rulesText: string
+  }
+
+  const templates: TemplateInput[] = [
+    {
+      name: "Custom",
+      platform: "Custom",
+      playType: "Season",
+      scoring: "FiveX5",
+      draftMode: "Live",
+      draftType: "Snake",
+      teams: 12,
+      rosterSize: 23,
+      cap: null,
+      rosters: CUSTOM_ROSTER,
+      description: "Fully customizable template — snake draft, 5×5 roto, season-long defaults",
+      rulesText: "# Custom\n\nThis template provides minimal defaults. Customize all settings to fit your league's rules.",
+    },
+    {
+      name: "ESPN H2H 5x5",
+      platform: "ESPN",
+      playType: "H2H",
+      scoring: "FiveX5",
+      draftMode: "Live",
+      draftType: "Snake",
+      teams: 12,
+      rosterSize: 19,
+      cap: null,
+      rosters: ESPN_ROSTER,
+      description: "ESPN snake draft, 5×5 rotisserie categories, head-to-head each category",
+      rulesText: "# ESPN H2H 5x5\n\n**Scoring**: Head-to-head, 5×5 categories (HR, RBI, SB, AVG, R / W, SV, ERA, WHIP, K).\n\n**Draft**: Snake, live.\n\n**Playoffs**: Top teams advance to bracket.",
+    },
+    {
+      name: "ESPN H2H Points",
+      platform: "ESPN",
+      playType: "H2H",
+      scoring: "Points",
+      draftMode: "Live",
+      draftType: "Snake",
+      teams: 12,
+      rosterSize: 19,
+      cap: null,
+      rosters: ESPN_ROSTER,
+      description: "ESPN snake draft, ESPN points scoring, head-to-head points",
+      rulesText: "# ESPN H2H Points\n\n**Scoring**: Head-to-head total points each week. ESPN default point values.\n\n**Draft**: Snake, live.\n\n**Playoffs**: Top teams by W/L record advance to postseason.",
+    },
+    {
+      name: "ESPN 5x5",
+      platform: "ESPN",
+      playType: "Season",
+      scoring: "FiveX5",
+      draftMode: "Live",
+      draftType: "Snake",
+      teams: 12,
+      rosterSize: 19,
+      cap: null,
+      rosters: ESPN_ROSTER,
+      description: "ESPN snake draft, 5×5 rotisserie scoring, season-long",
+      rulesText: "# ESPN 5x5\n\n**Scoring**: Rotisserie 5×5 (HR, RBI, SB, AVG, R / W, SV, ERA, WHIP, K).\n\n**Draft**: Snake, live.\n\n**Season long**: Cumulative roto standings, no playoffs.",
+    },
+    {
+      name: "ESPN Points",
+      platform: "ESPN",
+      playType: "Season",
+      scoring: "Points",
+      draftMode: "Live",
+      draftType: "Snake",
+      teams: 12,
+      rosterSize: 19,
+      cap: null,
+      rosters: ESPN_ROSTER,
+      description: "ESPN snake draft, ESPN points scoring, season-long",
+      rulesText: "# ESPN Points\n\n**Scoring**: ESPN default points. Batters earn points per counting stat; pitchers earn for Ks and wins.\n\n**Draft**: Snake, live.\n\n**Season long**: Cumulative total points, no playoffs.",
+    },
+    {
+      name: "Ottoneu 4x4",
+      platform: "Ottoneu",
+      playType: "Season",
+      scoring: "FourX4",
+      draftMode: "Slow",
+      draftType: "Auction",
+      teams: 12,
+      rosterSize: 40,
+      cap: 400,
+      rosters: OTTONEU_ROSTER,
+      description: "Ottoneu auction, 4×4 rotisserie scoring, season-long",
+      rulesText: "# Ottoneu 4x4\n\n**Scoring**: Rotisserie 4×4 (HR, RBI, SB, AVG / W, SV, ERA, WHIP).\n\n**Format**: 12-team auction, $400 cap, 40-man rosters.\n\n**Season long**: No playoffs. Cumulative roto standings.\n\n**Keeper contracts**: Salary escalates $5/year.",
+    },
+    {
+      name: "Ottoneu 5x5",
+      platform: "Ottoneu",
+      playType: "Season",
+      scoring: "FiveX5",
+      draftMode: "Slow",
+      draftType: "Auction",
+      teams: 12,
+      rosterSize: 40,
+      cap: 400,
+      rosters: OTTONEU_ROSTER,
+      description: "Ottoneu auction, 5×5 rotisserie scoring, season-long",
+      rulesText: "# Ottoneu 5x5\n\n**Scoring**: Rotisserie 5×5 (HR, RBI, SB, AVG, R / W, SV, ERA, WHIP, K).\n\n**Format**: 12-team auction, $400 cap, 40-man rosters.\n\n**Season long**: No playoffs. Cumulative roto standings.\n\n**Keeper contracts**: Salary escalates $5/year.",
+    },
+    {
+      name: "Ottoneu FGPTs",
+      platform: "Ottoneu",
+      playType: "Season",
+      scoring: "Fangraphs",
+      draftMode: "Slow",
+      draftType: "Auction",
+      teams: 12,
+      rosterSize: 40,
+      cap: 400,
+      rosters: OTTONEU_ROSTER,
+      description: "Ottoneu auction, FanGraphs linear-weights points, season-long",
+      rulesText: "# Ottoneu FGPTs\n\n**Scoring**: FanGraphs linear-weights points. Batters on wOBA components; pitchers on outs, Ks, penalized for walks/HRs.\n\n**Format**: 12-team auction, $400 cap, 40-man rosters.\n\n**Season long**: Total cumulative points.\n\n**Keeper contracts**: Salary escalates $5/year.",
+    },
+    {
+      name: "Ottoneu SABR",
+      platform: "Ottoneu",
+      playType: "Season",
+      scoring: "SABR",
+      draftMode: "Slow",
+      draftType: "Auction",
+      teams: 12,
+      rosterSize: 40,
+      cap: 400,
+      rosters: OTTONEU_ROSTER,
+      description: "Ottoneu auction, SABR linear-weights points, season-long",
+      rulesText: "# Ottoneu SABR\n\n**Scoring**: SABR-derived linear-weights points. Batters on on-base/extra-base value; pitchers on peripherals (Ks, BB, HR).\n\n**Format**: 12-team auction, $400 cap, 40-man rosters.\n\n**Season long**: Total cumulative points.\n\n**Keeper contracts**: Salary escalates $5/year.",
+    },
+    {
+      name: "Ottoneu H2H FGPTs",
+      platform: "Ottoneu",
+      playType: "H2H",
+      scoring: "Fangraphs",
+      draftMode: "Slow",
+      draftType: "Auction",
+      teams: 12,
+      rosterSize: 40,
+      cap: 400,
+      rosters: OTTONEU_ROSTER,
+      description: "Ottoneu auction, FanGraphs points scoring, head-to-head points",
+      rulesText: "# Ottoneu H2H FGPTs\n\n**Scoring**: Head-to-head total points. FanGraphs linear-weights scoring.\n\n**Format**: 12-team auction, $400 cap, 40-man rosters.\n\n**Playoffs**: Top teams by points advance to bracket.\n\n**Keeper contracts**: Salary escalates $5/year.",
+    },
+    {
+      name: "Ottoneu H2H SABR",
+      platform: "Ottoneu",
+      playType: "H2H",
+      scoring: "SABR",
+      draftMode: "Slow",
+      draftType: "Auction",
+      teams: 12,
+      rosterSize: 40,
+      cap: 400,
+      rosters: OTTONEU_ROSTER,
+      description: "Ottoneu auction, SABR points scoring, head-to-head points",
+      rulesText: "# Ottoneu H2H SABR\n\n**Scoring**: Head-to-head total points. SABR-derived linear-weights scoring.\n\n**Format**: 12-team auction, $400 cap, 40-man rosters.\n\n**Playoffs**: Top teams by points advance to bracket.\n\n**Keeper contracts**: Salary escalates $5/year.",
+    },
+  ]
+
+  for (const t of templates) {
+    await prisma.leagueTemplate.upsert({
+      where: { name: t.name },
+      update: {
+        platform: t.platform,
+        playType: t.playType,
+        scoring: t.scoring,
+        draftMode: t.draftMode,
+        draftType: t.draftType,
+        teams: t.teams,
+        rosterSize: t.rosterSize,
+        cap: t.cap,
+        rosters: t.rosters,
+        description: t.description,
+        rulesText: t.rulesText,
+      },
+      create: {
+        name: t.name,
+        platform: t.platform,
+        playType: t.playType,
+        scoring: t.scoring,
+        draftMode: t.draftMode,
+        draftType: t.draftType,
+        teams: t.teams,
+        rosterSize: t.rosterSize,
+        cap: t.cap,
+        rosters: t.rosters,
+        description: t.description,
+        rulesText: t.rulesText,
+      },
+    })
+  }
+  process.stdout.write(`Seeded ${templates.length} league templates\n`)
+}
+

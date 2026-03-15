@@ -2,6 +2,7 @@
 
 import { ChevronRight } from "lucide-react"
 import { useState } from "react"
+import { cn } from "@/lib/utils"
 import {
   Collapsible,
   CollapsibleContent,
@@ -23,10 +24,12 @@ export function SectionCollapsible({
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger className="flex w-full cursor-pointer select-none items-center gap-1.5 text-sm font-semibold uppercase tracking-wider text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300">
+      <CollapsibleTrigger className="collapsible-trigger flex w-full cursor-pointer select-none items-center gap-1.5">
         <ChevronRight
-          className="h-3.5 w-3.5 transition-transform duration-200"
-          style={{ transform: open ? "rotate(90deg)" : "rotate(0deg)" }}
+          className={cn(
+            "h-3.5 w-3.5 transition-transform duration-200",
+            open && "rotate-90",
+          )}
         />
         {title}
       </CollapsibleTrigger>

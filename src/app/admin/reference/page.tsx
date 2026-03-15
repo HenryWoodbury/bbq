@@ -3,9 +3,9 @@ import { requireAdmin } from "@/lib/auth-helpers"
 import { prisma } from "@/lib/prisma"
 import { StatDefsTable } from "../stat-defs-table"
 
-export const metadata = { title: "Settings — BBQ" }
+export const metadata = { title: "Reference — BBQ" }
 
-export default async function AdminSettingsPage() {
+export default async function AdminReferencePage() {
   await requireAdmin()
 
   const base = {
@@ -28,9 +28,7 @@ export default async function AdminSettingsPage() {
   return (
     <div className="flex flex-col gap-10">
       <section>
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-          Settings
-        </h1>
+        <h1 className="page-title">Reference</h1>
       </section>
 
       <SectionCollapsible title="Batter Stats">

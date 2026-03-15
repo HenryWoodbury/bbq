@@ -3,12 +3,14 @@ import { type NextRequest, NextResponse } from "next/server"
 import { LeagueMemberRole } from "@/generated/prisma/client"
 import { assertLeagueRole } from "@/lib/auth-helpers"
 import { prisma } from "@/lib/prisma"
+import { templateSelect } from "@/lib/queries/templates"
 
 type Params = { params: Promise<{ id: string }> }
 
 async function resolveLeague(id: string, userId: string) {
   const league = await prisma.league.findFirst({
     where: { id, deletedAt: null },
+    include: { template: { select: templateSelect } },
   })
   if (!league) return null
   const member = await prisma.leagueMember.findUnique({
@@ -44,27 +46,29 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (!league) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
   const body = await request.json()
-  const {
-    leagueName,
-    leagueFormat,
-    rosterConfig,
-    isAuction,
-    isH2H,
-    leagueCap,
-    seasons,
-  } = body
+  const { leagueName, templateId, seasons } = body as {
+    leagueName?: string
+    templateId?: string
+    seasons?: number[]
+  }
+
+  if (templateId !== undefined) {
+    const template = await prisma.leagueTemplate.findUnique({
+      where: { id: templateId },
+    })
+    if (!template) {
+      return NextResponse.json({ error: "Template not found" }, { status: 404 })
+    }
+  }
 
   const updated = await prisma.league.update({
     where: { id },
     data: {
       ...(leagueName !== undefined && { leagueName }),
-      ...(leagueFormat !== undefined && { leagueFormat }),
-      ...(rosterConfig !== undefined && { rosterConfig }),
-      ...(isAuction !== undefined && { isAuction }),
-      ...(isH2H !== undefined && { isH2H }),
-      ...(leagueCap !== undefined && { leagueCap }),
+      ...(templateId !== undefined && { templateId }),
       ...(seasons !== undefined && { seasons }),
     },
+    include: { template: { select: templateSelect } },
   })
 
   return NextResponse.json(updated)

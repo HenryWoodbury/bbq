@@ -16,6 +16,7 @@
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "db:seed": "prisma db seed",
+    "seed:players": "tsx prisma/seed-players.ts",
     "db:studio": "prisma studio",
     "format": "biome format --write .",
     "lint": "biome lint --write .",

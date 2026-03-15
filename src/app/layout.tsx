@@ -2,6 +2,7 @@ import { ClerkProvider } from "@clerk/nextjs"
 import type { Metadata } from "next"
 import { Geist_Mono, Lato } from "next/font/google"
 import { Header } from "@/components/header"
+import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
 import "./globals.css"
 
@@ -31,18 +32,20 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html lang="en">
+      <html lang="en" suppressHydrationWarning>
         <body
           className={cn(
             lato.variable,
             geistMono.variable,
-            "min-h-screen bg-zinc-50 antialiased dark:bg-zinc-950",
+            "min-h-screen bg-background antialiased",
           )}
         >
-          <Header />
-          <main className="mx-auto max-w-screen-2xl px-4 py-8 sm:px-6 lg:px-8">
-            {children}
-          </main>
+          <ThemeProvider>
+            <Header />
+            <main className="mx-auto max-w-screen-2xl px-4 py-8 sm:px-6 lg:px-8">
+              {children}
+            </main>
+          </ThemeProvider>
         </body>
       </html>
     </ClerkProvider>

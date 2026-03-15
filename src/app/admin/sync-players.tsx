@@ -56,12 +56,12 @@ export function SyncPlayers({ lastSyncedAt }: { lastSyncedAt: Date | null }) {
           {state.status === "loading" ? "Syncing…" : "Sync Player IDs"}
         </Button>
         {syncedAt && state.status !== "loading" && (
-          <span className="text-xs text-zinc-400 dark:text-zinc-500">
+          <span className="caption">
             Last synced {syncedAt.toLocaleString()}
           </span>
         )}
         {state.status === "loading" && (
-          <span className="text-sm text-zinc-500">
+          <span className="body-muted">
             Fetching from SFBB — this may take a moment…
           </span>
         )}

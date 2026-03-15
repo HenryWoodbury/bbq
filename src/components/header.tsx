@@ -12,6 +12,7 @@ import { prisma } from "@/lib/prisma"
 import { AdminMenu } from "./admin-menu"
 import { LeagueSelector } from "./league-selector"
 import { Button } from "./ui/button"
+import { ThemeToggle } from "./ui/theme-toggle"
 import { UserMenu, type UserMenuLeague } from "./user-menu"
 
 export async function Header() {
@@ -32,11 +33,11 @@ export async function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+    <header className="site-header">
       <div className="mx-auto flex h-14 max-w-screen-2xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link
           href="/"
-          className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50"
+          className="text-xl font-bold tracking-tight text-foreground"
         >
           BBQ
         </Link>
@@ -44,20 +45,25 @@ export async function Header() {
         <div className="flex items-center gap-2">
           <ClerkLoading>
             {userId && (
-              <div className="h-8 w-8 animate-pulse rounded-full bg-zinc-200 dark:bg-zinc-800" />
+              <div className="h-8 w-8 animate-pulse rounded-full bg-muted" />
             )}
           </ClerkLoading>
           <ClerkLoaded>
             <SignedIn>
               <LeagueSelector leagues={leagues} />
               {isAdmin && <AdminMenu className="mr-2" />}
-              <UserMenu />
             </SignedIn>
             <SignedOut>
               <SignInButton mode="redirect">
                 <Button>Sign in</Button>
               </SignInButton>
             </SignedOut>
+          </ClerkLoaded>
+          <ThemeToggle />
+          <ClerkLoaded>
+            <SignedIn>
+              <UserMenu />
+            </SignedIn>
           </ClerkLoaded>
         </div>
       </div>

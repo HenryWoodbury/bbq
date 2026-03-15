@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server"
 import { type NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { templateSelect } from "@/lib/queries/templates"
 
 export async function GET() {
   const { userId } = await auth.protect()
@@ -8,7 +9,11 @@ export async function GET() {
   const leagues = await prisma.league.findMany({
     where: { members: { some: { clerkUserId: userId } }, deletedAt: null },
     orderBy: { leagueName: "asc" },
-    include: { teams: { where: { deletedAt: null } }, members: true },
+    include: {
+      teams: { where: { deletedAt: null } },
+      members: true,
+      template: { select: templateSelect },
+    },
   })
 
   return NextResponse.json(leagues)
@@ -18,15 +23,11 @@ export async function POST(request: NextRequest) {
   const { orgId, userId } = await auth.protect()
 
   const body = await request.json()
-  const {
-    leagueName,
-    leagueFormat,
-    rosterConfig,
-    isAuction,
-    isH2H,
-    leagueCap,
-    seasons,
-  } = body
+  const { leagueName, templateId, seasons } = body as {
+    leagueName: string
+    templateId: string
+    seasons?: number[]
+  }
 
   if (!orgId) {
     return NextResponse.json(
@@ -35,10 +36,20 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  if (!leagueName || !rosterConfig) {
+  if (!leagueName || !templateId) {
     return NextResponse.json(
-      { error: "leagueName and rosterConfig are required" },
+      { error: "leagueName and templateId are required" },
       { status: 400 },
+    )
+  }
+
+  const template = await prisma.leagueTemplate.findUnique({
+    where: { id: templateId },
+  })
+  if (!template) {
+    return NextResponse.json(
+      { error: "Template not found" },
+      { status: 404 },
     )
   }
 
@@ -56,11 +67,7 @@ export async function POST(request: NextRequest) {
     data: {
       clerkOrgId: orgId,
       leagueName,
-      leagueFormat: leagueFormat ?? null,
-      rosterConfig,
-      isAuction: isAuction ?? false,
-      isH2H: isH2H ?? false,
-      leagueCap: leagueCap ?? null,
+      templateId,
       seasons: seasons ?? [],
       members: {
         create: {
@@ -69,7 +76,10 @@ export async function POST(request: NextRequest) {
         },
       },
     },
-    include: { members: true },
+    include: {
+      members: true,
+      template: { select: templateSelect },
+    },
   })
 
   return NextResponse.json(league, { status: 201 })

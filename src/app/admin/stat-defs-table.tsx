@@ -16,7 +16,7 @@ const columns: ColumnDef<StatDefRow, unknown>[] = [
     header: "Abbr",
     size: 80,
     cell: ({ getValue }) => (
-      <span className="font-mono text-xs font-semibold text-zinc-900 dark:text-zinc-50">
+      <span className="font-mono text-xs font-semibold text-foreground">
         {getValue() as string}
       </span>
     ),
@@ -31,7 +31,7 @@ const columns: ColumnDef<StatDefRow, unknown>[] = [
     header: "Format",
     size: 80,
     cell: ({ getValue }) => (
-      <span className="font-mono text-xs text-zinc-500 dark:text-zinc-400">
+      <span className="font-mono text-xs text-muted-foreground">
         {(getValue() as string | null) ?? "—"}
       </span>
     ),

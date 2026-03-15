@@ -3,8 +3,9 @@
 import {
   BarChart2Icon,
   ChevronDownIcon,
+  LayoutTemplateIcon,
   SettingsIcon,
-  SlidersHorizontalIcon,
+  SquareLibraryIcon,
   UsersIcon,
 } from "lucide-react"
 import Link from "next/link"
@@ -21,8 +22,9 @@ import { cn } from "@/lib/utils"
 const ITEMS = [
   { label: "Players", href: "/admin/players", icon: UsersIcon },
   { label: "Leagues", href: "/admin/leagues", icon: BaseballIcon },
+  { label: "Templates", href: "/admin/templates", icon: LayoutTemplateIcon },
   { label: "Reports", href: "/admin/reports", icon: BarChart2Icon },
-  { label: "Settings", href: "/admin/settings", icon: SlidersHorizontalIcon },
+  { label: "Reference", href: "/admin/reference", icon: SquareLibraryIcon },
 ] as const
 
 export function AdminMenu({ className }: { className?: string }) {
@@ -34,7 +36,7 @@ export function AdminMenu({ className }: { className?: string }) {
           size="sm"
           aria-label="Admin menu"
           className={cn(
-            "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800",
+            "text-foreground hover:bg-muted",
             className,
           )}
         >
