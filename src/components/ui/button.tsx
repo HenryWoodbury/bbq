@@ -3,21 +3,22 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-1.5 font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed",
+  "inline-flex items-center justify-center gap-1.5 border font-medium text-[0.9375rem] leading-[calc(4/3)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed",
   {
     variants: {
       variant: {
         primary:
-          "rounded-md bg-primary text-primary-foreground hover:bg-primary/80",
+          "rounded-lg border-zinc-950 bg-zinc-950 text-white enabled:hover:bg-zinc-500 enabled:hover:border-zinc-500 enabled:active:bg-zinc-500 enabled:active:border-zinc-950 dark:border-zinc-50 dark:bg-zinc-50 dark:text-zinc-950 dark:enabled:hover:bg-zinc-400 dark:enabled:hover:border-zinc-400 dark:enabled:active:bg-zinc-400 dark:enabled:active:border-zinc-50",
         secondary:
-          "rounded-md border border-border hover:bg-muted",
+          "rounded-lg border-zinc-300 bg-white text-zinc-950 enabled:hover:bg-zinc-100 enabled:hover:border-zinc-300 enabled:active:bg-zinc-100 enabled:active:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:enabled:hover:bg-zinc-800 dark:enabled:hover:border-zinc-700 dark:enabled:active:bg-zinc-800 dark:enabled:active:border-zinc-500",
         destructive:
-          "rounded-md text-destructive hover:bg-destructive/10",
-        ghost: "text-muted-foreground hover:text-foreground",
+          "rounded-lg border-transparent text-destructive enabled:hover:bg-destructive/10",
+        ghost:
+          "rounded-lg border-transparent bg-transparent text-zinc-950 enabled:hover:bg-zinc-100 enabled:hover:border-zinc-100 enabled:active:bg-zinc-100 enabled:active:border-zinc-100 dark:text-zinc-50 dark:enabled:hover:bg-zinc-800 dark:enabled:hover:border-zinc-800 dark:enabled:active:bg-zinc-800 dark:enabled:active:border-zinc-800",
       },
       size: {
-        md: "px-4 py-2 text-sm",
-        sm: "px-3 py-1.5 text-sm",
+        md: "px-4 py-1.5",
+        sm: "px-3 py-1",
       },
     },
     defaultVariants: {

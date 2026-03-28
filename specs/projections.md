@@ -90,5 +90,3 @@ Should we update the StatDefinition table to indicate use in "Dashboard, Standar
 Should we move StatDefinition to JSON files along with "layout definitions" like "Dashboard, Standard, Advanced"?
 
 For queries and filters is there a better way to retrieve stats per player than the suggested season, projected, neutralized, split proposal?
-
-Make sure the database can handle multiple uploads of stats that overlap but have different metadata. Avoid naïve database interpretations.

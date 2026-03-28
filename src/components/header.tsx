@@ -34,10 +34,10 @@ export async function Header() {
 
   return (
     <header className="site-header">
-      <div className="mx-auto flex h-14 max-w-screen-2xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="flex h-14 items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link
           href="/"
-          className="text-xl font-bold tracking-tight text-foreground"
+          className="logo"
         >
           BBQ
         </Link>

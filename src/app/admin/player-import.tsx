@@ -3,6 +3,7 @@
 import { useRef, useState } from "react"
 import { Alert } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { FileLabel } from "@/components/ui/file-label"
 import { Checkbox } from "@/components/ui/checkbox"
 
 type ImportResult = {
@@ -64,18 +65,16 @@ export function PlayerImport() {
   return (
     <div className="flex flex-col gap-4">
       <form onSubmit={handleSubmit} className="flex items-center gap-3">
-        <label className="file-label">
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".csv"
-            className="sr-only"
-            onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)}
-          />
+        <FileLabel
+          ref={fileRef}
+          accept=".csv"
+          onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)}
+        >
           {fileName ?? "Choose CSV…"}
-        </label>
+        </FileLabel>
         <Button
           type="submit"
+          size="md"
           disabled={!fileName || state.status === "loading"}
         >
           {state.status === "loading" ? "Importing…" : "Import"}

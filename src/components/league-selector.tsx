@@ -1,16 +1,14 @@
 "use client"
 
-import { CheckIcon, ChevronDownIcon } from "lucide-react"
 import { usePathname, useRouter } from "next/navigation"
 import { BaseballIcon } from "@/components/icons/baseball-icon"
-import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { cn } from "@/lib/utils"
+import { MenuButton } from "@/components/ui/menu-button"
 import type { UserMenuLeague } from "./user-menu"
 
 type Props = {
@@ -29,51 +27,26 @@ export function LeagueSelector({ leagues }: Props) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          aria-label="League selector"
-          className="max-w-60 text-foreground hover:bg-muted"
-        >
+        <MenuButton variant="ghost" size="sm" aria-label="League selector" className="max-w-60">
           <BaseballIcon size={15} className="shrink-0" />
           <span className="min-w-0 truncate">{label}</span>
-          <ChevronDownIcon size={14} className="shrink-0 opacity-60" />
-        </Button>
+        </MenuButton>
       </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="end"
-        className="w-50 max-h-64 overflow-y-auto"
-      >
+      <DropdownMenuContent align="end" className="w-50 max-h-64 overflow-y-auto">
         {leagues.length === 0 ? (
           <div className="px-3 py-2 text-sm text-muted-foreground">
             No leagues found
           </div>
         ) : (
-          leagues.map((league) => {
-            const isCurrent = league.id === currentLeague?.id
-            return (
-              <DropdownMenuItem
-                key={league.id}
-                onClick={() => router.push(`/leagues/${league.id}`)}
-                className="flex items-center gap-2"
-              >
-                <span
-                  className={cn(
-                    "min-w-0 truncate",
-                    isCurrent && "font-semibold text-primary",
-                  )}
-                >
-                  {league.leagueName}
-                </span>
-                {isCurrent && (
-                  <CheckIcon
-                    size={14}
-                    className="shrink-0 ml-auto text-primary"
-                  />
-                )}
-              </DropdownMenuItem>
-            )
-          })
+          leagues.map((league) => (
+            <DropdownMenuCheckboxItem
+              key={league.id}
+              checked={league.id === currentLeague?.id}
+              onCheckedChange={() => router.push(`/leagues/${league.id}`)}
+            >
+              <span className="min-w-0 truncate">{league.leagueName}</span>
+            </DropdownMenuCheckboxItem>
+          ))
         )}
       </DropdownMenuContent>
     </DropdownMenu>

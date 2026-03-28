@@ -26,10 +26,8 @@ export default async function AdminReferencePage() {
   ])
 
   return (
-    <div className="flex flex-col gap-10">
-      <section>
-        <h1 className="page-title">Reference</h1>
-      </section>
+    <div className="flex flex-col gap-4">
+      <h1>Reference</h1>
 
       <SectionCollapsible title="Batter Stats">
         <StatDefsTable data={batterStats} />

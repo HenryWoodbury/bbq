@@ -67,7 +67,7 @@ Replace OKLCH values for each semantic token:
   /* Brand / interactive */
   --primary: oklch(0.205 0 0);           /* button bg, strong accents */
   --primary-foreground: oklch(0.985 0 0);
-  --ring: #1447e6;                        /* focus ring (hex OK) */
+  --ring: oklch(62.3% 0.214 259.815);  /* focus ring — Tailwind blue-500 */
 
   /* Destructive */
   --destructive: oklch(0.577 0.245 27.325);

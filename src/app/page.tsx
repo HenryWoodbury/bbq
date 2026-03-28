@@ -29,10 +29,9 @@ export default async function HomePage() {
   })
 
   return (
-    <div className="flex flex-col gap-8">
-      <section>
-        <h1 className="page-title">Your leagues</h1>
-      </section>
+    <div className="flex flex-col gap-4">
+
+      <h1>Your leagues</h1>
 
       {leagues.length === 0 ? (
         <p className="body-muted">
@@ -53,7 +52,7 @@ export default async function HomePage() {
 function WelcomePage() {
   return (
     <div className="flex flex-col gap-12">
-      <section className="flex flex-col gap-6">
+      <section className="flex flex-col">
         <div className="flex flex-col gap-3">
           <h1 className="hero-heading">BBQ</h1>
           <p className="hero-subtitle">

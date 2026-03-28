@@ -27,10 +27,9 @@ export default async function AdminLeaguesPage() {
   ])
 
   return (
-    <div className="page-layout">
-      <section>
-        <h1 className="page-title">Manage Leagues</h1>
-      </section>
+    <div className="page-layout flex flex-col gap-4">
+
+      <h1>Manage Leagues</h1>
 
       <section>
         <div className="grid gap-4 sm:grid-cols-3">
@@ -40,7 +39,7 @@ export default async function AdminLeaguesPage() {
       </section>
 
       <section>
-        <h2 className="mb-3 section-label">Leagues</h2>
+        <h2 className="mb-3">Leagues</h2>
         <LeaguesTable data={leagues} />
       </section>
     </div>

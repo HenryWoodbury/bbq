@@ -2,7 +2,6 @@
 
 import {
   BarChart2Icon,
-  ChevronDownIcon,
   LayoutTemplateIcon,
   SettingsIcon,
   SquareLibraryIcon,
@@ -10,14 +9,13 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { BaseballIcon } from "@/components/icons/baseball-icon"
-import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { cn } from "@/lib/utils"
+import { MenuButton } from "@/components/ui/menu-button"
 
 const ITEMS = [
   { label: "Players", href: "/admin/players", icon: UsersIcon },
@@ -31,19 +29,10 @@ export function AdminMenu({ className }: { className?: string }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          aria-label="Admin menu"
-          className={cn(
-            "text-foreground hover:bg-muted",
-            className,
-          )}
-        >
+        <MenuButton variant="ghost" size="sm" aria-label="Admin menu" className={className}>
           <SettingsIcon size={15} className="shrink-0" />
           <span className="min-w-0 truncate">Admin</span>
-          <ChevronDownIcon size={14} className="shrink-0 opacity-60" />
-        </Button>
+        </MenuButton>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-50">
         {ITEMS.map(({ label, href, icon: Icon }) => (

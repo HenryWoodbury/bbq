@@ -3,6 +3,7 @@
 import { useRef, useState } from "react"
 import { Alert } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { FileLabel } from "@/components/ui/file-label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -78,16 +79,13 @@ export function UploadStats({ lastUploadedAt }: { lastUploadedAt: Date | null })
       )}
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center gap-3">
-          <label className="file-label">
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".csv"
-              className="sr-only"
-              onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)}
-            />
+          <FileLabel
+            ref={fileRef}
+            accept=".csv"
+            onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)}
+          >
             {fileName ?? "Choose CSV…"}
-          </label>
+          </FileLabel>
 
           <div className="flex items-center gap-1.5">
             <Label className="body-muted" htmlFor="stats-season">
@@ -151,6 +149,7 @@ export function UploadStats({ lastUploadedAt }: { lastUploadedAt: Date | null })
 
           <Button
             type="submit"
+            size="md"
             disabled={!fileName || state.status === "loading"}
           >
             {state.status === "loading" ? "Uploading…" : "Upload"}

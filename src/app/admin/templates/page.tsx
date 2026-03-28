@@ -32,13 +32,11 @@ export default async function AdminTemplatesPage() {
   })
 
   return (
-    <div className="flex flex-col gap-10">
-      <section>
-        <h1 className="page-title">Templates</h1>
-        <p className="mt-1 body-muted">
-          Configuration templates for league formats, rule sets, and game mechanics.
-        </p>
-      </section>
+    <div className="flex flex-col gap-4">
+      <h1 className="page-title">Templates</h1>
+      <p>
+        Configuration templates for league formats, rule sets, and game mechanics.
+      </p>
 
       <SectionCollapsible title="Draft Templates">
         <TemplatesTable data={templates} />

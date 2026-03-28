@@ -6,10 +6,8 @@ export default async function AdminReportsPage() {
   await requireAdmin()
 
   return (
-    <div className="page-layout">
-      <section>
-        <h1 className="page-title">Reports</h1>
-      </section>
+    <div className="page-layout flex flex-col gap-4">
+      <h1>Reports</h1>
     </div>
   )
 }

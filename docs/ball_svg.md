@@ -2,8 +2,8 @@
 
 The BBQ project includes two Python scripts that generate 2D SVG renderings of a baseball with seams and stitches:
 
-- **`scripts/generate_stitch_ball.py`**: Ball with seam underlay and interleaved zipper‑style stitches (216 individual threads), including optional jitter in stitch placement.
-- **`scripts/generate_seam_ball.py`**: Ball with the seam path stitches, simplified for iconic use.
+- **`scripts/stitch_ball.py`**: Ball with seam underlay and interleaved zipper‑style stitches (216 individual threads), including optional jitter in stitch placement.
+- **`scripts/seam_ball.py`**: Ball with the seam path stitches, simplified for iconic use.
 
 Both scripts:
 
@@ -21,24 +21,24 @@ The helper script `scripts/run.sh` sets up a virtualenv (if needed), installs Py
 ./scripts/run.sh <script.py> [args...]
 ```
 
-- **Run the ultra‑realistic stitched ball**:
+- **Run the stitched ball**:
 
 ```bash
-./scripts/run.sh generate_stitch_ball.py
+./scripts/run.sh stitch_ball.py
 ```
 
-- **Run the seam‑only ball**:
+- **Run the seam ball**:
 
 ```bash
-./scripts/run.sh generate_seam_ball.py
+./scripts/run.sh seam_ball.py
 ```
 
-Any additional arguments after the script name are passed directly to the Python script, so you can control orientation and output filename from the CLI.
+Arguments after the script name are passed directly to the Python script, so you can control orientation and output filename from the CLI.
 
 - **Example: stitched ball with custom orientation and output name**:
 
 ```bash
-./scripts/run.sh generate_stitch_ball.py \
+./scripts/run.sh stitch_ball.py \
   --yaw 15 --pitch 140 --roll 25 \
   -o baseball_ultra_real_custom.svg
 ```
@@ -46,7 +46,7 @@ Any additional arguments after the script name are passed directly to the Python
 - **Example: seam ball with different view**:
 
 ```bash
-./scripts/run.sh generate_seam_ball.py \
+./scripts/run.sh seam_ball.py \
   --yaw 30 --pitch 90 --roll 0 \
   -o baseball_seam_sideview.svg
 ```
@@ -55,7 +55,7 @@ All SVGs produced via `run.sh` will appear in `scripts/svg/`.
 
 ## Orienting the ball: Yaw, Pitch, Roll
 
-Both generator scripts expose three orientation parameters, in **degrees**, that control how the ball is viewed before projection to 2D:
+The three orientation parameters, in **degrees**, control how the ball is viewed before projection to 2D:
 
 - **Yaw (`--yaw`)**:  
   Spin the ball **left/right** around the vertical axis (imagine rotating the ball so a different longitude faces the camera).
@@ -68,7 +68,7 @@ Both generator scripts expose three orientation parameters, in **degrees**, that
 
 Practical tips:
 
-- **Small yaw changes** move which part of the seam is centered in the image.
+- **Yaw** will adjust which part of the seam is centered in the image.
 - **Pitch** is useful to show more of the "top" or "bottom" half of the ball.
 - **Roll** keeps the same patch of leather facing you, but rotates the seam pattern within the circle.
 

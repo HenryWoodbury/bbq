@@ -6,7 +6,7 @@ interface StatCardProps {
 export function StatCard({ label, value }: StatCardProps) {
   return (
     <div className="card p-5">
-      <p className="section-label">{label}</p>
+      <p className="">{label}</p>
       <p className="mt-1 stat-value">
         {typeof value === "number" ? value.toLocaleString() : value}
       </p>

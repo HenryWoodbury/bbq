@@ -1,92 +1,105 @@
-import Link from "next/link"
 import type { PlayerRow } from "@/components/players-table"
-import { SectionCollapsible } from "@/components/section-collapsible"
 import { requireAdmin } from "@/lib/auth-helpers"
 import { prisma } from "@/lib/prisma"
-import { SyncPlayers } from "../sync-players"
-import { UploadPlayerUniverse } from "../upload-player-universe"
-import { UploadStats } from "../upload-stats"
+import { PlayersSync } from "./players-sync"
 import { PlayersTableAdmin } from "./players-table-admin"
 
 export const metadata = { title: "Manage Players — BBQ" }
 
+export type SyncStatus = {
+  lastSyncedPlayer: {
+    updatedAt: Date
+  } | null
+  lastUploadedUniverse: {
+    updatedAt: Date
+  } | null
+  lastUploadedStats: {
+    updatedAt: Date
+  } | null
+}
+
 export default async function AdminPlayersPage() {
   await requireAdmin()
 
-  const [lastSyncedPlayer, lastUploadedUniverse, lastUploadedStats, players, manualOverrides] =
-    await Promise.all([
-      prisma.player.findFirst({
-        orderBy: { updatedAt: "desc" },
-        select: { updatedAt: true },
-      }),
-      prisma.playerUniverse.findFirst({
-        where: { format: "ottoneu", deletedAt: null },
-        orderBy: { updatedAt: "desc" },
-        select: { updatedAt: true },
-      }),
-      prisma.playerStat.findFirst({
-        where: { deletedAt: null },
-        orderBy: { createdAt: "desc" },
-        select: { createdAt: true },
-      }),
-      prisma.player.findMany({
-        where: { deletedAt: null },
-        orderBy: { playerName: "asc" },
-        select: {
-          id: true,
-          ottoneuId: true,
-          playerName: true,
-          fgSpecialChar: true,
-          firstName: true,
-          lastName: true,
-          active: true,
-          birthday: true,
-          team: true,
-          mlbLevel: true,
-          fangraphsId: true,
-          bats: true,
-          throws: true,
-          universe: {
-            where: { format: "ottoneu", deletedAt: null },
-            select: { positions: true, fangraphsId: true },
-            take: 1,
-          },
-          override: {
-            select: {
-              id: true,
-              displayName: true,
-              firstName: true,
-              lastName: true,
-              birthday: true,
-              team: true,
-              mlbLevel: true,
-              active: true,
-              bats: true,
-              throws: true,
-              deletedAt: true,
-            },
+  const [
+    lastSyncedPlayer,
+    lastUploadedUniverse,
+    lastUploadedStats,
+    players,
+    manualOverrides,
+  ] = await Promise.all([
+    prisma.player.findFirst({
+      orderBy: { updatedAt: "desc" },
+      select: { updatedAt: true },
+    }),
+    prisma.playerUniverse.findFirst({
+      where: { format: "ottoneu", deletedAt: null },
+      orderBy: { updatedAt: "desc" },
+      select: { updatedAt: true },
+    }),
+    prisma.playerStat.findFirst({
+      where: { deletedAt: null },
+      orderBy: { updatedAt: "desc" },
+      select: { updatedAt: true },
+    }),
+    prisma.player.findMany({
+      where: { deletedAt: null },
+      orderBy: { playerName: "asc" },
+      select: {
+        id: true,
+        ottoneuId: true,
+        playerName: true,
+        fgSpecialChar: true,
+        firstName: true,
+        lastName: true,
+        active: true,
+        birthday: true,
+        team: true,
+        mlbLevel: true,
+        fangraphsId: true,
+        bats: true,
+        throws: true,
+        universe: {
+          where: { format: "ottoneu", deletedAt: null },
+          select: { positions: true, fangraphsId: true },
+          take: 1,
+        },
+        override: {
+          select: {
+            id: true,
+            displayName: true,
+            firstName: true,
+            lastName: true,
+            birthday: true,
+            team: true,
+            mlbLevel: true,
+            active: true,
+            bats: true,
+            throws: true,
+            deletedAt: true,
           },
         },
-      }),
-      // Manual overrides not yet linked to a Player
-      prisma.playerOverride.findMany({
-        where: { isManual: true, playerId: null, deletedAt: null },
-        select: {
-          id: true,
-          displayName: true,
-          firstName: true,
-          lastName: true,
-          birthday: true,
-          team: true,
-          mlbLevel: true,
-          active: true,
-          bats: true,
-          throws: true,
-          fangraphsId: true,
-          ottoneuId: true,
-        },
-      }),
-    ])
+      },
+    }),
+    // Manual overrides not yet linked to a Player
+    prisma.playerOverride.findMany({
+      where: { isManual: true, playerId: null, deletedAt: null },
+      select: {
+        id: true,
+        displayName: true,
+        firstName: true,
+        lastName: true,
+        birthday: true,
+        team: true,
+        mlbLevel: true,
+        active: true,
+        bats: true,
+        throws: true,
+        fangraphsId: true,
+        ottoneuId: true,
+      },
+    }),
+  ])
 
   const playerRows: PlayerRow[] = players.map((p) => {
     const ov = p.override?.deletedAt ? null : p.override
@@ -140,52 +153,18 @@ export default async function AdminPlayersPage() {
   const allRows = [...playerRows, ...manualRows]
 
   return (
-    <div className="page-layout">
+    <div className="page-layout flex flex-col gap-4">
+      <h1>Manage Players</h1>
       <section>
-        <h1 className="page-title">Manage Players</h1>
-      </section>
-
-      <section>
-        <h2 className="mb-1 section-label">Sync Player IDs</h2>
-        <p className="mb-4 caption">
-          Fetches the{" "}
-          <Link href="https://www.smartfantasybaseball.com/tools/">
-            Smart Fantasy Baseball Player ID Map
-          </Link>
-          {" "} then upserts all players.
-        </p>
-        <SyncPlayers lastSyncedAt={lastSyncedPlayer?.updatedAt ?? null} />
-      </section>
-
-      <section>
-        <h2 className="mb-1 section-label">Import the Ottoneu Player Universe</h2>
-        <p className="mb-4 caption">
-          Upload the full list of players in the {" "}
-          <Link href="https://community.ottoneu.com/t/list-of-players-and-their-ottoneu-positions-player-universe/7547">
-            Ottoneu Universe
-          </Link>
-          .
-        </p>
-        <UploadPlayerUniverse
-          lastUploadedAt={lastUploadedUniverse?.updatedAt ?? null}
+        <PlayersSync
+          status={{
+            lastSyncedPlayer,
+            lastUploadedUniverse,
+            lastUploadedStats,
+          }}
         />
       </section>
-
       <section>
-        <SectionCollapsible
-          title={<h2 className="section-label">Upload Stats</h2>}
-          defaultOpen={false}
-        >
-          <p className="mb-4 caption">
-            Upload a Fangraphs-format CSV (e.g. Steamer, ZiPS) and tag it with
-            season, projected, neutralized, and split metadata.
-          </p>
-          <UploadStats lastUploadedAt={lastUploadedStats?.createdAt ?? null} />
-        </SectionCollapsible>
-      </section>
-
-      <section>
-        <h2 className="mb-3 section-label">Players</h2>
         <PlayersTableAdmin data={allRows} />
       </section>
     </div>

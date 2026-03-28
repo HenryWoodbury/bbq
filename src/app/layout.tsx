@@ -32,17 +32,17 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html lang="en" suppressHydrationWarning>
+      <html lang="en" suppressHydrationWarning className="overflow-x-hidden">
         <body
           className={cn(
             lato.variable,
             geistMono.variable,
-            "min-h-screen bg-background antialiased",
+            "min-h-screen w-full overflow-x-hidden bg-background antialiased",
           )}
         >
           <ThemeProvider>
             <Header />
-            <main className="mx-auto max-w-screen-2xl px-4 py-8 sm:px-6 lg:px-8">
+            <main className="w-full px-4 py-8 sm:px-6 lg:px-8">
               {children}
             </main>
           </ThemeProvider>

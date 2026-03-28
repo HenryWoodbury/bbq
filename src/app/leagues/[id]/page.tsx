@@ -42,7 +42,7 @@ export default async function LeaguePage({ params }: Props) {
       )}
       {league.hostLeagueUrl && (
         <div className="card p-4">
-          <p className="mb-1 section-label">Host League</p>
+          <p className="mb-1">Host League</p>
           <a
             href={league.hostLeagueUrl}
             target="_blank"
@@ -60,7 +60,7 @@ export default async function LeaguePage({ params }: Props) {
 function InfoCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="card p-4">
-      <p className="mb-1 section-label">{label}</p>
+      <p className="mb-1">{label}</p>
       <p className="card-title">{value}</p>
     </div>
   )

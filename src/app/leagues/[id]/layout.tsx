@@ -25,7 +25,7 @@ export default async function LeagueLayout({ children, params }: Props) {
   if (!member) notFound()
 
   return (
-    <div className="mx-auto max-w-screen-2xl px-4 py-6 sm:px-6 lg:px-8">
+    <div className="min-w-0 w-full px-4 py-6 sm:px-6 lg:px-8">
       <OrgSync clerkOrgId={league.clerkOrgId} />
       <div className="mb-6 border-b border-border pb-4">
         <h1 className="page-title">{league.leagueName}</h1>
