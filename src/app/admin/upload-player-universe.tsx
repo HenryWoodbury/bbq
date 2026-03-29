@@ -89,9 +89,6 @@ export function UploadPlayerUniverse({
         >
           {state.status === "loading" ? "Uploading…" : "Upload"}
         </Button>
-        {state.status === "loading" && (
-          <span className="body-muted">Uploading…</span>
-        )}
       </form>
 
       {state.status === "success" && (

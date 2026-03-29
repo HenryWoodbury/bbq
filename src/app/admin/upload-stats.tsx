@@ -15,6 +15,7 @@ type UploadResult = {
   linked: number
   skipped: number
   upserted: number
+  unmatchedSample?: string[]
   uploadedAt: string
 }
 
@@ -154,10 +155,6 @@ export function UploadStats({
           >
             {state.status === "loading" ? "Uploading…" : "Upload"}
           </Button>
-
-          {state.status === "loading" && (
-            <span className="body-muted">Uploading…</span>
-          )}
         </div>
       </form>
 
@@ -175,6 +172,11 @@ export function UploadStats({
               </>
             )}
           </div>
+          {state.result.unmatchedSample && state.result.unmatchedSample.length > 0 && (
+            <div className="mt-1 text-xs opacity-70">
+              Unmatched IDs (sample): {state.result.unmatchedSample.join(", ")}
+            </div>
+          )}
           <div className="mt-1 text-xs opacity-70">
             Uploaded {new Date(state.result.uploadedAt).toLocaleString()}
           </div>

@@ -5,12 +5,12 @@ import { chunk, parseCSVLine } from "@/lib/csv"
 import { prisma } from "@/lib/prisma"
 import { PROJECTION_MAP } from "@/lib/stat-maps"
 
-const SKIP_COLUMNS = new Set([
-  "Name",
-  "Team",
-  "NameASCII",
-  "PlayerId",
-  "MLBAMID",
+const SKIP_COLUMNS_LC = new Set([
+  "name",
+  "team",
+  "nameascii",
+  "playerid",
+  "mlbamid",
 ])
 
 const SPLIT_MAP: Record<string, StatSplit> = {
@@ -74,9 +74,10 @@ export async function POST(request: NextRequest) {
   }
 
   const headers = parseCSVLine(lines[0])
-  const playerIdIdx = headers.indexOf("PlayerId")
-  const mlbamIdIdx = headers.indexOf("MLBAMID")
-  const teamIdx = headers.indexOf("Team")
+  const lc = headers.map((h) => h.toLowerCase())
+  const playerIdIdx = lc.indexOf("playerid")
+  const mlbamIdIdx = lc.indexOf("mlbamid")
+  const teamIdx = lc.indexOf("team")
 
   if (playerIdIdx === -1 && mlbamIdIdx === -1) {
     return NextResponse.json(
@@ -113,7 +114,7 @@ export async function POST(request: NextRequest) {
     const stats: Record<string, number> = {}
     for (let j = 0; j < headers.length; j++) {
       const col = headers[j]
-      if (SKIP_COLUMNS.has(col)) continue
+      if (SKIP_COLUMNS_LC.has(lc[j])) continue
       const val = parseFloat(fields[j] ?? "")
       if (!Number.isNaN(val)) stats[col] = val
     }
@@ -164,6 +165,7 @@ export async function POST(request: NextRequest) {
 
   const toUpsert: UpsertData[] = []
   let skipped = 0
+  const unmatchedSample: string[] = []
 
   for (const row of rows) {
     let playerId: string | undefined
@@ -172,6 +174,8 @@ export async function POST(request: NextRequest) {
 
     if (!playerId) {
       skipped++
+      if (row.fangraphsId && unmatchedSample.length < 10)
+        unmatchedSample.push(row.fangraphsId)
       continue
     }
 
@@ -202,7 +206,7 @@ export async function POST(request: NextRequest) {
                 split: data.split,
               },
             },
-            update: { mlbTeam: data.mlbTeam, stats: data.stats },
+            update: { mlbTeam: data.mlbTeam, stats: data.stats, deletedAt: null },
             create: {
               playerId: data.playerId,
               season: data.season,
@@ -236,6 +240,7 @@ export async function POST(request: NextRequest) {
       linked: toUpsert.length,
       skipped,
       upserted,
+      unmatchedSample,
       uploadedAt: upload.createdAt.toISOString(),
     })
   } catch (err) {
