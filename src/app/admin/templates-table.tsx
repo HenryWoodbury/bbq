@@ -7,6 +7,7 @@ import { useState } from "react"
 import { DataTable } from "@/components/data-table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Dialog,
   DialogContent,
@@ -14,7 +15,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
@@ -65,7 +65,8 @@ const EMPTY_FORM: FormState = {
   teams: "12",
   rosterSize: "23",
   cap: "",
-  rosters: '["C","1B","2B","3B","SS","OF","OF","OF","Util","P","P","P","P","P","P","P","BN","BN","BN","BN","BN","BN","BN"]',
+  rosters:
+    '["C","1B","2B","3B","SS","OF","OF","OF","Util","P","P","P","P","P","P","P","BN","BN","BN","BN","BN","BN","BN"]',
   description: "",
   rulesText: "",
   isActive: true,
@@ -89,7 +90,13 @@ function toFormState(row: TemplateRow): FormState {
   }
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string
+  children: React.ReactNode
+}) {
   return (
     <div className="flex flex-col gap-1">
       <Label>{label}</Label>
@@ -97,7 +104,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </div>
   )
 }
-
 
 function TemplateForm({
   mode,
@@ -172,7 +178,11 @@ function TemplateForm({
 
       if (!res.ok) {
         const data = (await res.json()) as { error?: unknown }
-        setError(typeof data.error === "string" ? data.error : JSON.stringify(data.error))
+        setError(
+          typeof data.error === "string"
+            ? data.error
+            : JSON.stringify(data.error),
+        )
         return
       }
 
@@ -197,7 +207,9 @@ function TemplateForm({
         <Field label="Platform">
           <Select
             value={form.platform}
-            onChange={(e) => set("platform", e.target.value as FormState["platform"])}
+            onChange={(e) =>
+              set("platform", e.target.value as FormState["platform"])
+            }
             className="form-control"
           >
             <option value="ESPN">ESPN</option>
@@ -209,7 +221,9 @@ function TemplateForm({
         <Field label="Play Type">
           <Select
             value={form.playType}
-            onChange={(e) => set("playType", e.target.value as FormState["playType"])}
+            onChange={(e) =>
+              set("playType", e.target.value as FormState["playType"])
+            }
             className="form-control"
           >
             <option value="Season">Season Long</option>
@@ -220,7 +234,9 @@ function TemplateForm({
         <Field label="Scoring">
           <Select
             value={form.scoring}
-            onChange={(e) => set("scoring", e.target.value as FormState["scoring"])}
+            onChange={(e) =>
+              set("scoring", e.target.value as FormState["scoring"])
+            }
             className="form-control"
           >
             <option value="FiveX5">5×5 Roto</option>
@@ -234,7 +250,9 @@ function TemplateForm({
         <Field label="Draft Type">
           <Select
             value={form.draftType}
-            onChange={(e) => set("draftType", e.target.value as FormState["draftType"])}
+            onChange={(e) =>
+              set("draftType", e.target.value as FormState["draftType"])
+            }
             className="form-control"
           >
             <option value="Snake">Snake</option>
@@ -245,7 +263,9 @@ function TemplateForm({
         <Field label="Draft Mode">
           <Select
             value={form.draftMode}
-            onChange={(e) => set("draftMode", e.target.value as FormState["draftMode"])}
+            onChange={(e) =>
+              set("draftMode", e.target.value as FormState["draftMode"])
+            }
             className="form-control"
           >
             <option value="Live">Live</option>
@@ -373,7 +393,10 @@ function DeleteButton({ row }: { row: TemplateRow }) {
   const [pending, setPending] = useState(false)
 
   async function handleDelete() {
-    if (!window.confirm(`Delete template "${row.name}"? This cannot be undone.`)) return
+    if (
+      !window.confirm(`Delete template "${row.name}"? This cannot be undone.`)
+    )
+      return
     setPending(true)
     try {
       await fetch(`/api/admin/league-templates/${row.id}`, { method: "DELETE" })
@@ -412,7 +435,9 @@ const columns: ColumnDef<TemplateRow, unknown>[] = [
     header: "Name",
     size: 200,
     cell: ({ getValue }) => (
-      <span className="font-medium text-foreground">{getValue() as string}</span>
+      <span className="font-medium text-foreground">
+        {getValue() as string}
+      </span>
     ),
   },
   {
@@ -426,7 +451,9 @@ const columns: ColumnDef<TemplateRow, unknown>[] = [
     header: "Type",
     size: 70,
     cell: ({ getValue }) => (
-      <span className="text-xs text-muted-foreground">{getValue() as string}</span>
+      <span className="text-xs text-muted-foreground">
+        {getValue() as string}
+      </span>
     ),
   },
   {
@@ -444,7 +471,9 @@ const columns: ColumnDef<TemplateRow, unknown>[] = [
     header: "Draft",
     size: 70,
     cell: ({ getValue }) => (
-      <span className="text-xs capitalize text-muted-foreground">{getValue() as string}</span>
+      <span className="text-xs capitalize text-muted-foreground">
+        {getValue() as string}
+      </span>
     ),
   },
   {
@@ -452,7 +481,9 @@ const columns: ColumnDef<TemplateRow, unknown>[] = [
     header: "Teams",
     size: 60,
     cell: ({ getValue }) => (
-      <span className="tabular-nums text-xs text-muted-foreground">{getValue() as number}</span>
+      <span className="tabular-nums text-xs text-muted-foreground">
+        {getValue() as number}
+      </span>
     ),
   },
   {
@@ -460,7 +491,9 @@ const columns: ColumnDef<TemplateRow, unknown>[] = [
     header: "Roster",
     size: 60,
     cell: ({ getValue }) => (
-      <span className="tabular-nums text-xs text-muted-foreground">{getValue() as number}</span>
+      <span className="tabular-nums text-xs text-muted-foreground">
+        {getValue() as number}
+      </span>
     ),
   },
   {
@@ -481,7 +514,11 @@ const columns: ColumnDef<TemplateRow, unknown>[] = [
     header: "Active",
     size: 70,
     cell: ({ getValue }) =>
-      getValue() ? <Badge>Active</Badge> : <Badge variant="warning">Inactive</Badge>,
+      getValue() ? (
+        <Badge>Active</Badge>
+      ) : (
+        <Badge variant="warning">Inactive</Badge>
+      ),
   },
   {
     id: "actions",

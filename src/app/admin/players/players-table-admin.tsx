@@ -1,10 +1,16 @@
 "use client"
 
-import { ChevronLeft, UserPlus } from "lucide-react"
+import { ChevronLeft } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import type { UniverseSearchResult } from "@/app/api/admin/players/universe-search/route"
-import { type PlayerRow, PlayersTable } from "@/components/players-table"
+import { PlayerAddIcon } from "@/components/icons/player-add-icon"
+import {
+  type PlayerRow,
+  PlayersTable,
+  type StatRow,
+  type StatsFilter,
+} from "@/components/players-table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -206,7 +212,7 @@ function EditOverrideModal({
             <option value="">— not set —</option>
             <option value="AL">AL</option>
             <option value="NL">NL</option>
-            <option value="N/A">N/A</option>
+            <option value="N/A">n/a</option>
           </Select>
         </Field>
         <Field label="Active">
@@ -247,9 +253,7 @@ function EditOverrideModal({
         </Field>
       </div>
 
-      {error && (
-        <p className="mt-3 text-xs text-destructive">{error}</p>
-      )}
+      {error && <p className="mt-3 text-xs text-destructive">{error}</p>}
 
       <div className="mt-5 flex items-center justify-between gap-2">
         <div>
@@ -408,7 +412,9 @@ function AddManualModal({ onClose }: { onClose: () => void }) {
         {!searching && (nameQuery || idQuery) && (
           <div className="mt-2 max-h-72 overflow-y-auto rounded-md border border-border">
             {results.length === 0 ? (
-              <p className="px-3 py-2 text-sm text-muted-foreground">No results</p>
+              <p className="px-3 py-2 text-sm text-muted-foreground">
+                No results
+              </p>
             ) : (
               results.map((r) => (
                 <Button
@@ -520,7 +526,7 @@ function AddManualModal({ onClose }: { onClose: () => void }) {
             <option value="">— not set —</option>
             <option value="AL">AL</option>
             <option value="NL">NL</option>
-            <option value="N/A">N/A</option>
+            <option value="N/A">n/a</option>
           </Select>
         </Field>
         <Field label="Active">
@@ -561,9 +567,7 @@ function AddManualModal({ onClose }: { onClose: () => void }) {
         </Field>
       </div>
 
-      {error && (
-        <p className="mt-3 text-xs text-destructive">{error}</p>
-      )}
+      {error && <p className="mt-3 text-xs text-destructive">{error}</p>}
 
       <div className="mt-5 flex items-center justify-between gap-2">
         <Button
@@ -590,25 +594,51 @@ function AddManualModal({ onClose }: { onClose: () => void }) {
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
-export function PlayersTableAdmin({ data }: { data: PlayerRow[] }) {
+export function PlayersTableAdmin({
+  data,
+  statRows,
+  availableYears,
+  availableProjections,
+  availableSplits,
+  statsFilter,
+  initialShow = "profiles",
+}: {
+  data: PlayerRow[]
+  statRows: StatRow[]
+  availableYears: number[]
+  availableProjections: string[]
+  availableSplits: string[]
+  statsFilter: StatsFilter
+  initialShow?: "profiles" | "stats"
+}) {
   const [editingRow, setEditingRow] = useState<PlayerRow | null>(null)
   const [addingManual, setAddingManual] = useState(false)
 
-  const addButton = (
-    <Button
-      variant="secondary"
-      size="sm"
-      onClick={() => setAddingManual(true)}
-      className="font-medium"
-    >
-      <UserPlus className="h-4 w-4" />
-      Add Player
-    </Button>
-  )
-
   return (
     <>
-      <PlayersTable data={data} onEdit={setEditingRow} action={addButton} />
+      <div className="flex items-center gap-4 mb-4">
+        <h2 className="min-w-36">Players</h2>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => setAddingManual(true)}
+          className="font-medium"
+        >
+          <PlayerAddIcon size={18} className="shrink-0" />
+          Add Player
+        </Button>
+      </div>
+
+      <PlayersTable
+        data={data}
+        statRows={statRows}
+        availableYears={availableYears}
+        availableProjections={availableProjections}
+        availableSplits={availableSplits}
+        statsFilter={statsFilter}
+        initialShow={initialShow}
+        onEdit={setEditingRow}
+      />
 
       <Dialog
         open={!!editingRow}

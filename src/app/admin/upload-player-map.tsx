@@ -12,7 +12,7 @@ type UploadResult = {
   inserted: number
   updated: number
   deleted: number
-  uploadedAt: string
+  importedAt: string
 }
 
 type State =
@@ -21,7 +21,7 @@ type State =
   | { status: "success"; result: UploadResult }
   | { status: "error"; message: string }
 
-export function UploadPlayerUniverse({
+export function UploadPlayerMap({
   lastUploadedAt,
   className,
 }: {
@@ -45,7 +45,7 @@ export function UploadPlayerUniverse({
     body.append("mode", "replace")
 
     try {
-      const res = await fetch("/api/admin/upload-universe", {
+      const res = await fetch("/api/players/import", {
         method: "POST",
         body,
       })
@@ -97,20 +97,19 @@ export function UploadPlayerUniverse({
       {state.status === "success" && (
         <Alert variant="success">
           <div>
-            Upload complete —{" "}
-            <strong>{state.result.total.toLocaleString()}</strong> players (
-            <strong>{state.result.inserted.toLocaleString()}</strong> inserted,{" "}
-            <strong>{state.result.updated.toLocaleString()}</strong> updated
+            <strong>{state.result.total.toLocaleString()}</strong> players
+            imported — <strong>{state.result.inserted.toLocaleString()}</strong>{" "}
+            added, <strong>{state.result.updated.toLocaleString()}</strong>{" "}
+            updated
             {state.result.deleted > 0 && (
               <>
                 , <strong>{state.result.deleted.toLocaleString()}</strong>{" "}
                 removed
               </>
             )}
-            )
           </div>
           <div className="mt-1 text-xs opacity-70">
-            Uploaded {new Date(state.result.uploadedAt).toLocaleString()}
+            Imported {new Date(state.result.importedAt).toLocaleString()}
           </div>
         </Alert>
       )}

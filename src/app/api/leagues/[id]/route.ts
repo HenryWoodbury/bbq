@@ -10,14 +10,12 @@ type Params = { params: Promise<{ id: string }> }
 async function resolveLeague(id: string, userId: string) {
   const league = await prisma.league.findFirst({
     where: { id, deletedAt: null },
-    include: { template: { select: templateSelect } },
+    include: {
+      members: { where: { clerkUserId: userId, deletedAt: null } },
+      template: { select: templateSelect },
+    },
   })
-  if (!league) return null
-  const member = await prisma.leagueMember.findUnique({
-    where: { clerkUserId_leagueId: { clerkUserId: userId, leagueId: id } },
-    select: { role: true },
-  })
-  return member ? league : null
+  return league?.members.length ? league : null
 }
 
 export async function GET(_request: NextRequest, { params }: Params) {
@@ -88,7 +86,32 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
   })
   if (!league) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
-  await prisma.league.update({ where: { id }, data: { deletedAt: new Date() } })
+  const teams = await prisma.team.findMany({
+    where: { leagueId: id, deletedAt: null },
+    select: { id: true },
+  })
+  const teamIds = teams.map((t) => t.id)
+  const now = new Date()
+
+  await prisma.$transaction([
+    ...(teamIds.length > 0
+      ? [
+          prisma.teamManager.updateMany({
+            where: { teamId: { in: teamIds } },
+            data: { deletedAt: now },
+          }),
+        ]
+      : []),
+    prisma.team.updateMany({
+      where: { leagueId: id, deletedAt: null },
+      data: { deletedAt: now },
+    }),
+    prisma.leagueMember.updateMany({
+      where: { leagueId: id },
+      data: { deletedAt: now },
+    }),
+    prisma.league.update({ where: { id }, data: { deletedAt: now } }),
+  ])
 
   return new NextResponse(null, { status: 204 })
 }

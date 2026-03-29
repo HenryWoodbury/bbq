@@ -16,12 +16,18 @@ export default async function LeaguePage({ params }: Props) {
 
   const scoringLabel = (() => {
     switch (league.template?.scoring) {
-      case "FiveX5": return "5×5"
-      case "FourX4": return "4×4"
-      case "Fangraphs": return "FGPTs"
-      case "SABR": return "SABR"
-      case "Points": return "Points"
-      default: return "—"
+      case "FiveX5":
+        return "5×5"
+      case "FourX4":
+        return "4×4"
+      case "Fangraphs":
+        return "FGPTs"
+      case "SABR":
+        return "SABR"
+      case "Points":
+        return "Points"
+      default:
+        return "—"
     }
   })()
 

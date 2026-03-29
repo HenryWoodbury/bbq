@@ -114,10 +114,22 @@ describe("getLeagueRole", () => {
       leagueId: "league-1",
       role: LeagueMemberRole.COMMISSIONER,
       createdAt: new Date(),
+      deletedAt: null,
     } satisfies LeagueMember)
     expect(await getLeagueRole("league-1", "user_1")).toBe(
       LeagueMemberRole.COMMISSIONER,
     )
+  })
+
+  it("returns null when member is soft-deleted", async () => {
+    prismaMock.leagueMember.findUnique.mockResolvedValue({
+      clerkUserId: "user_1",
+      leagueId: "league-1",
+      role: LeagueMemberRole.COMMISSIONER,
+      createdAt: new Date(),
+      deletedAt: new Date(),
+    } satisfies LeagueMember)
+    expect(await getLeagueRole("league-1", "user_1")).toBeNull()
   })
 })
 
@@ -128,6 +140,7 @@ describe("assertLeagueRole", () => {
       leagueId: "league-1",
       role: LeagueMemberRole.ONLOOKER,
       createdAt: new Date(),
+      deletedAt: null,
     } satisfies LeagueMember)
     const res = await assertLeagueRole("league-1", "user_1", [
       LeagueMemberRole.COMMISSIONER,
@@ -149,6 +162,7 @@ describe("assertLeagueRole", () => {
       leagueId: "league-1",
       role: LeagueMemberRole.COMMISSIONER,
       createdAt: new Date(),
+      deletedAt: null,
     } satisfies LeagueMember)
     const res = await assertLeagueRole("league-1", "user_1", [
       LeagueMemberRole.COMMISSIONER,

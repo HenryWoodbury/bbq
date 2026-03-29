@@ -7,7 +7,9 @@ const patchSchema = z.object({
   name: z.string().min(1).optional(),
   platform: z.enum(["ESPN", "Ottoneu", "Custom"]).optional(),
   playType: z.enum(["H2H", "Season"]).optional(),
-  scoring: z.enum(["FiveX5", "FourX4", "Fangraphs", "SABR", "Points"]).optional(),
+  scoring: z
+    .enum(["FiveX5", "FourX4", "Fangraphs", "SABR", "Points"])
+    .optional(),
   draftMode: z.enum(["Live", "Slow"]).optional(),
   draftType: z.enum(["Snake", "Auction"]).optional(),
   teams: z.number().int().positive().optional(),
@@ -68,17 +70,38 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
 
-  const existing = await prisma.leagueTemplate.findFirst({ where: { id, deletedAt: null } })
+  const existing = await prisma.leagueTemplate.findFirst({
+    where: { id, deletedAt: null },
+  })
   if (!existing) {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
-  const { name, platform, playType, scoring, draftMode, draftType, teams, rosterSize, cap, rosters, description, rulesText, isActive } = parsed.data
+  const {
+    name,
+    platform,
+    playType,
+    scoring,
+    draftMode,
+    draftType,
+    teams,
+    rosterSize,
+    cap,
+    rosters,
+    description,
+    rulesText,
+    isActive,
+  } = parsed.data
 
   if (name !== undefined && name !== existing.name) {
-    const nameConflict = await prisma.leagueTemplate.findUnique({ where: { name } })
+    const nameConflict = await prisma.leagueTemplate.findUnique({
+      where: { name },
+    })
     if (nameConflict) {
-      return NextResponse.json({ error: `A template named "${name}" already exists` }, { status: 409 })
+      return NextResponse.json(
+        { error: `A template named "${name}" already exists` },
+        { status: 409 },
+      )
     }
   }
 
@@ -92,7 +115,10 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
       ...(draftMode !== undefined && { draftMode }),
       ...(draftType !== undefined && { draftType }),
       ...(teams !== undefined && { teams }),
-      ...(rosterSize !== undefined && { rosterSize, version: { increment: 1 } }),
+      ...(rosterSize !== undefined && {
+        rosterSize,
+        version: { increment: 1 },
+      }),
       ...(cap !== undefined && { cap }),
       ...(rosters !== undefined && { rosters }),
       ...(description !== undefined && { description }),
@@ -110,11 +136,16 @@ export async function DELETE(_request: NextRequest, { params }: RouteContext) {
   if (denied) return denied
 
   const { id } = await params
-  const existing = await prisma.leagueTemplate.findFirst({ where: { id, deletedAt: null } })
+  const existing = await prisma.leagueTemplate.findFirst({
+    where: { id, deletedAt: null },
+  })
   if (!existing) {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
-  await prisma.leagueTemplate.update({ where: { id }, data: { deletedAt: new Date() } })
+  await prisma.leagueTemplate.update({
+    where: { id },
+    data: { deletedAt: new Date() },
+  })
   return NextResponse.json({ deleted: true })
 }

@@ -1,11 +1,24 @@
 import { auth } from "@clerk/nextjs/server"
 import { type NextRequest, NextResponse } from "next/server"
-import type { StatPlayerType, StatSplit } from "@/generated/prisma/client"
+import type {
+  StatPlayerType,
+  StatProjection,
+  StatSplit,
+} from "@/generated/prisma/client"
 import { assertAdmin } from "@/lib/auth-helpers"
 import { prisma } from "@/lib/prisma"
 
 const VALID_SPLITS = new Set(["None", "VsLeft", "VsRight"])
 const VALID_PLAYER_TYPES = new Set(["BATTER", "PITCHER"])
+const VALID_PROJECTIONS = new Set([
+  "None",
+  "ZiPS",
+  "Steamer",
+  "ATC",
+  "TheBat",
+  "TheBatX",
+  "OOPSY",
+])
 
 export async function GET(request: NextRequest) {
   await auth.protect()
@@ -14,7 +27,7 @@ export async function GET(request: NextRequest) {
   const playerId = searchParams.get("playerId")
   const season = searchParams.get("season")
   const playerTypeParam = searchParams.get("playerType")
-  const projectedParam = searchParams.get("projected")
+  const projectionParam = searchParams.get("projection")
   const neutralizedParam = searchParams.get("neutralized")
   const splitParam = searchParams.get("split")
 
@@ -26,7 +39,9 @@ export async function GET(request: NextRequest) {
       ...(playerTypeParam !== null && VALID_PLAYER_TYPES.has(playerTypeParam)
         ? { playerType: playerTypeParam as StatPlayerType }
         : {}),
-      ...(projectedParam !== null ? { projected: projectedParam === "true" } : {}),
+      ...(projectionParam !== null && VALID_PROJECTIONS.has(projectionParam)
+        ? { projection: projectionParam as StatProjection }
+        : {}),
       ...(neutralizedParam !== null
         ? { neutralized: neutralizedParam === "true" }
         : {}),
@@ -48,7 +63,16 @@ export async function POST(request: NextRequest) {
   if (denied) return denied
 
   const body = await request.json()
-  const { playerId, season, playerType, projected, neutralized, split, mlbTeam, stats } = body
+  const {
+    playerId,
+    season,
+    playerType,
+    projection,
+    neutralized,
+    split,
+    mlbTeam,
+    stats,
+  } = body
 
   if (!playerId || !season || !stats) {
     return NextResponse.json(
@@ -59,11 +83,11 @@ export async function POST(request: NextRequest) {
 
   const stat = await prisma.playerStat.upsert({
     where: {
-      playerId_season_playerType_projected_neutralized_split: {
+      playerId_season_playerType_projection_neutralized_split: {
         playerId,
         season,
         playerType: playerType ?? "BATTER",
-        projected: projected ?? false,
+        projection: projection ?? "None",
         neutralized: neutralized ?? false,
         split: split ?? "None",
       },
@@ -73,7 +97,7 @@ export async function POST(request: NextRequest) {
       playerId,
       season,
       playerType: playerType ?? "BATTER",
-      projected: projected ?? false,
+      projection: projection ?? "None",
       neutralized: neutralized ?? false,
       split: split ?? "None",
       mlbTeam,

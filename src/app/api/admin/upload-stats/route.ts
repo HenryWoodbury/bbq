@@ -1,16 +1,24 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { StatPlayerType, StatSplit } from "@/generated/prisma/client"
+import { StatPlayerType, StatProjection, StatSplit } from "@/generated/prisma/client"
 import { assertAdmin } from "@/lib/auth-helpers"
 import { chunk, parseCSVLine } from "@/lib/csv"
 import { prisma } from "@/lib/prisma"
+import { PROJECTION_MAP } from "@/lib/stat-maps"
 
-const SKIP_COLUMNS = new Set(["Name", "Team", "NameASCII", "PlayerId", "MLBAMID"])
+const SKIP_COLUMNS = new Set([
+  "Name",
+  "Team",
+  "NameASCII",
+  "PlayerId",
+  "MLBAMID",
+])
 
 const SPLIT_MAP: Record<string, StatSplit> = {
   none: StatSplit.None,
   vs_left: StatSplit.VsLeft,
   vs_right: StatSplit.VsRight,
 }
+
 
 export async function POST(request: NextRequest) {
   const denied = await assertAdmin()
@@ -20,19 +28,20 @@ export async function POST(request: NextRequest) {
   const file = formData.get("file")
   const seasonStr = formData.get("season")
   const playerTypeStr = formData.get("playerType")
-  const projectedStr = formData.get("projected")
-  const neutralizedStr = formData.get("neutralized")
+  const projectionStr = formData.get("projection")
   const splitStr = formData.get("split")
 
   if (
     !(file instanceof File) ||
     !seasonStr ||
     !playerTypeStr ||
-    !projectedStr ||
-    !neutralizedStr ||
+    !projectionStr ||
     !splitStr
   ) {
-    return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+    return NextResponse.json(
+      { error: "Missing required fields" },
+      { status: 400 },
+    )
   }
 
   const season = parseInt(seasonStr as string, 10)
@@ -42,10 +51,15 @@ export async function POST(request: NextRequest) {
 
   const playerType =
     playerTypeStr === "PITCHER" ? StatPlayerType.PITCHER : StatPlayerType.BATTER
-  const projected = projectedStr === "true"
-  const neutralized = neutralizedStr === "true"
+  const projection = PROJECTION_MAP[projectionStr as string]
   const split = SPLIT_MAP[splitStr as string]
 
+  if (projection === undefined) {
+    return NextResponse.json(
+      { error: "Invalid projection value" },
+      { status: 400 },
+    )
+  }
   if (split === undefined) {
     return NextResponse.json({ error: "Invalid split value" }, { status: 400 })
   }
@@ -87,12 +101,14 @@ export async function POST(request: NextRequest) {
     const fields = parseCSVLine(line)
 
     const fangraphsId =
-      playerIdIdx !== -1 ? (fields[playerIdIdx]?.trim() || null) : null
+      playerIdIdx !== -1 ? fields[playerIdIdx]?.trim() || null : null
 
     const mlbamRaw = mlbamIdIdx !== -1 ? fields[mlbamIdIdx]?.trim() : null
     const mlbamIdParsed = mlbamRaw ? parseInt(mlbamRaw, 10) : null
     const mlbamId =
-      mlbamIdParsed !== null && !Number.isNaN(mlbamIdParsed) ? mlbamIdParsed : null
+      mlbamIdParsed !== null && !Number.isNaN(mlbamIdParsed)
+        ? mlbamIdParsed
+        : null
 
     const stats: Record<string, number> = {}
     for (let j = 0; j < headers.length; j++) {
@@ -105,7 +121,7 @@ export async function POST(request: NextRequest) {
     rows.push({
       fangraphsId,
       mlbamId,
-      team: teamIdx !== -1 ? (fields[teamIdx]?.trim() || null) : null,
+      team: teamIdx !== -1 ? fields[teamIdx]?.trim() || null : null,
       stats,
     })
   }
@@ -140,8 +156,7 @@ export async function POST(request: NextRequest) {
     playerId: string
     season: number
     playerType: StatPlayerType
-    projected: boolean
-    neutralized: boolean
+    projection: StatProjection
     split: StatSplit
     mlbTeam: string | null
     stats: Record<string, number>
@@ -164,8 +179,7 @@ export async function POST(request: NextRequest) {
       playerId,
       season,
       playerType,
-      projected,
-      neutralized,
+      projection,
       split,
       mlbTeam: row.team,
       stats: row.stats,
@@ -179,12 +193,12 @@ export async function POST(request: NextRequest) {
         batch.map((data) =>
           prisma.playerStat.upsert({
             where: {
-              playerId_season_playerType_projected_neutralized_split: {
+              playerId_season_playerType_projection_neutralized_split: {
                 playerId: data.playerId,
                 season: data.season,
                 playerType: data.playerType,
-                projected: data.projected,
-                neutralized: data.neutralized,
+                projection: data.projection,
+                neutralized: false,
                 split: data.split,
               },
             },
@@ -193,8 +207,8 @@ export async function POST(request: NextRequest) {
               playerId: data.playerId,
               season: data.season,
               playerType: data.playerType,
-              projected: data.projected,
-              neutralized: data.neutralized,
+              projection: data.projection,
+              neutralized: false,
               split: data.split,
               mlbTeam: data.mlbTeam,
               stats: data.stats,
@@ -204,16 +218,31 @@ export async function POST(request: NextRequest) {
       )
       upserted += batch.length
     }
+    const upload = await prisma.statUpload.create({
+      data: {
+        season,
+        playerType,
+        projection,
+        split,
+        total: rows.length,
+        linked: toUpsert.length,
+        skipped,
+        upserted,
+      },
+    })
+
+    return NextResponse.json({
+      total: rows.length,
+      linked: toUpsert.length,
+      skipped,
+      upserted,
+      uploadedAt: upload.createdAt.toISOString(),
+    })
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    return NextResponse.json({ error: `Database error: ${message}` }, { status: 500 })
+    return NextResponse.json(
+      { error: `Database error: ${message}` },
+      { status: 500 },
+    )
   }
-
-  return NextResponse.json({
-    total: rows.length,
-    linked: toUpsert.length,
-    skipped,
-    upserted,
-    uploadedAt: new Date().toISOString(),
-  })
 }

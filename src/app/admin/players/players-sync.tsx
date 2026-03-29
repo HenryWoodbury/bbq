@@ -3,7 +3,6 @@
 import Link from "next/link"
 import { useState } from "react"
 import { PlayerIcon } from "@/components/icons/player-icon"
-import { SectionCollapsible } from "@/components/section-collapsible"
 import { Button } from "@/components/ui/button"
 import {
   Drawer,
@@ -12,45 +11,85 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer"
-import { SyncPlayers } from "../sync-players"
+import { cn } from "@/lib/utils"
+import { SyncPlayerMap } from "../sync-player-map"
+import { UploadPlayerMap } from "../upload-player-map"
 import { UploadPlayerUniverse } from "../upload-player-universe"
-import { UploadStats } from "../upload-stats"
 import type { SyncStatus } from "./page"
+import { StatsSync } from "./stats-sync"
 
-export function PlayersSync({ status }: { status: SyncStatus }) {
+function profileStatusText(
+  syncTs: Date | null | undefined,
+  uploadTs: Date | null | undefined,
+): string {
+  if (!syncTs && !uploadTs) return "No player profiles."
+  const isSyncMoreRecent =
+    syncTs && (!uploadTs || new Date(syncTs) >= new Date(uploadTs))
+  return isSyncMoreRecent
+    ? `Last sync ${new Date(syncTs).toLocaleString()}`
+    : `Last upload ${new Date(uploadTs!).toLocaleString()}`
+}
+
+export function PlayersSync({
+  status,
+  className,
+}: {
+  status: SyncStatus
+  className?: string
+}) {
   const [open, setOpen] = useState(false)
-  const { lastSyncedPlayer, lastUploadedUniverse, lastUploadedStats } = status
+  const { lastSyncedPlayer, lastUploadedPlayerMap, lastUploadedUniverse } =
+    status
+
+  const profileStatus = profileStatusText(
+    lastSyncedPlayer?.updatedAt,
+    lastUploadedPlayerMap?.createdAt,
+  )
+
   return (
-    <>
-      <div className="flex gap-4">
-        <h2>Player Profiles</h2>
+    <div className={cn(className)}>
+      <div className="flex items-center gap-4">
+        <h2 className="min-w-36">Player Profiles</h2>
         <Button variant="secondary" size="sm" onClick={() => setOpen(true)}>
-          <PlayerIcon size={15} className="shrink-0" />
-          <span className="min-w-0 truncate">Add Players</span>
+          <PlayerIcon size={18} className="shrink-0" />
+          <span className="min-w-0 truncate">Sync Players</span>
         </Button>
       </div>
+      <p className="caption">{profileStatus}</p>
+
+      <StatsSync status={status} className="mt-8" />
 
       <Drawer open={open} onClose={() => setOpen(false)}>
-        <DrawerContent side="right" width="w-200">
+        <DrawerContent side="right" width="w-170">
           <DrawerHeader onClose={() => setOpen(false)}>
             <DrawerTitle>Add Players</DrawerTitle>
           </DrawerHeader>
           <DrawerBody>
-            <section>
-              <h2 className="mb-1">Sync Player IDs</h2>
-              <p className="mb-4">
+            <section className="pb-4 border-b border-border-zinc-200 sm:-mx-6 lg:-mx-8 sm:px-6 lg:px-8">
+              <h2 className="mb-2 text-xl font-normal">Sync Player IDs</h2>
+              <p className="mb-2">
                 Fetches the{" "}
                 <Link href="https://www.smartfantasybaseball.com/tools/">
                   Smart Fantasy Baseball Player ID Map
                 </Link>{" "}
-                then upserts all players.
+                then updates the BBQ player profile table.
               </p>
-              <SyncPlayers lastSyncedAt={lastSyncedPlayer?.updatedAt ?? null} />
+              <SyncPlayerMap
+                lastSyncedAt={lastSyncedPlayer?.updatedAt ?? null}
+                className="mb-6"
+              />
+              <p className="mb-2">Alternatively, upload an ID Map CSV.</p>
+              <UploadPlayerMap
+                lastUploadedAt={lastUploadedPlayerMap?.createdAt ?? null}
+                className="mb-4"
+              />
             </section>
 
-            <section>
-              <h2 className="mb-1">Import the Ottoneu Player Universe</h2>
-              <p className="mb-4">
+            <section className="pt-6 pb-4">
+              <h2 className="mb-2 text-xl font-normal">
+                Import the Player Universe
+              </h2>
+              <p className="mb-2">
                 Upload the full list of players in the{" "}
                 <Link href="https://community.ottoneu.com/t/list-of-players-and-their-ottoneu-positions-player-universe/7547">
                   Ottoneu Universe
@@ -59,26 +98,12 @@ export function PlayersSync({ status }: { status: SyncStatus }) {
               </p>
               <UploadPlayerUniverse
                 lastUploadedAt={lastUploadedUniverse?.updatedAt ?? null}
+                className="mb-4"
               />
-            </section>
-
-            <section>
-              <SectionCollapsible
-                title={<h2>Upload Stats</h2>}
-                defaultOpen={false}
-              >
-                <p className="mb-4">
-                  Upload a Fangraphs-format CSV (e.g. Steamer, ZiPS) and tag it
-                  with season, projected, neutralized, and split metadata.
-                </p>
-                <UploadStats
-                  lastUploadedAt={lastUploadedStats?.updatedAt ?? null}
-                />
-              </SectionCollapsible>
             </section>
           </DrawerBody>
         </DrawerContent>
       </Drawer>
-    </>
+    </div>
   )
 }

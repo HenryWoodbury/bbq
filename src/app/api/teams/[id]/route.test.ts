@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { DeepMockProxy } from "vitest-mock-extended"
 import { mockReset } from "vitest-mock-extended"
 import type {
+  League,
   LeagueMember,
   PrismaClient,
   Team,
@@ -24,39 +25,71 @@ import { PATCH } from "./route"
 
 const prismaMock = prisma as unknown as DeepMockProxy<PrismaClient>
 
-type TeamWithRelations = Team & { managers: TeamManager[]; rosterHistory: [] }
+// resolveTeam now includes league.members for the membership check in a single query.
+// getLeagueRole still calls leagueMember.findUnique for the role check in PATCH.
+type TeamWithRelations = Team & {
+  managers: TeamManager[]
+  rosterHistory: []
+  league: League & { members: LeagueMember[] }
+}
 
-const mockTeamOwnedByUser = {
-  id: "team-1",
-  leagueId: "league-1",
-  teamName: "My Team",
-  currentRoster: {},
-  financeData: {},
+const mockLeague: League = {
+  id: "league-1",
+  clerkOrgId: "org_test",
+  leagueName: "Test League",
+  templateId: null,
+  hostLeagueUrl: null,
+  seasons: [],
   createdAt: new Date(),
   updatedAt: new Date(),
   deletedAt: null,
-  managers: [
-    { clerkUserId: "user_1", teamId: "team-1", isPrimary: true, createdAt: new Date() },
-  ] satisfies TeamManager[],
-  rosterHistory: [],
-} satisfies TeamWithRelations
+}
 
-const mockTeamOwnedByOther = {
-  ...mockTeamOwnedByUser,
-  managers: [
-    { clerkUserId: "other_user", teamId: "team-1", isPrimary: true, createdAt: new Date() },
-  ] satisfies TeamManager[],
-} satisfies TeamWithRelations
+function makeMemberForUser(
+  clerkUserId: string,
+  role: LeagueMemberRole,
+): LeagueMember {
+  return {
+    clerkUserId,
+    leagueId: "league-1",
+    role,
+    createdAt: new Date(),
+    deletedAt: null,
+  }
+}
+
+function makeTeam(
+  overrides: Partial<TeamWithRelations> = {},
+): TeamWithRelations {
+  return {
+    id: "team-1",
+    leagueId: "league-1",
+    teamName: "My Team",
+    currentRoster: {},
+    financeData: {},
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    deletedAt: null,
+    managers: [
+      {
+        clerkUserId: "user_1",
+        teamId: "team-1",
+        isPrimary: true,
+        createdAt: new Date(),
+        deletedAt: null,
+      },
+    ],
+    rosterHistory: [],
+    league: {
+      ...mockLeague,
+      members: [makeMemberForUser("user_1", LeagueMemberRole.MANAGER)],
+    },
+    ...overrides,
+  }
+}
 
 function makeParams(id: string) {
   return { params: Promise.resolve({ id }) }
-}
-
-// resolveTeam calls team.findFirst then leagueMember.findUnique (membership check).
-// getLeagueRole also calls leagueMember.findUnique (role check, sequential after resolveTeam).
-// mockResolvedValue (not Once) returns the same value for all calls.
-function setupTeam(team: TeamWithRelations | null) {
-  prismaMock.team.findFirst.mockResolvedValue(team)
 }
 
 beforeEach(() => {
@@ -67,15 +100,13 @@ beforeEach(() => {
 describe("PATCH /api/teams/[id]", () => {
   it("returns 200 for manager patching their own team", async () => {
     mockAuthProtect.mockResolvedValue({ userId: "user_1" })
-    setupTeam(mockTeamOwnedByUser)
-    prismaMock.leagueMember.findUnique.mockResolvedValue({
-      clerkUserId: "user_1",
-      leagueId: "league-1",
-      role: LeagueMemberRole.MANAGER,
-      createdAt: new Date(),
-    } satisfies LeagueMember)
+    prismaMock.team.findFirst.mockResolvedValue(makeTeam())
+    // getLeagueRole call for role check
+    prismaMock.leagueMember.findUnique.mockResolvedValue(
+      makeMemberForUser("user_1", LeagueMemberRole.MANAGER),
+    )
     prismaMock.team.update.mockResolvedValue({
-      ...mockTeamOwnedByUser,
+      ...makeTeam(),
       teamName: "Updated",
     })
 
@@ -89,13 +120,23 @@ describe("PATCH /api/teams/[id]", () => {
 
   it("returns 403 for manager patching another team", async () => {
     mockAuthProtect.mockResolvedValue({ userId: "user_1" })
-    setupTeam(mockTeamOwnedByOther)
-    prismaMock.leagueMember.findUnique.mockResolvedValue({
-      clerkUserId: "user_1",
-      leagueId: "league-1",
-      role: LeagueMemberRole.MANAGER,
-      createdAt: new Date(),
-    } satisfies LeagueMember)
+    // Team is owned by a different user; user_1 is a member of the league but not a manager of this team
+    prismaMock.team.findFirst.mockResolvedValue(
+      makeTeam({
+        managers: [
+          {
+            clerkUserId: "other_user",
+            teamId: "team-1",
+            isPrimary: true,
+            createdAt: new Date(),
+            deletedAt: null,
+          },
+        ],
+      }),
+    )
+    prismaMock.leagueMember.findUnique.mockResolvedValue(
+      makeMemberForUser("user_1", LeagueMemberRole.MANAGER),
+    )
 
     const req = new NextRequest("http://localhost/api/teams/team-1", {
       method: "PATCH",
@@ -107,15 +148,30 @@ describe("PATCH /api/teams/[id]", () => {
 
   it("returns 200 for commissioner patching any team", async () => {
     mockAuthProtect.mockResolvedValue({ userId: "admin_user" })
-    setupTeam(mockTeamOwnedByOther)
-    prismaMock.leagueMember.findUnique.mockResolvedValue({
-      clerkUserId: "admin_user",
-      leagueId: "league-1",
-      role: LeagueMemberRole.COMMISSIONER,
-      createdAt: new Date(),
-    } satisfies LeagueMember)
+    prismaMock.team.findFirst.mockResolvedValue(
+      makeTeam({
+        managers: [
+          {
+            clerkUserId: "other_user",
+            teamId: "team-1",
+            isPrimary: true,
+            createdAt: new Date(),
+            deletedAt: null,
+          },
+        ],
+        league: {
+          ...mockLeague,
+          members: [
+            makeMemberForUser("admin_user", LeagueMemberRole.COMMISSIONER),
+          ],
+        },
+      }),
+    )
+    prismaMock.leagueMember.findUnique.mockResolvedValue(
+      makeMemberForUser("admin_user", LeagueMemberRole.COMMISSIONER),
+    )
     prismaMock.team.update.mockResolvedValue({
-      ...mockTeamOwnedByOther,
+      ...makeTeam(),
       teamName: "Override",
     })
 

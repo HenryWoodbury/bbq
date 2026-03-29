@@ -2,7 +2,7 @@
 
 import { XIcon } from "lucide-react"
 import { Dialog as DialogPrimitive } from "radix-ui"
-import * as React from "react"
+import type * as React from "react"
 import { cn } from "@/lib/utils"
 
 // ── Root ─────────────────────────────────────────────────────────────────────
@@ -32,7 +32,7 @@ interface DrawerContentProps {
 
 function DrawerContent({
   side = "right",
-  width = "w-80",
+  width = "w-150",
   children,
   className,
 }: DrawerContentProps) {
@@ -45,8 +45,8 @@ function DrawerContent({
           "fixed bottom-0 top-14 z-40 flex flex-col bg-card shadow-lg",
           "data-[state=open]:animate-in data-[state=closed]:animate-out duration-300",
           side === "right"
-            ? "right-0 border-l border-border data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right"
-            : "left-0 border-r border-border data-[state=open]:slide-in-from-left data-[state=closed]:slide-out-to-left",
+            ? "right-0 border-l border-border-zinc-200 data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right"
+            : "left-0 border-r border-border-zinc-200 data-[state=open]:slide-in-from-left data-[state=closed]:slide-out-to-left",
           width,
           className,
         )}
@@ -63,11 +63,16 @@ interface DrawerHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
   onClose?: () => void
 }
 
-function DrawerHeader({ onClose, className, children, ...props }: DrawerHeaderProps) {
+function DrawerHeader({
+  onClose,
+  className,
+  children,
+  ...props
+}: DrawerHeaderProps) {
   return (
     <div
       className={cn(
-        "flex shrink-0 items-center justify-between border-b border-border px-4 py-3",
+        "flex shrink-0 items-center justify-between border-b border-border-zinc-200 py-3 sm:px-6 lg:px-8",
         className,
       )}
       {...props}
@@ -78,7 +83,7 @@ function DrawerHeader({ onClose, className, children, ...props }: DrawerHeaderPr
           onClick={onClose}
           className="ml-2 rounded-sm p-1 text-muted-foreground transition-colors hover:bg-zinc-100 hover:text-foreground dark:hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
-          <XIcon size={16} />
+          <XIcon size={24} />
           <span className="sr-only">Close</span>
         </DialogPrimitive.Close>
       )}
@@ -94,7 +99,7 @@ function DrawerTitle({
 }: React.HTMLAttributes<HTMLHeadingElement>) {
   return (
     <DialogPrimitive.Title
-      className={cn("text-base font-semibold text-foreground", className)}
+      className={cn("text-2xl font-semibold text-foreground", className)}
       {...props}
     />
   )
@@ -108,7 +113,7 @@ function DrawerBody({
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("flex-1 overflow-y-auto p-4", className)}
+      className={cn("flex-1 overflow-y-auto py-6 sm:px-6 lg:px-8", className)}
       {...props}
     />
   )
@@ -122,13 +127,17 @@ function DrawerFooter({
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn(
-        "shrink-0 border-t border-border px-4 py-3",
-        className,
-      )}
+      className={cn("shrink-0 border-t border-border px-4 py-3", className)}
       {...props}
     />
   )
 }
 
-export { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerBody, DrawerFooter }
+export {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerBody,
+  DrawerFooter,
+}

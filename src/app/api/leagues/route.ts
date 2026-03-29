@@ -7,11 +7,14 @@ export async function GET() {
   const { userId } = await auth.protect()
 
   const leagues = await prisma.league.findMany({
-    where: { members: { some: { clerkUserId: userId } }, deletedAt: null },
+    where: {
+      members: { some: { clerkUserId: userId, deletedAt: null } },
+      deletedAt: null,
+    },
     orderBy: { leagueName: "asc" },
     include: {
       teams: { where: { deletedAt: null } },
-      members: true,
+      members: { where: { deletedAt: null } },
       template: { select: templateSelect },
     },
   })
@@ -47,10 +50,7 @@ export async function POST(request: NextRequest) {
     where: { id: templateId },
   })
   if (!template) {
-    return NextResponse.json(
-      { error: "Template not found" },
-      { status: 404 },
-    )
+    return NextResponse.json({ error: "Template not found" }, { status: 404 })
   }
 
   const existing = await prisma.league.findUnique({

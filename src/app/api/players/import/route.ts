@@ -253,6 +253,10 @@ export async function POST(request: NextRequest) {
       deleted = count
     }
 
+    await prisma.playerMapImport.create({
+      data: { total: rows.length, inserted, updated, deleted },
+    })
+
     const importedAt = new Date().toISOString()
     return NextResponse.json({
       total: rows.length,

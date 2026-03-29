@@ -21,7 +21,7 @@ import { IconButton } from "@/components/ui/icon-button"
 import { Select } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 
-const PAGE_SIZE_OPTIONS = [20, 30, 50, 100, "All"] as const
+const PAGE_SIZE_OPTIONS = [10, 20, 30, 50, 100, "All"] as const
 type PageSizeOption = (typeof PAGE_SIZE_OPTIONS)[number]
 
 function resolvePageSize(opt: PageSizeOption): number {
@@ -140,15 +140,9 @@ export function DataTable<T>({
               </tr>
             ) : (
               rows.map((row) => (
-                <tr
-                  key={row.id}
-                  className="table-row"
-                >
+                <tr key={row.id} className="table-row">
                   {row.getVisibleCells().map((cell) => (
-                    <td
-                      key={cell.id}
-                      className="table-cell"
-                    >
+                    <td key={cell.id} className="table-cell">
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext(),
@@ -164,7 +158,7 @@ export function DataTable<T>({
 
       {/* Pagination footer */}
       {pagination !== false && (
-        <div className="flex items-center justify-between gap-4 text-xs text-muted-foreground">
+        <div className="flex items-center justify-between gap-4 text-sm text-muted-foreground">
           {/* Left: count */}
           <span className="tabular-nums">
             {totalRows === 0
@@ -204,18 +198,18 @@ export function DataTable<T>({
                 const isAll = val === "All"
                 const isValidNum =
                   !Number.isNaN(numVal) &&
-                  ([20, 30, 50, 100] as const).includes(
-                    numVal as 20 | 30 | 50 | 100,
+                  ([10, 20, 30, 50, 100] as const).includes(
+                    numVal as 10 | 20 | 30 | 50 | 100,
                   )
                 const opt: PageSizeOption = isAll
                   ? "All"
                   : isValidNum
-                    ? (numVal as 20 | 30 | 50 | 100)
+                    ? (numVal as 10 | 20 | 30 | 50 | 100)
                     : defaultPageSize
                 setPageSizeOption(opt)
                 setPageIndex(0)
               }}
-              className="px-1.5 py-0.5 text-xs"
+              className="pl-2 pr-6 py-0.5 text-sm ml-1"
             >
               {PAGE_SIZE_OPTIONS.map((o) => (
                 <option key={o} value={o}>

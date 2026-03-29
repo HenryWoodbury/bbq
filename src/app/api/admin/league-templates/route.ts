@@ -60,11 +60,28 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
 
-  const { name, platform, playType, scoring, draftMode, draftType, teams, rosterSize, cap, rosters, description, rulesText, isActive } = parsed.data
+  const {
+    name,
+    platform,
+    playType,
+    scoring,
+    draftMode,
+    draftType,
+    teams,
+    rosterSize,
+    cap,
+    rosters,
+    description,
+    rulesText,
+    isActive,
+  } = parsed.data
 
   const existing = await prisma.leagueTemplate.findUnique({ where: { name } })
   if (existing) {
-    return NextResponse.json({ error: `A template named "${name}" already exists` }, { status: 409 })
+    return NextResponse.json(
+      { error: `A template named "${name}" already exists` },
+      { status: 409 },
+    )
   }
 
   const template = await prisma.leagueTemplate.create({

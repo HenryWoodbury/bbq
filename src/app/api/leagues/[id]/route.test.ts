@@ -35,6 +35,16 @@ const mockLeague = {
   deletedAt: null,
 } satisfies League
 
+function makeMember(role: LeagueMemberRole): LeagueMember {
+  return {
+    clerkUserId: "user_1",
+    leagueId: "league-1",
+    role,
+    createdAt: new Date(),
+    deletedAt: null,
+  }
+}
+
 function makeParams(id: string) {
   return { params: Promise.resolve({ id }) }
 }
@@ -47,12 +57,9 @@ beforeEach(() => {
 describe("PATCH /api/leagues/[id]", () => {
   it("returns 403 for ONLOOKER", async () => {
     mockAuthProtect.mockResolvedValue({ userId: "user_1" })
-    prismaMock.leagueMember.findUnique.mockResolvedValue({
-      clerkUserId: "user_1",
-      leagueId: "league-1",
-      role: LeagueMemberRole.ONLOOKER,
-      createdAt: new Date(),
-    } satisfies LeagueMember)
+    prismaMock.leagueMember.findUnique.mockResolvedValue(
+      makeMember(LeagueMemberRole.ONLOOKER),
+    )
 
     const req = new NextRequest("http://localhost/api/leagues/league-1", {
       method: "PATCH",
@@ -64,12 +71,9 @@ describe("PATCH /api/leagues/[id]", () => {
 
   it("returns 403 for MANAGER", async () => {
     mockAuthProtect.mockResolvedValue({ userId: "user_1" })
-    prismaMock.leagueMember.findUnique.mockResolvedValue({
-      clerkUserId: "user_1",
-      leagueId: "league-1",
-      role: LeagueMemberRole.MANAGER,
-      createdAt: new Date(),
-    } satisfies LeagueMember)
+    prismaMock.leagueMember.findUnique.mockResolvedValue(
+      makeMember(LeagueMemberRole.MANAGER),
+    )
 
     const req = new NextRequest("http://localhost/api/leagues/league-1", {
       method: "PATCH",
@@ -81,12 +85,9 @@ describe("PATCH /api/leagues/[id]", () => {
 
   it("returns 200 for COMMISSIONER", async () => {
     mockAuthProtect.mockResolvedValue({ userId: "user_1" })
-    prismaMock.leagueMember.findUnique.mockResolvedValue({
-      clerkUserId: "user_1",
-      leagueId: "league-1",
-      role: LeagueMemberRole.COMMISSIONER,
-      createdAt: new Date(),
-    } satisfies LeagueMember)
+    prismaMock.leagueMember.findUnique.mockResolvedValue(
+      makeMember(LeagueMemberRole.COMMISSIONER),
+    )
     prismaMock.league.findFirst.mockResolvedValue(mockLeague)
     prismaMock.league.update.mockResolvedValue({
       ...mockLeague,
@@ -107,12 +108,9 @@ describe("PATCH /api/leagues/[id]", () => {
 describe("DELETE /api/leagues/[id]", () => {
   it("returns 403 for CO_COMMISSIONER", async () => {
     mockAuthProtect.mockResolvedValue({ userId: "user_1" })
-    prismaMock.leagueMember.findUnique.mockResolvedValue({
-      clerkUserId: "user_1",
-      leagueId: "league-1",
-      role: LeagueMemberRole.CO_COMMISSIONER,
-      createdAt: new Date(),
-    } satisfies LeagueMember)
+    prismaMock.leagueMember.findUnique.mockResolvedValue(
+      makeMember(LeagueMemberRole.CO_COMMISSIONER),
+    )
 
     const req = new NextRequest("http://localhost/api/leagues/league-1", {
       method: "DELETE",
@@ -123,14 +121,12 @@ describe("DELETE /api/leagues/[id]", () => {
 
   it("returns 204 for COMMISSIONER", async () => {
     mockAuthProtect.mockResolvedValue({ userId: "user_1" })
-    prismaMock.leagueMember.findUnique.mockResolvedValue({
-      clerkUserId: "user_1",
-      leagueId: "league-1",
-      role: LeagueMemberRole.COMMISSIONER,
-      createdAt: new Date(),
-    } satisfies LeagueMember)
+    prismaMock.leagueMember.findUnique.mockResolvedValue(
+      makeMember(LeagueMemberRole.COMMISSIONER),
+    )
     prismaMock.league.findFirst.mockResolvedValue(mockLeague)
-    prismaMock.league.update.mockResolvedValue(mockLeague)
+    prismaMock.team.findMany.mockResolvedValue([])
+    prismaMock.$transaction.mockResolvedValue([])
 
     const req = new NextRequest("http://localhost/api/leagues/league-1", {
       method: "DELETE",

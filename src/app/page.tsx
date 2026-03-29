@@ -30,7 +30,6 @@ export default async function HomePage() {
 
   return (
     <div className="flex flex-col gap-4">
-
       <h1>Your leagues</h1>
 
       {leagues.length === 0 ? (
@@ -89,12 +88,18 @@ function LeagueCard({ league }: { league: LeagueSummary }) {
 
   const scoringLabel = (() => {
     switch (league.template?.scoring) {
-      case "FiveX5": return "5×5"
-      case "FourX4": return "4×4"
-      case "Fangraphs": return "FGPTs"
-      case "SABR": return "SABR"
-      case "Points": return "Points"
-      default: return "—"
+      case "FiveX5":
+        return "5×5"
+      case "FourX4":
+        return "4×4"
+      case "Fangraphs":
+        return "FGPTs"
+      case "SABR":
+        return "SABR"
+      case "Points":
+        return "Points"
+      default:
+        return "—"
     }
   })()
 
@@ -103,9 +108,7 @@ function LeagueCard({ league }: { league: LeagueSummary }) {
       href={`/leagues/${league.id}`}
       className="card-interactive flex flex-col gap-4 p-6"
     >
-      <h2 className="font-semibold text-foreground">
-        {league.leagueName}
-      </h2>
+      <h2 className="font-semibold text-foreground">{league.leagueName}</h2>
       <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
         <Stat label="Format" value={scoringLabel} />
         <Stat label="Season" value={currentSeason?.toString() ?? "—"} />

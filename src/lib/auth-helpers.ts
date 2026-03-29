@@ -49,9 +49,10 @@ export async function getLeagueRole(
 ): Promise<LeagueMemberRole | null> {
   const member = await prisma.leagueMember.findUnique({
     where: { clerkUserId_leagueId: { clerkUserId: userId, leagueId } },
-    select: { role: true },
+    select: { role: true, deletedAt: true },
   })
-  return member?.role ?? null
+  if (!member || member.deletedAt !== null) return null
+  return member.role
 }
 
 /**

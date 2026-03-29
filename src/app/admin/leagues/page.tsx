@@ -28,7 +28,6 @@ export default async function AdminLeaguesPage() {
 
   return (
     <div className="page-layout flex flex-col gap-4">
-
       <h1>Manage Leagues</h1>
 
       <section>

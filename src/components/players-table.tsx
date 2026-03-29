@@ -1,12 +1,24 @@
 "use client"
 
 import type { ColumnDef } from "@tanstack/react-table"
-import { Pencil } from "lucide-react"
+import { Download, Pencil } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { type ReactNode, useMemo, useState } from "react"
 import { DataTable } from "@/components/data-table"
 import { FilterGroup } from "@/components/filter-group"
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { IconButton } from "@/components/ui/icon-button"
 import { Input } from "@/components/ui/input"
+import { Select } from "@/components/ui/select"
+import { AL_TEAM_CODES, NL_TEAM_CODES } from "@/lib/team-codes"
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 export type PlayerRow = {
   id: string
@@ -36,6 +48,65 @@ export type PlayerRow = {
   isManual: boolean
 }
 
+export type StatRow = {
+  playerId: string
+  playerName: string
+  ottoneuId: number | null
+  fangraphsId: string | null
+  mlbLevel: string | null
+  team: string | null
+  active: boolean
+  stats: Record<string, number | string | null>
+}
+
+export type StatsFilter = {
+  playerType: "BATTER" | "PITCHER"
+  season: number
+  projection: string
+  split: string
+}
+
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const AL_TEAMS = new Set(AL_TEAM_CODES)
+const NL_TEAMS = new Set(NL_TEAM_CODES)
+
+const BATTING_COLS = [
+  "G",
+  "PA",
+  "HR",
+  "R",
+  "RBI",
+  "SB",
+  "BB%",
+  "K%",
+  "ISO",
+  "BABIP",
+  "AVG",
+  "OBP",
+  "SLG",
+  "wOBA",
+]
+const PITCHING_COLS = [
+  "W",
+  "L",
+  "SV",
+  "G",
+  "GS",
+  "IP",
+  "K/9",
+  "BB/9",
+  "HR/9",
+  "BABIP",
+  "LOB%",
+  "GB%",
+  "HR/FB",
+  "ERA",
+  "FIP",
+]
+
+// ── Filter helpers ────────────────────────────────────────────────────────────
+
 /** Strip diacritics so "ramirez" matches "Ramírez", "rodriguez" matches "Rodríguez", etc. */
 function normalize(s: string): string {
   return s
@@ -52,24 +123,80 @@ function isMinorLeague(row: PlayerRow): boolean {
   return row.universeFgId?.startsWith("sa") ?? false
 }
 
-type ActiveFilter = "yes" | "no" | "all"
-type LevelFilter = "all" | "mlb" | "milb"
+function isAL(team: string | null): boolean {
+  return AL_TEAMS.has(team ?? "")
+}
 
-const columns: ColumnDef<PlayerRow, unknown>[] = [
+function isNL(team: string | null): boolean {
+  return NL_TEAMS.has(team ?? "")
+}
+
+function isPitcher(row: PlayerRow): boolean {
+  return row.ottoneuPositions.some((p) => p === "SP" || p === "RP")
+}
+
+// ── Stat formatting ───────────────────────────────────────────────────────────
+
+const PCT_STATS = new Set(["BB%", "K%", "LOB%", "GB%", "HR/FB"])
+const RATE_STATS = new Set([
+  "AVG",
+  "OBP",
+  "SLG",
+  "wOBA",
+  "BABIP",
+  "ISO",
+  "ERA",
+  "FIP",
+])
+const PER9_STATS = new Set(["K/9", "BB/9", "HR/9"])
+
+function fmtStat(key: string, value: unknown): string {
+  if (value === null || value === undefined) return "—"
+  const n = Number(value)
+  if (Number.isNaN(n)) return String(value)
+  if (PCT_STATS.has(key)) return `${(n * 100).toFixed(1)}%`
+  if (RATE_STATS.has(key)) return n.toFixed(3)
+  if (PER9_STATS.has(key)) return n.toFixed(2)
+  if (key === "IP") return n.toFixed(1)
+  return Math.round(n).toString()
+}
+
+// ── Profile column definitions ────────────────────────────────────────────────
+
+const profileColumns: ColumnDef<PlayerRow, unknown>[] = [
   {
     accessorKey: "ottoneuId",
     header: "Ott ID",
-    size: 72,
+    size: 60,
     cell: ({ getValue }) => {
       const v = getValue() as number | null
-      return v ?? <span className="text-muted-foreground/40">—</span>
+      return v ?? <span className="text-muted-foreground">—</span>
+    },
+  },
+  {
+    id: "fgId",
+    accessorFn: (row) => row.fangraphsId ?? row.universeFgId,
+    header: "FG ID",
+    size: 60,
+    cell: ({ getValue }) => {
+      const v = getValue() as string | null
+      if (!v) return <span className="text-muted-foreground">—</span>
+      return (
+        <a
+          href={`https://www.fangraphs.com/statss.aspx?playerid=${v}`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {v}
+        </a>
+      )
     },
   },
   {
     id: "displayName",
     accessorFn: (row) => row.fgSpecialChar ?? row.playerName,
     header: "Name",
-    size: 160,
+    size: 150,
     sortingFn: (a, b) => {
       const key = (row: PlayerRow) => {
         if (row.lastName) return row.lastName
@@ -86,48 +213,29 @@ const columns: ColumnDef<PlayerRow, unknown>[] = [
   },
   {
     accessorKey: "birthday",
-    header: "Born",
+    header: "Birthdate",
     size: 90,
     cell: ({ getValue }) => {
       const v = getValue() as string | null
-      return v ?? <span className="text-muted-foreground/40">—</span>
+      return v ?? <span className="text-muted-foreground">—</span>
     },
   },
   {
     accessorKey: "team",
     header: "Team",
-    size: 64,
+    size: 60,
     cell: ({ getValue }) => {
       const v = getValue() as string | null
-      return v ?? <span className="text-muted-foreground/40">—</span>
+      return v ?? <span className="text-muted-foreground">—</span>
     },
   },
   {
     accessorKey: "mlbLevel",
     header: "LG",
-    size: 56,
+    size: 60,
     cell: ({ getValue }) => {
       const v = getValue() as string | null
-      return v ?? <span className="text-muted-foreground/40">—</span>
-    },
-  },
-  {
-    id: "fgId",
-    accessorFn: (row) => row.fangraphsId ?? row.universeFgId,
-    header: "FG ID",
-    size: 80,
-    cell: ({ getValue }) => {
-      const v = getValue() as string | null
-      if (!v) return <span className="text-muted-foreground/40">—</span>
-      return (
-        <a
-          href={`https://www.fangraphs.com/statss.aspx?playerid=${v}`}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          {v}
-        </a>
-      )
+      return v ?? <span className="text-muted-foreground">—</span>
     },
   },
   {
@@ -136,7 +244,7 @@ const columns: ColumnDef<PlayerRow, unknown>[] = [
     size: 40,
     cell: ({ getValue }) => {
       const v = getValue() as string | null
-      return v ?? <span className="text-muted-foreground/40">—</span>
+      return v ?? <span className="text-muted-foreground">—</span>
     },
   },
   {
@@ -145,13 +253,13 @@ const columns: ColumnDef<PlayerRow, unknown>[] = [
     size: 40,
     cell: ({ getValue }) => {
       const v = getValue() as string | null
-      return v ?? <span className="text-muted-foreground/40">—</span>
+      return v ?? <span className="text-muted-foreground">—</span>
     },
   },
   {
     accessorKey: "ottoneuPositions",
     header: "Positions",
-    size: 110,
+    size: 100,
     sortingFn: (a, b) =>
       a.original.ottoneuPositions
         .join("/")
@@ -161,33 +269,104 @@ const columns: ColumnDef<PlayerRow, unknown>[] = [
       return pos.length > 0 ? (
         pos.join("/")
       ) : (
-        <span className="text-muted-foreground/40">—</span>
+        <span className="text-muted-foreground">—</span>
       )
     },
   },
 ]
 
+// ── Filter types ──────────────────────────────────────────────────────────────
+
+type ActiveFilter = "yes" | "no" | "all"
+type LeagueFilter = "all" | "mlb" | "al" | "nl" | "milb"
+type RoleFilter = "all" | "batter" | "pitcher"
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export function PlayersTable({
   data,
+  statRows,
+  availableYears,
+  availableProjections,
+  availableSplits,
+  statsFilter,
+  initialShow = "profiles",
   onEdit,
   action,
 }: {
   data: PlayerRow[]
+  statRows: StatRow[]
+  availableYears: number[]
+  availableProjections: string[]
+  availableSplits: string[]
+  statsFilter: StatsFilter
+  initialShow?: "profiles" | "stats"
   onEdit?: (row: PlayerRow) => void
   action?: ReactNode
 }) {
+  const router = useRouter()
+  const [show, setShow] = useState<"profiles" | "stats">(initialShow)
   const [search, setSearch] = useState("")
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>("yes")
-  const [levelFilter, setLevelFilter] = useState<LevelFilter>("all")
+  const [leagueFilter, setLeagueFilter] = useState<LeagueFilter>("mlb")
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>("all")
 
-  const displayed = useMemo(() => {
+  function handleShowChange(v: string) {
+    const newShow = v as "profiles" | "stats"
+    setShow(newShow)
+    if (newShow === "stats" && roleFilter === "all") {
+      setRoleFilter("batter")
+    }
+  }
+
+  function handleRoleChange(v: string) {
+    const newRole = v as RoleFilter
+    setRoleFilter(newRole)
+    if (show === "stats" && newRole !== "all") {
+      pushStatsFilter({ spt: newRole === "pitcher" ? "PITCHER" : "BATTER" })
+    }
+  }
+
+  function triggerExport(playerType: "BATTER" | "PITCHER") {
+    const sp = new URLSearchParams({
+      season: String(statsFilter.season),
+      projection: statsFilter.projection,
+      playerType,
+      active: activeFilter,
+      league: leagueFilter,
+    })
+    window.location.href = `/api/admin/export/batcast?${sp.toString()}`
+  }
+
+  function pushStatsFilter(updates: Record<string, string>) {
+    const sp = new URLSearchParams({
+      show: "stats",
+      spt: statsFilter.playerType,
+      sse: String(statsFilter.season),
+      spr: statsFilter.projection,
+      ssp: statsFilter.split,
+      ...updates,
+    })
+    router.push(`/admin/players?${sp.toString()}`)
+  }
+
+  // ── Profile filtering ──────────────────────────────────────────────────────
+
+  const displayedProfiles = useMemo(() => {
     let rows = data
 
     if (activeFilter === "yes") rows = rows.filter((r) => r.active)
     else if (activeFilter === "no") rows = rows.filter((r) => !r.active)
 
-    if (levelFilter === "mlb") rows = rows.filter(isMajorLeague)
-    else if (levelFilter === "milb") rows = rows.filter(isMinorLeague)
+    if (leagueFilter === "mlb") rows = rows.filter(isMajorLeague)
+    else if (leagueFilter === "al")
+      rows = rows.filter((r) => isAL(r.team) || r.mlbLevel === "AL")
+    else if (leagueFilter === "nl")
+      rows = rows.filter((r) => isNL(r.team) || r.mlbLevel === "NL")
+    else if (leagueFilter === "milb") rows = rows.filter(isMinorLeague)
+
+    if (roleFilter === "batter") rows = rows.filter((r) => !isPitcher(r))
+    else if (roleFilter === "pitcher") rows = rows.filter(isPitcher)
 
     const q = normalize(search.trim())
     if (q) {
@@ -205,10 +384,111 @@ export function PlayersTable({
     }
 
     return rows
-  }, [data, activeFilter, levelFilter, search])
+  }, [data, activeFilter, leagueFilter, roleFilter, search])
 
-  const allColumns = useMemo<ColumnDef<PlayerRow, unknown>[]>(() => {
-    if (!onEdit) return columns
+  // ── Stats filtering ────────────────────────────────────────────────────────
+
+  const displayedStats = useMemo(() => {
+    let rows = statRows
+
+    if (activeFilter === "yes") rows = rows.filter((r) => r.active)
+    else if (activeFilter === "no") rows = rows.filter((r) => !r.active)
+
+    if (leagueFilter === "mlb")
+      rows = rows.filter(
+        (r) => r.fangraphsId !== null && !r.fangraphsId.startsWith("sa"),
+      )
+    else if (leagueFilter === "al") rows = rows.filter((r) => isAL(r.team))
+    else if (leagueFilter === "nl") rows = rows.filter((r) => isNL(r.team))
+    else if (leagueFilter === "milb")
+      rows = rows.filter((r) => r.fangraphsId?.startsWith("sa") ?? false)
+
+    const q = search.trim().toLowerCase()
+    if (q) {
+      rows = rows.filter(
+        (r) =>
+          r.playerName.toLowerCase().includes(q) ||
+          String(r.ottoneuId ?? "").includes(q) ||
+          String(r.fangraphsId ?? "").includes(q),
+      )
+    }
+
+    return rows
+  }, [statRows, activeFilter, leagueFilter, search])
+
+  // ── Stats column definitions ───────────────────────────────────────────────
+
+  const statColKeys =
+    statsFilter.playerType === "PITCHER" ? PITCHING_COLS : BATTING_COLS
+
+  const statsColumnDefs = useMemo<ColumnDef<StatRow, unknown>[]>(() => {
+    const base: ColumnDef<StatRow, unknown>[] = [
+      {
+        accessorKey: "ottoneuId",
+        header: "Ott ID",
+        size: 60,
+        cell: ({ getValue }) => {
+          const v = getValue() as number | null
+          return v ?? <span className="text-muted-foreground">—</span>
+        },
+      },
+      {
+        accessorKey: "fangraphsId",
+        header: "FG ID",
+        size: 60,
+        cell: ({ getValue }) => {
+          const v = getValue() as string | null
+          if (!v) return <span className="text-muted-foreground">—</span>
+          return (
+            <a
+              href={`https://www.fangraphs.com/statss.aspx?playerid=${v}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {v}
+            </a>
+          )
+        },
+      },
+      {
+        id: "displayName",
+        accessorKey: "playerName",
+        header: "Name",
+        size: 150,
+        cell: ({ getValue }) => (
+          <span className="font-medium text-foreground">
+            {getValue() as string}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "mlbLevel",
+        header: "LG",
+        size: 60,
+        cell: ({ getValue }) => {
+          const v = getValue() as string | null
+          return v ?? <span className="text-muted-foreground">—</span>
+        },
+      },
+    ]
+    const statValueCols: ColumnDef<StatRow, unknown>[] = statColKeys.map(
+      (col) => ({
+        id: col,
+        header: col,
+        size: 60,
+        enableSorting: true,
+        accessorFn: (row: StatRow) => row.stats[col] ?? null,
+        cell: ({ getValue }: { getValue: () => unknown }) =>
+          fmtStat(col, getValue()),
+      }),
+    )
+    return [...base, ...statValueCols]
+  }, [statColKeys])
+
+  // ── Profile columns with optional edit action ──────────────────────────────
+
+  const profileColumnDefs = useMemo<ColumnDef<PlayerRow, unknown>[]>(() => {
+    if (!onEdit) return profileColumns
     const editCol: ColumnDef<PlayerRow, unknown> = {
       id: "_edit",
       header: "",
@@ -223,14 +503,32 @@ export function PlayersTable({
         </IconButton>
       ),
     }
-    return [...columns, editCol]
+    return [...profileColumns, editCol]
   }, [onEdit])
+
+  // ── Role options depend on mode ────────────────────────────────────────────
+
+  const roleOptions =
+    show === "stats"
+      ? [
+          { value: "batter", label: "Batters" },
+          { value: "pitcher", label: "Pitchers" },
+        ]
+      : [
+          { value: "batter", label: "Batters" },
+          { value: "pitcher", label: "Pitchers" },
+          { value: "all", label: "All" },
+        ]
+
+  // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <div className="flex flex-col gap-3">
+      {/* Filter row 1 */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <FilterGroup
-          label="Active"
+          label="Active:"
+          size="sm"
           options={[
             { value: "yes", label: "Yes" },
             { value: "no", label: "No" },
@@ -240,30 +538,181 @@ export function PlayersTable({
           onChange={(v) => setActiveFilter(v as ActiveFilter)}
         />
         <FilterGroup
-          label="Level"
+          label="League:"
+          size="sm"
           options={[
-            { value: "all", label: "All" },
             { value: "mlb", label: "MLB" },
+            { value: "al", label: "AL" },
+            { value: "nl", label: "NL" },
             { value: "milb", label: "MiLB" },
+            { value: "all", label: "All" },
           ]}
-          value={levelFilter}
-          onChange={(v) => setLevelFilter(v as LevelFilter)}
+          value={leagueFilter}
+          onChange={(v) => setLeagueFilter(v as LeagueFilter)}
         />
+        <FilterGroup
+          label="Role:"
+          size="sm"
+          options={roleOptions}
+          value={
+            roleFilter === "all" && show === "stats" ? "batter" : roleFilter
+          }
+          onChange={handleRoleChange}
+        />
+        <span className="text-muted-foreground"> | </span>
         <Input
           type="search"
-          placeholder="Search players…"
+          placeholder="Search…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full max-w-xs"
         />
         {action && <div className="ml-auto">{action}</div>}
       </div>
-      <DataTable
-        columns={allColumns}
-        data={displayed}
-        defaultPageSize={50}
-        defaultSorting={[{ id: "displayName", desc: false }]}
-      />
+
+      {/* Filter row 2 */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <FilterGroup
+          label="Show:"
+          size="sm"
+          options={[
+            { value: "profiles", label: "Profiles" },
+            { value: "stats", label: "Stats" },
+          ]}
+          value={show}
+          onChange={handleShowChange}
+        />
+        <div className="flex items-center gap-1.5">
+          <span className="text-p font-normal text-muted-foreground">
+            Year:
+          </span>
+          <Select
+            value={String(statsFilter.season)}
+            onChange={(e) => pushStatsFilter({ sse: e.target.value })}
+            disabled={show === "profiles" || availableYears.length === 0}
+          >
+            {availableYears.map((y) => (
+              <option key={y} value={String(y)}>
+                {y}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-p font-normal text-muted-foreground">
+            Projection:
+          </span>
+          <Select
+            value={statsFilter.projection}
+            onChange={(e) => pushStatsFilter({ spr: e.target.value })}
+            disabled={show === "profiles"}
+          >
+            <option
+              value="None"
+              disabled={!availableProjections.includes("None")}
+            >
+              None
+            </option>
+            <option
+              value="ZiPS"
+              disabled={!availableProjections.includes("ZiPS")}
+            >
+              ZiPS
+            </option>
+            <option
+              value="Steamer"
+              disabled={!availableProjections.includes("Steamer")}
+            >
+              Steamer
+            </option>
+            <option
+              value="ATC"
+              disabled={!availableProjections.includes("ATC")}
+            >
+              ATC
+            </option>
+            <option
+              value="TheBat"
+              disabled={!availableProjections.includes("TheBat")}
+            >
+              The Bat
+            </option>
+            <option
+              value="TheBatX"
+              disabled={!availableProjections.includes("TheBatX")}
+            >
+              The Bat X
+            </option>
+            <option
+              value="OOPSY"
+              disabled={!availableProjections.includes("OOPSY")}
+            >
+              OOPSY
+            </option>
+          </Select>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-p font-normal text-muted-foreground">
+            Splits:
+          </span>
+          <Select
+            value={statsFilter.split}
+            onChange={(e) => pushStatsFilter({ ssp: e.target.value })}
+            disabled={show === "profiles"}
+          >
+            <option value="None" disabled={!availableSplits.includes("None")}>
+              None
+            </option>
+            <option
+              value="VsLeft"
+              disabled={!availableSplits.includes("VsLeft")}
+            >
+              vs Left
+            </option>
+            <option
+              value="VsRight"
+              disabled={!availableSplits.includes("VsRight")}
+            >
+              vs Right
+            </option>
+          </Select>
+        </div>
+        <div className="ml-auto">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="secondary" size="sm">
+                <Download className="h-4 w-4" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => triggerExport("BATTER")}>
+                Batters (CSV)
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => triggerExport("PITCHER")}>
+                Pitchers (CSV)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+
+      {/* Table */}
+      {show === "profiles" ? (
+        <DataTable
+          columns={profileColumnDefs}
+          data={displayedProfiles}
+          defaultPageSize={20}
+          defaultSorting={[{ id: "displayName", desc: false }]}
+        />
+      ) : (
+        <DataTable
+          columns={statsColumnDefs}
+          data={displayedStats}
+          defaultPageSize={20}
+          defaultSorting={[{ id: "displayName", desc: false }]}
+        />
+      )}
     </div>
   )
 }

@@ -2,7 +2,6 @@ import { SectionCollapsible } from "@/components/section-collapsible"
 import { requireAdmin } from "@/lib/auth-helpers"
 import { prisma } from "@/lib/prisma"
 import { TemplatesTable } from "../templates-table"
-import { StatDefsTable } from "../stat-defs-table"
 
 export const metadata = { title: "League Templates — BBQ" }
 
@@ -35,13 +34,13 @@ export default async function AdminTemplatesPage() {
     <div className="flex flex-col gap-4">
       <h1 className="page-title">Templates</h1>
       <p>
-        Configuration templates for league formats, rule sets, and game mechanics.
+        Configuration templates for league formats, rule sets, and game
+        mechanics.
       </p>
 
       <SectionCollapsible title="Draft Templates">
         <TemplatesTable data={templates} />
       </SectionCollapsible>
-
     </div>
   )
 }

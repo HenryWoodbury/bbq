@@ -12,7 +12,7 @@ import { prisma } from "@/lib/prisma"
 import { AdminMenu } from "./admin-menu"
 import { LeagueSelector } from "./league-selector"
 import { Button } from "./ui/button"
-import { ThemeToggle } from "./ui/theme-toggle"
+// import { ThemeToggle } from "./ui/theme-toggle"
 import { UserMenu, type UserMenuLeague } from "./user-menu"
 
 export async function Header() {
@@ -35,10 +35,7 @@ export async function Header() {
   return (
     <header className="site-header">
       <div className="flex h-14 items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link
-          href="/"
-          className="logo"
-        >
+        <Link href="/" className="logo">
           BBQ
         </Link>
 
@@ -59,7 +56,6 @@ export async function Header() {
               </SignInButton>
             </SignedOut>
           </ClerkLoaded>
-          <ThemeToggle />
           <ClerkLoaded>
             <SignedIn>
               <UserMenu />

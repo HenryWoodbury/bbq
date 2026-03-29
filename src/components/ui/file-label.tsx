@@ -1,8 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 interface FileLabelProps {
   accept?: string
@@ -21,6 +21,7 @@ const FileLabel = React.forwardRef<HTMLInputElement, FileLabelProps>(
         type="button"
         className={cn(
           buttonVariants({ variant: "secondary", size: "md" }),
+          "w-fit",
           className,
         )}
         onClick={() => inputRef.current?.click()}

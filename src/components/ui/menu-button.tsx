@@ -1,7 +1,7 @@
+import type { VariantProps } from "class-variance-authority"
 import { ChevronDownIcon } from "lucide-react"
 import * as React from "react"
-import { type VariantProps } from "class-variance-authority"
-import { Button, buttonVariants } from "@/components/ui/button"
+import { Button, type buttonVariants } from "@/components/ui/button"
 
 interface MenuButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
@@ -11,7 +11,13 @@ interface MenuButtonProps
 
 const MenuButton = React.forwardRef<HTMLButtonElement, MenuButtonProps>(
   ({ variant = "ghost", size = "sm", className, children, ...props }, ref) => (
-    <Button ref={ref} variant={variant} size={size} className={className} {...props}>
+    <Button
+      ref={ref}
+      variant={variant}
+      size={size}
+      className={className}
+      {...props}
+    >
       {children}
       <ChevronDownIcon className="shrink-0 opacity-60" size={14} />
     </Button>

@@ -57,6 +57,7 @@ model Player {
   @@index([positions], type: Gin)
   @@index([fangraphsId])
   @@index([mlbamId])
+  @@index([ottoneuId])
   @@map("players")
 }
 
@@ -81,6 +82,8 @@ model PlayerUniverse {
 
   @@unique([format, ottoneuId])
   @@index([playerId])
+  @@index([fangraphsId])
+  @@index([mlbamId])
   @@map("player_universe")
 }
 
@@ -110,6 +113,9 @@ model PlayerOverride {
   updatedAt   DateTime  @updatedAt @map("updated_at")
   deletedAt   DateTime? @map("deleted_at")
 
+  @@index([fangraphsId])
+  @@index([mlbamId])
+  @@index([ottoneuId])
   @@map("player_overrides")
 }
 
@@ -122,6 +128,16 @@ enum StatSplit {
   None    @map("none")
   VsLeft  @map("vs_left")
   VsRight @map("vs_right")
+}
+
+enum StatProjection {
+  None    @map("none")
+  ZiPS    @map("zips")
+  Steamer @map("steamer")
+  ATC     @map("atc")
+  TheBat  @map("the_bat")
+  TheBatX @map("the_bat_x")
+  OOPSY   @map("oopsy")
 }
 
 model StatDefinition {
@@ -145,19 +161,47 @@ model PlayerStat {
   playerId    String         @map("player_id")
   player      Player         @relation(fields: [playerId], references: [id])
   season      Int
-  playerType  StatPlayerType @default(BATTER) @map("player_type")
-  projected   Boolean        @default(false)
-  neutralized Boolean        @default(false)
-  split       StatSplit      @default(None)
-  mlbTeam     String?        @map("mlb_team") @db.VarChar(10)
+  playerType  StatPlayerType  @default(BATTER) @map("player_type")
+  projection  StatProjection  @default(None)
+  neutralized Boolean         @default(false)
+  split       StatSplit       @default(None)
+  mlbTeam     String?         @map("mlb_team") @db.VarChar(10)
   /// JSONB: { "HR": 40, "AVG": 0.300, ... }
   stats       Json
-  createdAt   DateTime       @default(now()) @map("created_at")
-  updatedAt   DateTime       @updatedAt @map("updated_at")
-  deletedAt   DateTime?      @map("deleted_at")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+  deletedAt   DateTime?       @map("deleted_at")
 
-  @@unique([playerId, season, playerType, projected, neutralized, split])
+  @@unique([playerId, season, playerType, projection, neutralized, split])
+  @@index([season])
+  @@index([projection])
   @@map("player_stats")
+}
+
+model StatUpload {
+  id         String         @id @default(cuid())
+  season     Int
+  playerType StatPlayerType @map("player_type")
+  projection StatProjection
+  split      StatSplit
+  total      Int
+  linked     Int
+  skipped    Int
+  upserted   Int
+  createdAt  DateTime       @default(now()) @map("created_at")
+
+  @@map("stat_uploads")
+}
+
+model PlayerMapImport {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now()) @map("created_at")
+  total     Int
+  inserted  Int
+  updated   Int
+  deleted   Int
+
+  @@map("player_map_imports")
 }
 
 // ─── League & Multi-Tenancy (Clerk Linked) ───────────────────────────────────
@@ -199,9 +243,11 @@ model LeagueMember {
   league      League           @relation(fields: [leagueId], references: [id])
   role        LeagueMemberRole
   createdAt   DateTime         @default(now()) @map("created_at")
+  deletedAt   DateTime?        @map("deleted_at")
 
   @@id([clerkUserId, leagueId])
   @@index([leagueId])
+  @@index([clerkUserId])
   @@map("league_members")
 }
 
@@ -228,14 +274,16 @@ model Team {
 }
 
 model TeamManager {
-  clerkUserId String   @map("clerk_user_id")
-  teamId      String   @map("team_id")
-  team        Team     @relation(fields: [teamId], references: [id])
-  isPrimary   Boolean  @default(true) @map("is_primary")
-  createdAt   DateTime @default(now()) @map("created_at")
+  clerkUserId String    @map("clerk_user_id")
+  teamId      String    @map("team_id")
+  team        Team      @relation(fields: [teamId], references: [id])
+  isPrimary   Boolean   @default(true) @map("is_primary")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  deletedAt   DateTime? @map("deleted_at")
 
   @@id([clerkUserId, teamId])
   @@index([teamId])
+  @@index([clerkUserId])
   @@map("team_managers")
 }
 

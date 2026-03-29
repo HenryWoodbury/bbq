@@ -9,15 +9,17 @@ type Params = { params: Promise<{ id: string }> }
 async function resolveTeam(id: string, userId: string) {
   const team = await prisma.team.findFirst({
     where: { id, deletedAt: null },
-    include: { managers: true, rosterHistory: { where: { deletedAt: null } } },
-  })
-  if (!team) return null
-  const member = await prisma.leagueMember.findUnique({
-    where: {
-      clerkUserId_leagueId: { clerkUserId: userId, leagueId: team.leagueId },
+    include: {
+      managers: { where: { deletedAt: null } },
+      rosterHistory: { where: { deletedAt: null } },
+      league: {
+        include: {
+          members: { where: { clerkUserId: userId, deletedAt: null } },
+        },
+      },
     },
   })
-  return member ? team : null
+  return team?.league.members.length ? team : null
 }
 
 export async function GET(_request: NextRequest, { params }: Params) {
@@ -81,7 +83,14 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
-  await prisma.team.update({ where: { id }, data: { deletedAt: new Date() } })
+  const now = new Date()
+  await prisma.$transaction([
+    prisma.teamManager.updateMany({
+      where: { teamId: id },
+      data: { deletedAt: now },
+    }),
+    prisma.team.update({ where: { id }, data: { deletedAt: now } }),
+  ])
 
   return new NextResponse(null, { status: 204 })
 }

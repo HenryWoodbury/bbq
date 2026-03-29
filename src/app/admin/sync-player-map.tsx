@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { Alert } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 type SyncResult = {
   total: number
@@ -19,7 +20,13 @@ type State =
   | { status: "success"; result: SyncResult }
   | { status: "error"; message: string }
 
-export function SyncPlayers({ lastSyncedAt }: { lastSyncedAt: Date | null }) {
+export function SyncPlayerMap({
+  lastSyncedAt,
+  className,
+}: {
+  lastSyncedAt: Date | null
+  className?: string
+}) {
   const router = useRouter()
   const [state, setState] = useState<State>({ status: "idle" })
   const [syncedAt, setSyncedAt] = useState<Date | null>(lastSyncedAt)
@@ -50,22 +57,24 @@ export function SyncPlayers({ lastSyncedAt }: { lastSyncedAt: Date | null }) {
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-3">
-        <Button onClick={handleSync} disabled={state.status === "loading"}>
-          {state.status === "loading" ? "Syncing…" : "Sync Player IDs"}
-        </Button>
-        {syncedAt && state.status !== "loading" && (
-          <span className="caption">
-            Last synced {syncedAt.toLocaleString()}
-          </span>
-        )}
-        {state.status === "loading" && (
-          <span className="body-muted">
-            Fetching from SFBB — this may take a moment…
-          </span>
-        )}
-      </div>
+    <div className={cn("flex flex-col gap-2", className)}>
+      <p className="caption">
+        {syncedAt
+          ? `Last synced ${new Date(syncedAt).toLocaleString()}`
+          : "No sync yet."}
+      </p>
+      <Button
+        onClick={handleSync}
+        disabled={state.status === "loading"}
+        className="w-fit min-w-36"
+      >
+        {state.status === "loading" ? "Syncing…" : "Sync Player IDs"}
+      </Button>
+      {state.status === "loading" && (
+        <span className="body-muted">
+          Fetching from SFBB — this may take a moment…
+        </span>
+      )}
 
       {state.status === "success" && (
         <Alert variant="success">

@@ -517,7 +517,6 @@ async function main() {
       },
     })
   }
-
 }
 
 main()
@@ -531,29 +530,75 @@ async function seedLeagueTemplates() {
   // Roster slot arrays — BN covers bench, minors, and IL (no separation at draft time)
   const ESPN_ROSTER: string[] = [
     "C",
-    "1B", "2B", "3B", "SS",
-    "OF", "OF", "OF",
+    "1B",
+    "2B",
+    "3B",
+    "SS",
+    "OF",
+    "OF",
+    "OF",
     "Util",
-    "P", "P", "P", "P", "P", "P", "P",
-    "BN", "BN", "BN",
+    "P",
+    "P",
+    "P",
+    "P",
+    "P",
+    "P",
+    "P",
+    "BN",
+    "BN",
+    "BN",
   ]
 
   const CUSTOM_ROSTER: string[] = [
     "C",
-    "1B", "2B", "3B", "SS",
-    "OF", "OF", "OF",
+    "1B",
+    "2B",
+    "3B",
+    "SS",
+    "OF",
+    "OF",
+    "OF",
     "Util",
-    "P", "P", "P", "P", "P", "P", "P",
-    "BN", "BN", "BN", "BN", "BN", "BN", "BN",
+    "P",
+    "P",
+    "P",
+    "P",
+    "P",
+    "P",
+    "P",
+    "BN",
+    "BN",
+    "BN",
+    "BN",
+    "BN",
+    "BN",
+    "BN",
   ]
 
   const OTTONEU_ROSTER: string[] = [
-    "C", "C",
-    "1B", "2B", "3B", "SS",
+    "C",
+    "C",
+    "1B",
+    "2B",
+    "3B",
+    "SS",
     "MI",
-    "OF", "OF", "OF", "OF", "OF",
+    "OF",
+    "OF",
+    "OF",
+    "OF",
+    "OF",
     "Util",
-    "P", "P", "P", "P", "P", "P", "P", "P", "P",
+    "P",
+    "P",
+    "P",
+    "P",
+    "P",
+    "P",
+    "P",
+    "P",
+    "P",
     ...Array<string>(17).fill("BN"),
   ]
 
@@ -585,8 +630,10 @@ async function seedLeagueTemplates() {
       rosterSize: 23,
       cap: null,
       rosters: CUSTOM_ROSTER,
-      description: "Fully customizable template — snake draft, 5×5 roto, season-long defaults",
-      rulesText: "# Custom\n\nThis template provides minimal defaults. Customize all settings to fit your league's rules.",
+      description:
+        "Fully customizable template — snake draft, 5×5 roto, season-long defaults",
+      rulesText:
+        "# Custom\n\nThis template provides minimal defaults. Customize all settings to fit your league's rules.",
     },
     {
       name: "ESPN H2H 5x5",
@@ -599,8 +646,10 @@ async function seedLeagueTemplates() {
       rosterSize: 19,
       cap: null,
       rosters: ESPN_ROSTER,
-      description: "ESPN snake draft, 5×5 rotisserie categories, head-to-head each category",
-      rulesText: "# ESPN H2H 5x5\n\n**Scoring**: Head-to-head, 5×5 categories (HR, RBI, SB, AVG, R / W, SV, ERA, WHIP, K).\n\n**Draft**: Snake, live.\n\n**Playoffs**: Top teams advance to bracket.",
+      description:
+        "ESPN snake draft, 5×5 rotisserie categories, head-to-head each category",
+      rulesText:
+        "# ESPN H2H 5x5\n\n**Scoring**: Head-to-head, 5×5 categories (HR, RBI, SB, AVG, R / W, SV, ERA, WHIP, K).\n\n**Draft**: Snake, live.\n\n**Playoffs**: Top teams advance to bracket.",
     },
     {
       name: "ESPN H2H Points",
@@ -614,7 +663,8 @@ async function seedLeagueTemplates() {
       cap: null,
       rosters: ESPN_ROSTER,
       description: "ESPN snake draft, ESPN points scoring, head-to-head points",
-      rulesText: "# ESPN H2H Points\n\n**Scoring**: Head-to-head total points each week. ESPN default point values.\n\n**Draft**: Snake, live.\n\n**Playoffs**: Top teams by W/L record advance to postseason.",
+      rulesText:
+        "# ESPN H2H Points\n\n**Scoring**: Head-to-head total points each week. ESPN default point values.\n\n**Draft**: Snake, live.\n\n**Playoffs**: Top teams by W/L record advance to postseason.",
     },
     {
       name: "ESPN 5x5",
@@ -628,7 +678,8 @@ async function seedLeagueTemplates() {
       cap: null,
       rosters: ESPN_ROSTER,
       description: "ESPN snake draft, 5×5 rotisserie scoring, season-long",
-      rulesText: "# ESPN 5x5\n\n**Scoring**: Rotisserie 5×5 (HR, RBI, SB, AVG, R / W, SV, ERA, WHIP, K).\n\n**Draft**: Snake, live.\n\n**Season long**: Cumulative roto standings, no playoffs.",
+      rulesText:
+        "# ESPN 5x5\n\n**Scoring**: Rotisserie 5×5 (HR, RBI, SB, AVG, R / W, SV, ERA, WHIP, K).\n\n**Draft**: Snake, live.\n\n**Season long**: Cumulative roto standings, no playoffs.",
     },
     {
       name: "ESPN Points",
@@ -642,7 +693,8 @@ async function seedLeagueTemplates() {
       cap: null,
       rosters: ESPN_ROSTER,
       description: "ESPN snake draft, ESPN points scoring, season-long",
-      rulesText: "# ESPN Points\n\n**Scoring**: ESPN default points. Batters earn points per counting stat; pitchers earn for Ks and wins.\n\n**Draft**: Snake, live.\n\n**Season long**: Cumulative total points, no playoffs.",
+      rulesText:
+        "# ESPN Points\n\n**Scoring**: ESPN default points. Batters earn points per counting stat; pitchers earn for Ks and wins.\n\n**Draft**: Snake, live.\n\n**Season long**: Cumulative total points, no playoffs.",
     },
     {
       name: "Ottoneu 4x4",
@@ -656,7 +708,8 @@ async function seedLeagueTemplates() {
       cap: 400,
       rosters: OTTONEU_ROSTER,
       description: "Ottoneu auction, 4×4 rotisserie scoring, season-long",
-      rulesText: "# Ottoneu 4x4\n\n**Scoring**: Rotisserie 4×4 (HR, RBI, SB, AVG / W, SV, ERA, WHIP).\n\n**Format**: 12-team auction, $400 cap, 40-man rosters.\n\n**Season long**: No playoffs. Cumulative roto standings.\n\n**Keeper contracts**: Salary escalates $5/year.",
+      rulesText:
+        "# Ottoneu 4x4\n\n**Scoring**: Rotisserie 4×4 (HR, RBI, SB, AVG / W, SV, ERA, WHIP).\n\n**Format**: 12-team auction, $400 cap, 40-man rosters.\n\n**Season long**: No playoffs. Cumulative roto standings.\n\n**Keeper contracts**: Salary escalates $5/year.",
     },
     {
       name: "Ottoneu 5x5",
@@ -670,7 +723,8 @@ async function seedLeagueTemplates() {
       cap: 400,
       rosters: OTTONEU_ROSTER,
       description: "Ottoneu auction, 5×5 rotisserie scoring, season-long",
-      rulesText: "# Ottoneu 5x5\n\n**Scoring**: Rotisserie 5×5 (HR, RBI, SB, AVG, R / W, SV, ERA, WHIP, K).\n\n**Format**: 12-team auction, $400 cap, 40-man rosters.\n\n**Season long**: No playoffs. Cumulative roto standings.\n\n**Keeper contracts**: Salary escalates $5/year.",
+      rulesText:
+        "# Ottoneu 5x5\n\n**Scoring**: Rotisserie 5×5 (HR, RBI, SB, AVG, R / W, SV, ERA, WHIP, K).\n\n**Format**: 12-team auction, $400 cap, 40-man rosters.\n\n**Season long**: No playoffs. Cumulative roto standings.\n\n**Keeper contracts**: Salary escalates $5/year.",
     },
     {
       name: "Ottoneu FGPTs",
@@ -683,8 +737,10 @@ async function seedLeagueTemplates() {
       rosterSize: 40,
       cap: 400,
       rosters: OTTONEU_ROSTER,
-      description: "Ottoneu auction, FanGraphs linear-weights points, season-long",
-      rulesText: "# Ottoneu FGPTs\n\n**Scoring**: FanGraphs linear-weights points. Batters on wOBA components; pitchers on outs, Ks, penalized for walks/HRs.\n\n**Format**: 12-team auction, $400 cap, 40-man rosters.\n\n**Season long**: Total cumulative points.\n\n**Keeper contracts**: Salary escalates $5/year.",
+      description:
+        "Ottoneu auction, FanGraphs linear-weights points, season-long",
+      rulesText:
+        "# Ottoneu FGPTs\n\n**Scoring**: FanGraphs linear-weights points. Batters on wOBA components; pitchers on outs, Ks, penalized for walks/HRs.\n\n**Format**: 12-team auction, $400 cap, 40-man rosters.\n\n**Season long**: Total cumulative points.\n\n**Keeper contracts**: Salary escalates $5/year.",
     },
     {
       name: "Ottoneu SABR",
@@ -698,7 +754,8 @@ async function seedLeagueTemplates() {
       cap: 400,
       rosters: OTTONEU_ROSTER,
       description: "Ottoneu auction, SABR linear-weights points, season-long",
-      rulesText: "# Ottoneu SABR\n\n**Scoring**: SABR-derived linear-weights points. Batters on on-base/extra-base value; pitchers on peripherals (Ks, BB, HR).\n\n**Format**: 12-team auction, $400 cap, 40-man rosters.\n\n**Season long**: Total cumulative points.\n\n**Keeper contracts**: Salary escalates $5/year.",
+      rulesText:
+        "# Ottoneu SABR\n\n**Scoring**: SABR-derived linear-weights points. Batters on on-base/extra-base value; pitchers on peripherals (Ks, BB, HR).\n\n**Format**: 12-team auction, $400 cap, 40-man rosters.\n\n**Season long**: Total cumulative points.\n\n**Keeper contracts**: Salary escalates $5/year.",
     },
     {
       name: "Ottoneu H2H FGPTs",
@@ -711,8 +768,10 @@ async function seedLeagueTemplates() {
       rosterSize: 40,
       cap: 400,
       rosters: OTTONEU_ROSTER,
-      description: "Ottoneu auction, FanGraphs points scoring, head-to-head points",
-      rulesText: "# Ottoneu H2H FGPTs\n\n**Scoring**: Head-to-head total points. FanGraphs linear-weights scoring.\n\n**Format**: 12-team auction, $400 cap, 40-man rosters.\n\n**Playoffs**: Top teams by points advance to bracket.\n\n**Keeper contracts**: Salary escalates $5/year.",
+      description:
+        "Ottoneu auction, FanGraphs points scoring, head-to-head points",
+      rulesText:
+        "# Ottoneu H2H FGPTs\n\n**Scoring**: Head-to-head total points. FanGraphs linear-weights scoring.\n\n**Format**: 12-team auction, $400 cap, 40-man rosters.\n\n**Playoffs**: Top teams by points advance to bracket.\n\n**Keeper contracts**: Salary escalates $5/year.",
     },
     {
       name: "Ottoneu H2H SABR",
@@ -726,7 +785,8 @@ async function seedLeagueTemplates() {
       cap: 400,
       rosters: OTTONEU_ROSTER,
       description: "Ottoneu auction, SABR points scoring, head-to-head points",
-      rulesText: "# Ottoneu H2H SABR\n\n**Scoring**: Head-to-head total points. SABR-derived linear-weights scoring.\n\n**Format**: 12-team auction, $400 cap, 40-man rosters.\n\n**Playoffs**: Top teams by points advance to bracket.\n\n**Keeper contracts**: Salary escalates $5/year.",
+      rulesText:
+        "# Ottoneu H2H SABR\n\n**Scoring**: Head-to-head total points. SABR-derived linear-weights scoring.\n\n**Format**: 12-team auction, $400 cap, 40-man rosters.\n\n**Playoffs**: Top teams by points advance to bracket.\n\n**Keeper contracts**: Salary escalates $5/year.",
     },
   ]
 
@@ -764,4 +824,3 @@ async function seedLeagueTemplates() {
   }
   process.stdout.write(`Seeded ${templates.length} league templates\n`)
 }
-

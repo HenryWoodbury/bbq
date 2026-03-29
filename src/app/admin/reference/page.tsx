@@ -29,11 +29,11 @@ export default async function AdminReferencePage() {
     <div className="flex flex-col gap-4">
       <h1>Reference</h1>
 
-      <SectionCollapsible title="Batter Stats">
+      <SectionCollapsible title="Batter Stats" size="md">
         <StatDefsTable data={batterStats} />
       </SectionCollapsible>
 
-      <SectionCollapsible title="Pitcher Stats">
+      <SectionCollapsible title="Pitcher Stats" size="md">
         <StatDefsTable data={pitcherStats} />
       </SectionCollapsible>
     </div>

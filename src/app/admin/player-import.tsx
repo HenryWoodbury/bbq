@@ -3,8 +3,8 @@
 import { useRef, useState } from "react"
 import { Alert } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { FileLabel } from "@/components/ui/file-label"
 import { Checkbox } from "@/components/ui/checkbox"
+import { FileLabel } from "@/components/ui/file-label"
 
 type ImportResult = {
   total: number

@@ -29,7 +29,12 @@ export function AdminMenu({ className }: { className?: string }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <MenuButton variant="ghost" size="sm" aria-label="Admin menu" className={className}>
+        <MenuButton
+          variant="ghost"
+          size="sm"
+          aria-label="Admin menu"
+          className={className}
+        >
           <SettingsIcon size={15} className="shrink-0" />
           <span className="min-w-0 truncate">Admin</span>
         </MenuButton>

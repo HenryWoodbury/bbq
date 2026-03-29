@@ -32,7 +32,7 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html lang="en" suppressHydrationWarning className="overflow-x-hidden">
+      <html lang="en" suppressHydrationWarning>
         <body
           className={cn(
             lato.variable,
@@ -42,9 +42,7 @@ export default function RootLayout({
         >
           <ThemeProvider>
             <Header />
-            <main className="w-full px-4 py-8 sm:px-6 lg:px-8">
-              {children}
-            </main>
+            <main className="w-full px-4 py-8 sm:px-6 lg:px-8">{children}</main>
           </ThemeProvider>
         </body>
       </html>
