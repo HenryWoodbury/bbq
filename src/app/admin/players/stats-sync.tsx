@@ -1,6 +1,6 @@
 "use client"
 
-import { BarChart2, Loader2, Trash2 } from "lucide-react"
+import { BarChart2Icon, Loader2Icon, Trash2Icon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { SectionCollapsible } from "@/components/section-collapsible"
@@ -97,7 +97,7 @@ function StatUploadsTable({
               </td>
               <td className="py-1.5 pl-2 text-right">
                 {deletingId === u.id ? (
-                  <Loader2
+                  <Loader2Icon
                     size={14}
                     className="animate-spin text-muted-foreground"
                   />
@@ -108,7 +108,7 @@ function StatUploadsTable({
                     onBlur={() => setConfirmingId(null)}
                     className="text-destructive hover:text-destructive/80 transition-colors"
                   >
-                    <Trash2 size={14} />
+                    <Trash2Icon size={14} />
                   </button>
                 ) : (
                   <button
@@ -116,7 +116,7 @@ function StatUploadsTable({
                     onClick={() => setConfirmingId(u.id)}
                     className="text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    <Trash2 size={14} />
+                    <Trash2Icon size={14} />
                   </button>
                 )}
               </td>
@@ -149,7 +149,7 @@ export function StatsSync({
       <div className="flex items-center gap-4">
         <h2 className="min-w-36">Player Stats</h2>
         <Button variant="secondary" size="sm" onClick={() => setOpen(true)}>
-          <BarChart2 size={15} className="shrink-0" />
+          <BarChart2Icon size={15} className="shrink-0" />
           <span className="min-w-0 truncate">Import Stats</span>
         </Button>
       </div>

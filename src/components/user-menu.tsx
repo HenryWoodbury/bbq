@@ -1,7 +1,7 @@
 "use client"
 
 import { useClerk } from "@clerk/nextjs"
-import { FolderPen, LogOut, User } from "lucide-react"
+import { FolderPenIcon, LogOutIcon, UserIcon } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,17 +28,17 @@ export function UserMenu() {
           aria-label="Manage account"
           className="max-w-60"
         >
-          <User size={16} className="shrink-0" />
+          <UserIcon size={16} className="shrink-0" />
           <span className="min-w-0 truncate">You</span>
         </MenuButton>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={() => openUserProfile()}>
-          <FolderPen />
+          <FolderPenIcon />
           Manage account
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => signOut()}>
-          <LogOut />
+          <LogOutIcon />
           Sign out
         </DropdownMenuItem>
       </DropdownMenuContent>

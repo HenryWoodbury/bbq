@@ -8,7 +8,7 @@ import {
   UsersIcon,
 } from "lucide-react"
 import Link from "next/link"
-import { BaseballIcon } from "@/components/icons/baseball-icon"
+import { BaseballIcon } from "@/components/icons"
 import {
   DropdownMenu,
   DropdownMenuContent,

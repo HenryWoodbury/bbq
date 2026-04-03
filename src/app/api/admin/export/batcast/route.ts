@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server"
-import { type Prisma, StatPlayerType, StatSplit } from "@/generated/prisma/client"
+import {
+  type Prisma,
+  StatPlayerType,
+  StatSplit,
+} from "@/generated/prisma/client"
 import { assertAdmin } from "@/lib/auth-helpers"
 import { prisma } from "@/lib/prisma"
 import { PROJECTION_MAP } from "@/lib/stat-maps"
@@ -37,6 +41,11 @@ export async function GET(request: Request) {
   const playerTypeParam = searchParams.get("playerType")
   const activeParam = searchParams.get("active") ?? "all"
   const leagueParam = searchParams.get("league") ?? "all"
+  const formatParam = searchParams.get("format") ?? "csv"
+
+  if (formatParam !== "csv" && formatParam !== "json") {
+    return NextResponse.json({ error: "Invalid params" }, { status: 400 })
+  }
 
   if (
     Number.isNaN(seasonParam) ||
@@ -109,10 +118,18 @@ export async function GET(request: Request) {
   ]
 
   if (allPlayerIds.length === 0) {
+    if (formatParam === "json") {
+      return new Response("[]", {
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+          "Content-Disposition": `attachment; filename="batcast-${playerTypeParam.toLowerCase()}s-${seasonParam}.json"`,
+        },
+      })
+    }
     return new Response(
       toCsvRow([
-        "Ott ID",
-        "FG ID",
+        "Ottoneu ID",
+        "Fangraphs ID",
         "Name",
         "Birthday",
         "Positions",
@@ -178,38 +195,12 @@ export async function GET(request: Request) {
     return nameA.localeCompare(nameB)
   })
 
-  // ── Generate CSV ───────────────────────────────────────────────────────────
+  // ── Build player records ───────────────────────────────────────────────────
 
   const isBatter = playerType === StatPlayerType.BATTER
   const typeLabel = isBatter ? "batters" : "pitchers"
 
-  const header = isBatter
-    ? toCsvRow([
-        "Ott ID",
-        "FG ID",
-        "Name",
-        "Birthday",
-        "Positions",
-        "Bats",
-        "Throws",
-        "wOBA",
-        "wOBA vs LHP",
-        "wOBA vs RHP",
-      ])
-    : toCsvRow([
-        "Ott ID",
-        "FG ID",
-        "Name",
-        "Birthday",
-        "Positions",
-        "Bats",
-        "Throws",
-        "FIP",
-        "wOBA vs LHB",
-        "wOBA vs RHB",
-      ])
-
-  const dataRows = sortedPlayers.map((p) => {
+  const playerRecords = sortedPlayers.map((p) => {
     const ov = p.override?.deletedAt ? null : p.override
     const displayName = ov?.displayName ?? p.fgSpecialChar ?? p.playerName
     const birthday =
@@ -224,27 +215,82 @@ export async function GET(request: Request) {
     const vsLeft = getRawStat(vsLeftMap.get(p.id), "wOBA")
     const vsRight = getRawStat(vsRightMap.get(p.id), "wOBA")
 
-    return toCsvRow([
-      p.ottoneuId,
-      p.fangraphsId,
-      displayName,
+    return {
+      ottoneuId: p.ottoneuId,
+      fangraphsId: p.fangraphsId,
+      name: displayName,
       birthday,
       positions,
       bats,
-      throws_,
-      mainStat,
-      vsLeft,
-      vsRight,
-    ])
+      throws: throws_,
+      ...(isBatter ? { wOBA: mainStat } : { FIP: mainStat }),
+      wOBAVsLeft: vsLeft,
+      wOBAVsRight: vsRight,
+    }
   })
 
+  const filename = `batcast-${typeLabel}-${seasonParam}`
+
+  // ── JSON ───────────────────────────────────────────────────────────────────
+
+  if (formatParam === "json") {
+    return new Response(JSON.stringify(playerRecords, null, 2), {
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Content-Disposition": `attachment; filename="${filename}.json"`,
+      },
+    })
+  }
+
+  // ── CSV ────────────────────────────────────────────────────────────────────
+
+  const header = isBatter
+    ? toCsvRow([
+        "Ottoneu ID",
+        "Fangraphs ID",
+        "Name",
+        "Birthday",
+        "Positions",
+        "Bats",
+        "Throws",
+        "wOBA",
+        "wOBA vs LHP",
+        "wOBA vs RHP",
+      ])
+    : toCsvRow([
+        "Ottoneu ID",
+        "Fangraphs ID",
+        "Name",
+        "Birthday",
+        "Positions",
+        "Bats",
+        "Throws",
+        "FIP",
+        "wOBA vs LHB",
+        "wOBA vs RHB",
+      ])
+
+  const dataRows = playerRecords.map((r) =>
+    toCsvRow([
+      r.ottoneuId,
+      r.fangraphsId,
+      r.name,
+      r.birthday,
+      r.positions,
+      r.bats,
+      r.throws,
+      isBatter ? (r as { wOBA: number | null }).wOBA : (r as { FIP: number | null }).FIP,
+      r.wOBAVsLeft,
+      r.wOBAVsRight,
+    ]),
+  )
+
   const csv = [header, ...dataRows].join("\n")
-  const filename = `batcast-${typeLabel}-${seasonParam}.csv`
 
   return new Response(csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${filename}"`,
+      "Content-Disposition": `attachment; filename="${filename}.csv"`,
     },
   })
 }

@@ -1,7 +1,7 @@
 "use client"
 
 import { usePathname, useRouter } from "next/navigation"
-import { BaseballIcon } from "@/components/icons/baseball-icon"
+import { BaseballIcon } from "@/components/icons"
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,

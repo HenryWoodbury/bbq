@@ -40,7 +40,7 @@ export function FilterGroup({
               i > 0 && "-ml-px",
               value === opt.value
                 ? "relative z-10"
-                : "border-border text-muted-foreground",
+                : "border-border enabled:hover:border-zinc-300 text-muted-foreground enabled:hover:text-zinc-750 dark:enabled:hover:text-zinc-300",
               "focus-visible:relative focus-visible:z-10",
             )}
           >

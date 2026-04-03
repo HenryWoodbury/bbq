@@ -129,6 +129,7 @@ export default async function AdminPlayersPage({
             displayName: true,
             firstName: true,
             lastName: true,
+            nickname: true,
             birthday: true,
             team: true,
             mlbLevel: true,
@@ -148,6 +149,7 @@ export default async function AdminPlayersPage({
         displayName: true,
         firstName: true,
         lastName: true,
+        nickname: true,
         birthday: true,
         team: true,
         mlbLevel: true,
@@ -265,6 +267,7 @@ export default async function AdminPlayersPage({
         (ov?.birthday ?? p.birthday)?.toISOString().slice(0, 10) ?? null,
       team: ov?.team ?? p.team,
       mlbLevel: ov?.mlbLevel ?? p.mlbLevel,
+      nickname: ov?.nickname ?? null,
       fangraphsId: p.fangraphsId,
       bats: ov?.bats ?? p.bats,
       throws: ov?.throws ?? p.throws,
@@ -272,6 +275,17 @@ export default async function AdminPlayersPage({
       universeFgId: p.universe[0]?.fangraphsId ?? null,
       overrideId: ov?.id ?? null,
       isManual: false,
+      baseFields: {
+        displayName: p.fgSpecialChar ?? p.playerName,
+        firstName: p.firstName,
+        lastName: p.lastName,
+        birthday: p.birthday?.toISOString().slice(0, 10) ?? null,
+        team: p.team,
+        mlbLevel: p.mlbLevel,
+        active: p.active,
+        bats: p.bats,
+        throws: p.throws,
+      },
     }
   })
 
@@ -286,6 +300,7 @@ export default async function AdminPlayersPage({
     fgSpecialChar: o.displayName,
     firstName: o.firstName,
     lastName: o.lastName,
+    nickname: o.nickname,
     active: o.active ?? true,
     birthday: o.birthday?.toISOString().slice(0, 10) ?? null,
     team: o.team,
@@ -297,6 +312,7 @@ export default async function AdminPlayersPage({
     universeFgId: null,
     overrideId: o.id,
     isManual: true,
+    baseFields: null,
   }))
 
   const allRows = [...playerRows, ...manualRows]

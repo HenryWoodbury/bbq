@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronRight } from "lucide-react"
+import { ChevronRightIcon } from "lucide-react"
 import { useState } from "react"
 import {
   Collapsible,
@@ -37,7 +37,7 @@ export function SectionCollapsible({
   return (
     <Collapsible open={open} onOpenChange={setOpen} className={className}>
       <CollapsibleTrigger className="collapsible-trigger flex w-full cursor-pointer select-none items-center gap-1.5 text-foreground">
-        <ChevronRight
+        <ChevronRightIcon
           className={cn(
             "transition-transform duration-200",
             open && "rotate-90",

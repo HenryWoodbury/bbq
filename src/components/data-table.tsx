@@ -10,11 +10,11 @@ import {
   useReactTable,
 } from "@tanstack/react-table"
 import {
-  ArrowDown,
-  ArrowUp,
-  ArrowUpDown,
-  ChevronLeft,
-  ChevronRight,
+  ArrowDownIcon,
+  ArrowUpIcon,
+  ArrowUpDownIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
 } from "lucide-react"
 import { useState } from "react"
 import { IconButton } from "@/components/ui/icon-button"
@@ -115,11 +115,11 @@ export function DataTable<T>({
                         )}
                         {canSort &&
                           (sorted === "asc" ? (
-                            <ArrowUp className="h-3 w-3" />
+                            <ArrowUpIcon className="h-3 w-3" />
                           ) : sorted === "desc" ? (
-                            <ArrowDown className="h-3 w-3" />
+                            <ArrowDownIcon className="h-3 w-3" />
                           ) : (
-                            <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
+                            <ArrowUpDownIcon className="h-3 w-3 text-muted-foreground" />
                           ))}
                       </span>
                     </th>
@@ -173,7 +173,7 @@ export function DataTable<T>({
               disabled={!canPrev}
               aria-label="Previous page"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeftIcon className="h-4 w-4" />
             </IconButton>
             <span className="tabular-nums">
               {pageCount === 0 ? "—" : `${pageIndex + 1} / ${pageCount}`}
@@ -183,7 +183,7 @@ export function DataTable<T>({
               disabled={!canNext}
               aria-label="Next page"
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRightIcon className="h-4 w-4" />
             </IconButton>
           </div>
 

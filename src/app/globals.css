@@ -6,6 +6,7 @@
 
 @theme {
   --color-zinc-150: oklch(94.39% 0.004 286.32);
+  --color-zinc-750: oklch(0.32 0.013 285.805);
   --text-p: 0.9375rem;
 }
 
@@ -76,13 +77,13 @@
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
+  --muted: oklch(0.967 0.003 286.029); /* zinc-100 */
   --muted-foreground: oklch(0.556 0.014 285.755); /* zinc-500 */
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
+  --border: oklch(0.872 0.006 286.286); /* zinc-300 */
+  --input: oklch(0.872 0.006 286.286); /* zinc-300 */
   --ring: var(--color-blue-500);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
@@ -95,7 +96,7 @@
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.97 0 0);
   --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-border: oklch(0.872 0.006 286.286); /* zinc-300 */
   --sidebar-ring: oklch(0.708 0 0);
   /* ── Status: success (emerald scale) ─────────────────────────────────────── */
   --success: oklch(0.979 0.021 166.113);
@@ -124,13 +125,13 @@
   --primary-foreground: oklch(0.205 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
+  --muted: oklch(0.269 0.013 285.805); /* zinc-800 */
   --muted-foreground: oklch(0.709 0.012 285.95); /* zinc-400 */
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
+  --border: oklch(0.37 0.013 285.805); /* zinc-700 */
+  --input: oklch(0.37 0.013 285.805); /* zinc-700 */
   --ring: var(--color-blue-500);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
@@ -312,7 +313,7 @@
   }
 
   .table-head {
-    @apply bg-muted;
+    @apply bg-muted border-b border-border;
   }
 
   .table-head-cell {
@@ -324,10 +325,11 @@
   }
 
   .table-row {
-    @apply hover:bg-muted;
+    @apply hover:bg-zinc-100 dark:hover:bg-zinc-750;
   }
 
   .table-cell {
     @apply overflow-hidden text-ellipsis whitespace-nowrap px-4 py-3 text-muted-foreground;
   }
 }
+

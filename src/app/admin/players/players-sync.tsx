@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useState } from "react"
-import { PlayerIcon } from "@/components/icons/player-icon"
+import { PlayerIcon } from "@/components/icons"
 import { Button } from "@/components/ui/button"
 import {
   Drawer,

@@ -1,7 +1,7 @@
 "use client"
 
 import type { ColumnDef } from "@tanstack/react-table"
-import { Download, Pencil } from "lucide-react"
+import { DownloadIcon, PencilIcon, Undo2Icon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { type ReactNode, useMemo, useState } from "react"
 import { DataTable } from "@/components/data-table"
@@ -36,6 +36,7 @@ export type PlayerRow = {
   team: string | null
   mlbLevel: string | null
   fangraphsId: string | null
+  nickname: string | null
   bats: string | null
   throws: string | null
   /** Ottoneu-specific eligible positions; empty if no universe entry */
@@ -46,6 +47,20 @@ export type PlayerRow = {
   overrideId: string | null
   /** true if this row originates from a manual PlayerOverride (no SFBB record) */
   isManual: boolean
+  /** Underlying player values before any override; null for manual rows */
+  baseFields: PlayerBaseFields | null
+}
+
+export type PlayerBaseFields = {
+  displayName: string
+  firstName: string | null
+  lastName: string | null
+  birthday: string | null
+  team: string | null
+  mlbLevel: string | null
+  active: boolean
+  bats: string | null
+  throws: string | null
 }
 
 export type StatRow = {
@@ -113,6 +128,24 @@ function normalize(s: string): string {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
+}
+
+function hasActiveOverride(row: PlayerRow): boolean {
+  if (!row.overrideId) return false
+  if (!row.baseFields) return true // manual rows — the whole record is the override
+  const b = row.baseFields
+  return (
+    (row.fgSpecialChar ?? null) !== (b.displayName ?? null) ||
+    (row.firstName ?? null) !== (b.firstName ?? null) ||
+    (row.lastName ?? null) !== (b.lastName ?? null) ||
+    (row.birthday ?? null) !== (b.birthday ?? null) ||
+    (row.team ?? null) !== (b.team ?? null) ||
+    (row.mlbLevel ?? null) !== (b.mlbLevel ?? null) ||
+    row.active !== b.active ||
+    (row.bats ?? null) !== (b.bats ?? null) ||
+    (row.throws ?? null) !== (b.throws ?? null) ||
+    row.nickname !== null
+  )
 }
 
 function isMajorLeague(row: PlayerRow): boolean {
@@ -278,7 +311,8 @@ const profileColumns: ColumnDef<PlayerRow, unknown>[] = [
 // ── Filter types ──────────────────────────────────────────────────────────────
 
 type ActiveFilter = "yes" | "no" | "all"
-type LeagueFilter = "all" | "mlb" | "al" | "nl" | "milb"
+type LevelFilter = "all" | "mlb" | "milb"
+type MLBLeagueFilter = "all" | "al" | "nl"
 type RoleFilter = "all" | "batter" | "pitcher"
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -292,6 +326,7 @@ export function PlayersTable({
   statsFilter,
   initialShow = "profiles",
   onEdit,
+  onClearOverride,
   action,
 }: {
   data: PlayerRow[]
@@ -302,13 +337,15 @@ export function PlayersTable({
   statsFilter: StatsFilter
   initialShow?: "profiles" | "stats"
   onEdit?: (row: PlayerRow) => void
+  onClearOverride?: (row: PlayerRow) => void
   action?: ReactNode
 }) {
   const router = useRouter()
   const [show, setShow] = useState<"profiles" | "stats">(initialShow)
   const [search, setSearch] = useState("")
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>("yes")
-  const [leagueFilter, setLeagueFilter] = useState<LeagueFilter>("mlb")
+  const [levelFilter, setLevelFilter] = useState<LevelFilter>("mlb")
+  const [mlbLeagueFilter, setMlbLeagueFilter] = useState<MLBLeagueFilter>("all")
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all")
 
   function handleShowChange(v: string) {
@@ -327,13 +364,25 @@ export function PlayersTable({
     }
   }
 
-  function triggerExport(playerType: "BATTER" | "PITCHER") {
+  function deriveLeagueParam(): string {
+    if (levelFilter === "milb") return "milb"
+    if (mlbLeagueFilter === "al") return "al"
+    if (mlbLeagueFilter === "nl") return "nl"
+    if (levelFilter === "mlb") return "mlb"
+    return "all"
+  }
+
+  function triggerExport(
+    playerType: "BATTER" | "PITCHER",
+    format: "csv" | "json",
+  ) {
     const sp = new URLSearchParams({
       season: String(statsFilter.season),
       projection: statsFilter.projection,
       playerType,
       active: activeFilter,
-      league: leagueFilter,
+      league: deriveLeagueParam(),
+      format,
     })
     window.location.href = `/api/admin/export/batcast?${sp.toString()}`
   }
@@ -358,12 +407,13 @@ export function PlayersTable({
     if (activeFilter === "yes") rows = rows.filter((r) => r.active)
     else if (activeFilter === "no") rows = rows.filter((r) => !r.active)
 
-    if (leagueFilter === "mlb") rows = rows.filter(isMajorLeague)
-    else if (leagueFilter === "al")
+    if (levelFilter === "mlb") rows = rows.filter(isMajorLeague)
+    else if (levelFilter === "milb") rows = rows.filter(isMinorLeague)
+
+    if (mlbLeagueFilter === "al")
       rows = rows.filter((r) => isAL(r.team) || r.mlbLevel === "AL")
-    else if (leagueFilter === "nl")
+    else if (mlbLeagueFilter === "nl")
       rows = rows.filter((r) => isNL(r.team) || r.mlbLevel === "NL")
-    else if (leagueFilter === "milb") rows = rows.filter(isMinorLeague)
 
     if (roleFilter === "batter") rows = rows.filter((r) => !isPitcher(r))
     else if (roleFilter === "pitcher") rows = rows.filter(isPitcher)
@@ -384,7 +434,7 @@ export function PlayersTable({
     }
 
     return rows
-  }, [data, activeFilter, leagueFilter, roleFilter, search])
+  }, [data, activeFilter, levelFilter, mlbLeagueFilter, roleFilter, search])
 
   // ── Stats filtering ────────────────────────────────────────────────────────
 
@@ -394,14 +444,15 @@ export function PlayersTable({
     if (activeFilter === "yes") rows = rows.filter((r) => r.active)
     else if (activeFilter === "no") rows = rows.filter((r) => !r.active)
 
-    if (leagueFilter === "mlb")
+    if (levelFilter === "mlb")
       rows = rows.filter(
         (r) => r.fangraphsId !== null && !r.fangraphsId.startsWith("sa"),
       )
-    else if (leagueFilter === "al") rows = rows.filter((r) => isAL(r.team))
-    else if (leagueFilter === "nl") rows = rows.filter((r) => isNL(r.team))
-    else if (leagueFilter === "milb")
+    else if (levelFilter === "milb")
       rows = rows.filter((r) => r.fangraphsId?.startsWith("sa") ?? false)
+
+    if (mlbLeagueFilter === "al") rows = rows.filter((r) => isAL(r.team))
+    else if (mlbLeagueFilter === "nl") rows = rows.filter((r) => isNL(r.team))
 
     const q = search.trim().toLowerCase()
     if (q) {
@@ -414,7 +465,7 @@ export function PlayersTable({
     }
 
     return rows
-  }, [statRows, activeFilter, leagueFilter, search])
+  }, [statRows, activeFilter, levelFilter, mlbLeagueFilter, search])
 
   // ── Stats column definitions ───────────────────────────────────────────────
 
@@ -488,23 +539,32 @@ export function PlayersTable({
   // ── Profile columns with optional edit action ──────────────────────────────
 
   const profileColumnDefs = useMemo<ColumnDef<PlayerRow, unknown>[]>(() => {
-    if (!onEdit) return profileColumns
+    if (!onEdit && !onClearOverride) return profileColumns
     const editCol: ColumnDef<PlayerRow, unknown> = {
       id: "_edit",
       header: "",
-      size: 36,
+      size: onEdit && onClearOverride ? 64 : 36,
       enableSorting: false,
       cell: ({ row }) => (
-        <IconButton
-          onClick={() => onEdit(row.original)}
-          aria-label="Edit player"
-        >
-          <Pencil className="h-3.5 w-3.5" />
-        </IconButton>
+        <div className="flex items-center gap-1">
+          {onEdit && (
+            <IconButton onClick={() => onEdit(row.original)} aria-label="Edit player">
+              <PencilIcon className="h-3.5 w-3.5" />
+            </IconButton>
+          )}
+          {onClearOverride && hasActiveOverride(row.original) && (
+            <IconButton
+              onClick={() => onClearOverride(row.original)}
+              aria-label="Clear override"
+            >
+              <Undo2Icon className="h-3.5 w-3.5" />
+            </IconButton>
+          )}
+        </div>
       ),
     }
     return [...profileColumns, editCol]
-  }, [onEdit])
+  }, [onEdit, onClearOverride])
 
   // ── Role options depend on mode ────────────────────────────────────────────
 
@@ -538,17 +598,26 @@ export function PlayersTable({
           onChange={(v) => setActiveFilter(v as ActiveFilter)}
         />
         <FilterGroup
-          label="League:"
+          label="Level:"
           size="sm"
           options={[
             { value: "mlb", label: "MLB" },
-            { value: "al", label: "AL" },
-            { value: "nl", label: "NL" },
             { value: "milb", label: "MiLB" },
             { value: "all", label: "All" },
           ]}
-          value={leagueFilter}
-          onChange={(v) => setLeagueFilter(v as LeagueFilter)}
+          value={levelFilter}
+          onChange={(v) => setLevelFilter(v as LevelFilter)}
+        />
+        <FilterGroup
+          label="League:"
+          size="sm"
+          options={[
+            { value: "al", label: "AL" },
+            { value: "nl", label: "NL" },
+            { value: "all", label: "All" },
+          ]}
+          value={mlbLeagueFilter}
+          onChange={(v) => setMlbLeagueFilter(v as MLBLeagueFilter)}
         />
         <FilterGroup
           label="Role:"
@@ -681,16 +750,28 @@ export function PlayersTable({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="secondary" size="sm">
-                <Download className="h-4 w-4" />
+                <DownloadIcon className="h-4 w-4" />
                 Export
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={() => triggerExport("BATTER")}>
+              <DropdownMenuItem onSelect={() => triggerExport("BATTER", "csv")}>
                 Batters (CSV)
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => triggerExport("PITCHER")}>
+              <DropdownMenuItem
+                onSelect={() => triggerExport("BATTER", "json")}
+              >
+                Batters (JSON)
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() => triggerExport("PITCHER", "csv")}
+              >
                 Pitchers (CSV)
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() => triggerExport("PITCHER", "json")}
+              >
+                Pitchers (JSON)
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
