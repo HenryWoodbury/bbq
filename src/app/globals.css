@@ -302,11 +302,6 @@
     @apply rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring;
   }
 
-  /* Icon action button (edit/delete rows etc.) */
-  .icon-action {
-    @apply rounded p-1 text-muted-foreground hover:text-foreground;
-  }
-
   /* ── Tables ──────────────────────────────────────────────────────────── */
 
   .table-container {

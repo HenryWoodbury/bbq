@@ -3,7 +3,7 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 
 const iconButtonVariants = cva(
-  "inline-flex items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-30",
+  "inline-flex items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground group-hover:hover:bg-zinc-300 dark:group-hover:hover:bg-zinc-600 disabled:opacity-30",
   {
     variants: {
       size: {

@@ -11,8 +11,8 @@ import {
 } from "@tanstack/react-table"
 import {
   ArrowDownIcon,
-  ArrowUpIcon,
   ArrowUpDownIcon,
+  ArrowUpIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
 } from "lucide-react"
@@ -144,7 +144,7 @@ export function DataTable<T>({
               </tr>
             ) : (
               rows.map((row) => (
-                <tr key={row.id} className="table-row">
+                <tr key={row.id} className="table-row group">
                   {row.getVisibleCells().map((cell) => (
                     <td key={cell.id} className="table-cell">
                       {flexRender(

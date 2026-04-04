@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { SectionCollapsible } from "@/components/section-collapsible"
 import { Button } from "@/components/ui/button"
+import { IconButton } from "@/components/ui/icon-button"
 import {
   Drawer,
   DrawerBody,
@@ -102,22 +103,21 @@ function StatUploadsTable({
                     className="animate-spin text-muted-foreground"
                   />
                 ) : confirmingId === u.id ? (
-                  <button
-                    type="button"
+                  <IconButton
                     onClick={() => handleDelete(u.id)}
                     onBlur={() => setConfirmingId(null)}
-                    className="text-destructive hover:text-destructive/80 transition-colors"
+                    aria-label="Confirm delete"
+                    className="text-destructive hover:text-destructive/80"
                   >
-                    <Trash2Icon size={14} />
-                  </button>
+                    <Trash2Icon className="h-3.5 w-3.5" />
+                  </IconButton>
                 ) : (
-                  <button
-                    type="button"
+                  <IconButton
                     onClick={() => setConfirmingId(u.id)}
-                    className="text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label="Delete upload"
                   >
-                    <Trash2Icon size={14} />
-                  </button>
+                    <Trash2Icon className="h-3.5 w-3.5" />
+                  </IconButton>
                 )}
               </td>
             </tr>

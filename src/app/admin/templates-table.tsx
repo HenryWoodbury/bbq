@@ -5,6 +5,7 @@ import { PencilIcon, PlusIcon, Trash2Icon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { DataTable } from "@/components/data-table"
+import { IconButton } from "@/components/ui/icon-button"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -360,15 +361,9 @@ function EditDialog({ row }: { row: TemplateRow }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          aria-label={`Edit ${row.name}`}
-          className="icon-action"
-        >
-          <PencilIcon size={14} />
-        </Button>
+        <IconButton aria-label={`Edit ${row.name}`}>
+          <PencilIcon className="h-3.5 w-3.5" />
+        </IconButton>
       </DialogTrigger>
       <DialogContent className="max-w-2xl overflow-y-auto max-h-[90vh]">
         <DialogHeader>
@@ -407,17 +402,14 @@ function DeleteButton({ row }: { row: TemplateRow }) {
   }
 
   return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="sm"
+    <IconButton
       onClick={handleDelete}
       disabled={pending}
       aria-label={`Delete ${row.name}`}
-      className="rounded p-1 text-muted-foreground hover:text-destructive"
+      className="hover:text-destructive"
     >
-      <Trash2Icon size={14} />
-    </Button>
+      <Trash2Icon className="h-3.5 w-3.5" />
+    </IconButton>
   )
 }
 
