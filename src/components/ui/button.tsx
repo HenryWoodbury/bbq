@@ -3,7 +3,7 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-1.5 border font-medium text-[0.9375rem] leading-[calc(4/3)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed",
+  "inline-flex items-center justify-center gap-1.5 border font-medium text-body leading-[calc(4/3)] transition-colors disabled:opacity-disabled disabled:cursor-not-allowed disabled:focus-visible:ring-0",
   {
     variants: {
       variant: {
@@ -19,8 +19,9 @@ const buttonVariants = cva(
           "rounded-lg border-transparent text-muted-foreground enabled:hover:bg-zinc-150 enabled:hover:border-zinc-150 enabled:active:bg-zinc-150 enabled:active:border-zinc-150 dark:enabled:hover:bg-zinc-750 dark:enabled:hover:border-zinc-750 dark:enabled:active:bg-zinc-750 dark:enabled:active:border-zinc-750",
       },
       size: {
-        md: "px-4 py-1.5",
         sm: "px-3 py-1",
+        md: "px-4 py-1.5",
+        lg: "px-4 py-[7px]",
       },
     },
     defaultVariants: {

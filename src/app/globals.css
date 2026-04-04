@@ -7,7 +7,8 @@
 @theme {
   --color-zinc-150: oklch(94.39% 0.004 286.32);
   --color-zinc-750: oklch(0.32 0.013 285.805);
-  --text-p: 0.9375rem;
+  --text-body: 0.9375rem;
+  --opacity-disabled: 0.4;
 }
 
 @theme inline {
@@ -211,7 +212,7 @@
     @apply text-[1.0625rem] font-bold leading-[calc(4/3)] text-foreground;
   }
   p {
-    @apply text-p leading-[1.5] text-foreground;
+    @apply text-body leading-[1.5] text-foreground;
   }
   a {
     @apply text-blue-600 underline-offset-2 hover:underline dark:text-blue-400;

@@ -32,7 +32,7 @@ export function SectionCollapsible({
       ? "text-[1.0625rem] font-bold leading-[calc(4/3)]"
       : size === "lg"
         ? "text-xl font-bold leading-[calc(4/3)]"
-        : "text-[0.9375rem] font-bold"
+        : "text-body font-bold"
 
   return (
     <Collapsible open={open} onOpenChange={setOpen} className={className}>

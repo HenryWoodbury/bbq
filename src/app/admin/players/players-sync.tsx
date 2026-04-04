@@ -50,7 +50,7 @@ export function PlayersSync({
     <div className={cn(className)}>
       <div className="flex items-center gap-4">
         <h2 className="min-w-36">Player Profiles</h2>
-        <Button variant="secondary" size="sm" onClick={() => setOpen(true)}>
+        <Button variant="secondary" size="md" onClick={() => setOpen(true)}>
           <PlayerIcon size={18} className="shrink-0" />
           <span className="min-w-0 truncate">Sync Players</span>
         </Button>

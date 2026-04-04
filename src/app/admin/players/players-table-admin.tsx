@@ -1,7 +1,6 @@
 "use client"
 
 import { ChevronLeftIcon, Undo2Icon } from "lucide-react"
-import { IconButton } from "@/components/ui/icon-button"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import type { UniverseSearchResult } from "@/app/api/admin/players/universe-search/route"
@@ -20,27 +19,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Field } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { Select } from "@/components/ui/select"
+import { parsePositions } from "@/lib/positions"
 import { cn } from "@/lib/utils"
+import {
+  PlayerFormGrid,
+  type OverrideFields,
+} from "./player-form-grid"
 
 // ── Shared field types ────────────────────────────────────────────────────────
 
-type OverrideFields = {
-  displayName: string
-  firstName: string
-  lastName: string
-  nickname: string
-  birthday: string
-  team: string
-  mlbLevel: string
-  active: boolean | null
-  bats: string
-  throws: string
-}
-
-type OverrideStringKey = Exclude<keyof OverrideFields, "active" | "nickname">
+type OverrideStringKey = Exclude<
+  keyof OverrideFields,
+  "active" | "nickname" | "positions"
+>
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -56,6 +48,7 @@ function emptyOverride(): OverrideFields {
     active: null,
     bats: "",
     throws: "",
+    positions: "",
   }
 }
 
@@ -67,18 +60,17 @@ function rowToOverride(row: PlayerRow): OverrideFields {
     nickname: row.nickname ?? "",
     birthday: row.birthday ?? "",
     team: row.team ?? "",
-    mlbLevel: row.mlbLevel ?? "",
+    mlbLevel: row.mlbLevel === "N/A" ? "" : (row.mlbLevel ?? ""),
     active: row.active,
     bats: row.bats ?? "",
     throws: row.throws ?? "",
+    positions: row.ottoneuPositions.join("/"),
   }
 }
 
 function nullify(s: string): string | null {
   return s.trim() || null
 }
-
-// ── Edit Override Modal ───────────────────────────────────────────────────────
 
 function EditOverrideModal({
   row,
@@ -98,7 +90,7 @@ function EditOverrideModal({
     setError("")
   }, [row])
 
-  function isDirty(key: Exclude<keyof OverrideFields, "nickname" | "active">): boolean {
+  function isDirty(key: OverrideStringKey): boolean {
     if (!row.baseFields) return false
     return (nullify(fields[key]) ?? null) !== (row.baseFields[key] ?? null)
   }
@@ -108,11 +100,21 @@ function EditOverrideModal({
     return fields.active !== row.baseFields.active
   }
 
+  function isDirtyPositions(): boolean {
+    if (!row.baseFields) return false
+    return (
+      parsePositions(fields.positions).join("/") !==
+      row.baseFields.positions.join("/")
+    )
+  }
+
   function clearField(key: keyof OverrideFields) {
     if (key === "active") {
       set("active", row.baseFields?.active ?? null)
     } else if (key === "nickname") {
       set("nickname", "")
+    } else if (key === "positions") {
+      set("positions", (row.baseFields?.positions ?? []).join("/"))
     } else {
       const k = key as OverrideStringKey
       set(k, row.baseFields?.[k] ?? "")
@@ -125,14 +127,32 @@ function EditOverrideModal({
 
   function isAnyDirty(): boolean {
     const stringKeys: OverrideStringKey[] = [
-      "displayName", "firstName", "lastName", "birthday", "team", "mlbLevel", "bats", "throws",
+      "displayName",
+      "firstName",
+      "lastName",
+      "birthday",
+      "team",
+      "mlbLevel",
+      "bats",
+      "throws",
     ]
-    return stringKeys.some((k) => isDirty(k)) || isDirtyActive() || !!nullify(fields.nickname)
+    return (
+      stringKeys.some((k) => isDirty(k)) ||
+      isDirtyActive() ||
+      !!nullify(fields.nickname) ||
+      isDirtyPositions()
+    )
   }
 
   async function handleSave() {
-    if (row.baseFields && !row.overrideId && !isAnyDirty()) {
-      onClose()
+    if (!isAnyDirty()) {
+      if (row.overrideId) {
+        // All field overrides cleared — remove the now-empty record
+        await handleRemove()
+        onClose()
+      } else {
+        onClose()
+      }
       return
     }
     setStatus("saving")
@@ -152,6 +172,7 @@ function EditOverrideModal({
           active: fields.active,
           bats: nullify(fields.bats),
           throws: nullify(fields.throws),
+          positions: parsePositions(fields.positions),
         }),
       })
       if (!res.ok) {
@@ -169,7 +190,12 @@ function EditOverrideModal({
   }
 
   async function handleRemove() {
-    if (!row.overrideId) return
+    if (!row.overrideId) {
+      setFields(rowToOverride(row))
+      setStatus("idle")
+      setError("")
+      return
+    }
     setStatus("saving")
     setError("")
     try {
@@ -203,180 +229,28 @@ function EditOverrideModal({
         </p>
       </DialogHeader>
 
-      <div className="mt-3 grid grid-cols-2 gap-3">
-        <Field label="Display Name">
-          <div className="flex items-center gap-1">
-            <Input
-              value={fields.displayName}
-              onChange={(e) => set("displayName", e.target.value)}
-              placeholder="Override display name"
-              className="flex-1"
-            />
-            {isDirty("displayName") && (
-              <IconButton onClick={() => clearField("displayName")} aria-label="Clear display name override">
-                <Undo2Icon className="h-3.5 w-3.5" />
-              </IconButton>
-            )}
-          </div>
-        </Field>
-        <Field label="Nickname">
-          <div className="flex items-center gap-1">
-            <Input
-              value={fields.nickname}
-              onChange={(e) => set("nickname", e.target.value)}
-              placeholder="e.g. Vladito"
-              className="flex-1"
-            />
-            {!!nullify(fields.nickname) && (
-              <IconButton onClick={() => clearField("nickname")} aria-label="Clear nickname">
-                <Undo2Icon className="h-3.5 w-3.5" />
-              </IconButton>
-            )}
-          </div>
-        </Field>
-        <Field label="First Name">
-          <div className="flex items-center gap-1">
-            <Input
-              value={fields.firstName}
-              onChange={(e) => set("firstName", e.target.value)}
-              className="flex-1"
-            />
-            {isDirty("firstName") && (
-              <IconButton onClick={() => clearField("firstName")} aria-label="Clear first name override">
-                <Undo2Icon className="h-3.5 w-3.5" />
-              </IconButton>
-            )}
-          </div>
-        </Field>
-        <Field label="Last Name">
-          <div className="flex items-center gap-1">
-            <Input
-              value={fields.lastName}
-              onChange={(e) => set("lastName", e.target.value)}
-              className="flex-1"
-            />
-            {isDirty("lastName") && (
-              <IconButton onClick={() => clearField("lastName")} aria-label="Clear last name override">
-                <Undo2Icon className="h-3.5 w-3.5" />
-              </IconButton>
-            )}
-          </div>
-        </Field>
-        <Field label="Birthday (YYYY-MM-DD)">
-          <div className="flex items-center gap-1">
-            <Input
-              value={fields.birthday}
-              onChange={(e) => set("birthday", e.target.value)}
-              placeholder="YYYY-MM-DD"
-              className="flex-1"
-            />
-            {isDirty("birthday") && (
-              <IconButton onClick={() => clearField("birthday")} aria-label="Clear birthday override">
-                <Undo2Icon className="h-3.5 w-3.5" />
-              </IconButton>
-            )}
-          </div>
-        </Field>
-        <Field label="Team">
-          <div className="flex items-center gap-1">
-            <Input
-              value={fields.team}
-              onChange={(e) => set("team", e.target.value)}
-              placeholder="e.g. LAD"
-              className="flex-1"
-            />
-            {isDirty("team") && (
-              <IconButton onClick={() => clearField("team")} aria-label="Clear team override">
-                <Undo2Icon className="h-3.5 w-3.5" />
-              </IconButton>
-            )}
-          </div>
-        </Field>
-        <Field label="League">
-          <div className="flex items-center gap-1">
-            <Select
-              value={fields.mlbLevel}
-              onChange={(e) => set("mlbLevel", e.target.value)}
-              className="flex-1"
-            >
-              <option value="AL">AL</option>
-              <option value="NL">NL</option>
-              <option value="N/A">N/A</option>
-            </Select>
-            {isDirty("mlbLevel") && (
-              <IconButton onClick={() => clearField("mlbLevel")} aria-label="Clear league override">
-                <Undo2Icon className="h-3.5 w-3.5" />
-              </IconButton>
-            )}
-          </div>
-        </Field>
-        <Field label="Active">
-          <div className="flex items-center gap-1">
-            <Select
-              value={fields.active === null ? "" : String(fields.active)}
-              onChange={(e) =>
-                set(
-                  "active",
-                  e.target.value === "" ? null : e.target.value === "true",
-                )
-              }
-              className="flex-1"
-            >
-              <option value="true">Yes</option>
-              <option value="false">No</option>
-            </Select>
-            {isDirtyActive() && (
-              <IconButton onClick={() => clearField("active")} aria-label="Clear active override">
-                <Undo2Icon className="h-3.5 w-3.5" />
-              </IconButton>
-            )}
-          </div>
-        </Field>
-        <Field label="Bats">
-          <div className="flex items-center gap-1">
-            <Select
-              value={fields.bats}
-              onChange={(e) => set("bats", e.target.value)}
-              className="flex-1"
-            >
-              <option value="R">R</option>
-              <option value="L">L</option>
-              <option value="S">S</option>
-            </Select>
-            {isDirty("bats") && (
-              <IconButton onClick={() => clearField("bats")} aria-label="Clear bats override">
-                <Undo2Icon className="h-3.5 w-3.5" />
-              </IconButton>
-            )}
-          </div>
-        </Field>
-        <Field label="Throws">
-          <div className="flex items-center gap-1">
-            <Select
-              value={fields.throws}
-              onChange={(e) => set("throws", e.target.value)}
-              className="flex-1"
-            >
-              <option value="R">R</option>
-              <option value="L">L</option>
-            </Select>
-            {isDirty("throws") && (
-              <IconButton onClick={() => clearField("throws")} aria-label="Clear throws override">
-                <Undo2Icon className="h-3.5 w-3.5" />
-              </IconButton>
-            )}
-          </div>
-        </Field>
+      <div className="mt-3">
+        <PlayerFormGrid
+          fields={fields}
+          onChange={set}
+          undo={{
+            isDirty,
+            isDirtyActive,
+            isDirtyPositions,
+            clearField,
+            hasNickname: !!nullify(fields.nickname),
+          }}
+        />
       </div>
 
       {error && <p className="mt-3 text-xs text-destructive">{error}</p>}
 
       <div className="mt-5 flex items-center justify-between gap-2">
         <div>
-          {row.overrideId && (
+          {(row.overrideId || isAnyDirty()) && (
             <Button
               variant="subtle"
-              size="sm"
+              size="md"
               onClick={handleRemove}
               disabled={status === "saving"}
             >
@@ -386,10 +260,10 @@ function EditOverrideModal({
           )}
         </div>
         <div className="flex gap-2">
-          <Button variant="secondary" size="sm" onClick={onClose}>
+          <Button variant="secondary" size="md" onClick={onClose}>
             Cancel
           </Button>
-          <Button size="sm" onClick={handleSave} disabled={status === "saving"}>
+          <Button size="md" onClick={handleSave} disabled={status === "saving"}>
             {status === "saving" ? "Saving…" : "Save"}
           </Button>
         </div>
@@ -440,6 +314,7 @@ function AddManualModal({ onClose }: { onClose: () => void }) {
       ...emptyOverride(),
       displayName: u.playerName,
       birthday: u.birthday ?? "",
+      positions: u.positions.join("/"),
     })
   }
 
@@ -466,6 +341,7 @@ function AddManualModal({ onClose }: { onClose: () => void }) {
           active: fields.active,
           bats: nullify(fields.bats),
           throws: nullify(fields.throws),
+          positions: parsePositions(fields.positions),
           fangraphsId: selected.fangraphsId,
           mlbamId: selected.mlbamId,
           ottoneuId: selected.ottoneuId,
@@ -559,7 +435,7 @@ function AddManualModal({ onClose }: { onClose: () => void }) {
         )}
 
         <div className="mt-4 flex justify-end">
-          <Button variant="secondary" size="sm" onClick={onClose}>
+          <Button variant="secondary" size="md" onClick={onClose}>
             Cancel
           </Button>
         </div>
@@ -571,6 +447,7 @@ function AddManualModal({ onClose }: { onClose: () => void }) {
     <DialogContent className="max-h-[90vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle>Add Player</DialogTitle>
+        <p className="mt-2 font-bold">{fields.displayName}</p>
       </DialogHeader>
 
       {/* Read-only universe data */}
@@ -591,93 +468,12 @@ function AddManualModal({ onClose }: { onClose: () => void }) {
         )}
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        <Field label="Display Name">
-          <Input
-            autoFocus
-            value={fields.displayName}
-            onChange={(e) => set("displayName", e.target.value)}
-          />
-        </Field>
-        <Field label="Nickname">
-          <Input
-            value={fields.nickname}
-            onChange={(e) => set("nickname", e.target.value)}
-          />
-        </Field>
-        <Field label="First Name">
-          <Input
-            value={fields.firstName}
-            onChange={(e) => set("firstName", e.target.value)}
-          />
-        </Field>
-        <Field label="Last Name">
-          <Input
-            value={fields.lastName}
-            onChange={(e) => set("lastName", e.target.value)}
-          />
-        </Field>
-        <Field label="Birthday">
-          <Input
-            value={fields.birthday}
-            onChange={(e) => set("birthday", e.target.value)}
-            placeholder="YYYY-MM-DD"
-          />
-        </Field>
-        <Field label="Team">
-          <Input
-            value={fields.team}
-            onChange={(e) => set("team", e.target.value)}
-            placeholder="e.g. LAD"
-          />
-        </Field>
-        <Field label="League">
-          <Select
-            value={fields.mlbLevel}
-            onChange={(e) => set("mlbLevel", e.target.value)}
-          >
-            <option value="">— not set —</option>
-            <option value="AL">AL</option>
-            <option value="NL">NL</option>
-            <option value="N/A">n/a</option>
-          </Select>
-        </Field>
-        <Field label="Active">
-          <Select
-            value={fields.active === null ? "" : String(fields.active)}
-            onChange={(e) =>
-              set(
-                "active",
-                e.target.value === "" ? null : e.target.value === "true",
-              )
-            }
-          >
-            <option value="">— not set —</option>
-            <option value="true">Yes</option>
-            <option value="false">No</option>
-          </Select>
-        </Field>
-        <Field label="Bats">
-          <Select
-            value={fields.bats}
-            onChange={(e) => set("bats", e.target.value)}
-          >
-            <option value="">—</option>
-            <option value="R">R</option>
-            <option value="L">L</option>
-            <option value="S">S</option>
-          </Select>
-        </Field>
-        <Field label="Throws">
-          <Select
-            value={fields.throws}
-            onChange={(e) => set("throws", e.target.value)}
-          >
-            <option value="">—</option>
-            <option value="R">R</option>
-            <option value="L">L</option>
-          </Select>
-        </Field>
+      <div className="mt-4">
+        <PlayerFormGrid
+          fields={fields}
+          onChange={set}
+          autoFocusDisplayName
+        />
       </div>
 
       {error && <p className="mt-3 text-xs text-destructive">{error}</p>}
@@ -685,7 +481,7 @@ function AddManualModal({ onClose }: { onClose: () => void }) {
       <div className="mt-5 flex items-center justify-between gap-2">
         <Button
           variant="ghost"
-          size="sm"
+          size="md"
           onClick={() => setSelected(null)}
           className="flex items-center gap-1"
         >
@@ -693,10 +489,10 @@ function AddManualModal({ onClose }: { onClose: () => void }) {
           Back
         </Button>
         <div className="flex gap-2">
-          <Button variant="secondary" size="sm" onClick={onClose}>
+          <Button variant="secondary" size="md" onClick={onClose}>
             Cancel
           </Button>
-          <Button size="sm" onClick={handleSave} disabled={status === "saving"}>
+          <Button size="md" onClick={handleSave} disabled={status === "saving"}>
             {status === "saving" ? "Saving…" : "Add Player"}
           </Button>
         </div>
@@ -729,8 +525,8 @@ export function PlayersTableAdmin({
   const [addingManual, setAddingManual] = useState(false)
 
   async function handleClearOverride(row: PlayerRow) {
-    await fetch(`/api/admin/players/${row.id}/override`, { method: "DELETE" })
-    router.refresh()
+    const res = await fetch(`/api/admin/players/${row.id}/override`, { method: "DELETE" })
+    if (res.ok) router.refresh()
   }
 
   useEffect(() => {
@@ -745,7 +541,7 @@ export function PlayersTableAdmin({
         <h2 className="min-w-36">Players</h2>
         <Button
           variant="secondary"
-          size="sm"
+          size="md"
           onClick={() => setAddingManual(true)}
           className="font-medium"
         >

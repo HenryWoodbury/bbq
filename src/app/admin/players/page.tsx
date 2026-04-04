@@ -136,6 +136,7 @@ export default async function AdminPlayersPage({
             active: true,
             bats: true,
             throws: true,
+            positions: true,
             deletedAt: true,
           },
         },
@@ -156,6 +157,7 @@ export default async function AdminPlayersPage({
         active: true,
         bats: true,
         throws: true,
+        positions: true,
         fangraphsId: true,
         ottoneuId: true,
       },
@@ -254,6 +256,7 @@ export default async function AdminPlayersPage({
 
   const playerRows: PlayerRow[] = players.map((p) => {
     const ov = p.override?.deletedAt ? null : p.override
+    const canonicalPositions = p.universe[0]?.positions ?? []
     return {
       id: p.id,
       ottoneuId: p.ottoneuId,
@@ -271,7 +274,7 @@ export default async function AdminPlayersPage({
       fangraphsId: p.fangraphsId,
       bats: ov?.bats ?? p.bats,
       throws: ov?.throws ?? p.throws,
-      ottoneuPositions: p.universe[0]?.positions ?? [],
+      ottoneuPositions: ov?.positions?.length ? ov.positions : canonicalPositions,
       universeFgId: p.universe[0]?.fangraphsId ?? null,
       overrideId: ov?.id ?? null,
       isManual: false,
@@ -281,10 +284,11 @@ export default async function AdminPlayersPage({
         lastName: p.lastName,
         birthday: p.birthday?.toISOString().slice(0, 10) ?? null,
         team: p.team,
-        mlbLevel: p.mlbLevel,
+        mlbLevel: p.mlbLevel === "N/A" ? null : p.mlbLevel,
         active: p.active,
         bats: p.bats,
         throws: p.throws,
+        positions: canonicalPositions,
       },
     }
   })
@@ -308,7 +312,7 @@ export default async function AdminPlayersPage({
     fangraphsId: o.fangraphsId,
     bats: o.bats,
     throws: o.throws,
-    ottoneuPositions: [],
+    ottoneuPositions: o.positions?.length ? o.positions : [],
     universeFgId: null,
     overrideId: o.id,
     isManual: true,

@@ -109,6 +109,7 @@ model PlayerOverride {
   active      Boolean?
   bats        String?
   throws      String?
+  positions   String[]  @default([]) @map("positions")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
   deletedAt   DateTime? @map("deleted_at")

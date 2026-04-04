@@ -3,7 +3,7 @@
 import type { ColumnDef } from "@tanstack/react-table"
 import { DownloadIcon, PencilIcon, Undo2Icon } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { type ReactNode, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { DataTable } from "@/components/data-table"
 import { FilterGroup } from "@/components/filter-group"
 import { Button } from "@/components/ui/button"
@@ -61,6 +61,7 @@ export type PlayerBaseFields = {
   active: boolean
   bats: string | null
   throws: string | null
+  positions: string[]
 }
 
 export type StatRow = {
@@ -135,7 +136,7 @@ function hasActiveOverride(row: PlayerRow): boolean {
   if (!row.baseFields) return true // manual rows — the whole record is the override
   const b = row.baseFields
   return (
-    (row.fgSpecialChar ?? null) !== (b.displayName ?? null) ||
+    (row.fgSpecialChar ?? row.playerName ?? null) !== (b.displayName ?? null) ||
     (row.firstName ?? null) !== (b.firstName ?? null) ||
     (row.lastName ?? null) !== (b.lastName ?? null) ||
     (row.birthday ?? null) !== (b.birthday ?? null) ||
@@ -144,7 +145,8 @@ function hasActiveOverride(row: PlayerRow): boolean {
     row.active !== b.active ||
     (row.bats ?? null) !== (b.bats ?? null) ||
     (row.throws ?? null) !== (b.throws ?? null) ||
-    row.nickname !== null
+    row.nickname !== null ||
+    row.ottoneuPositions.join("/") !== b.positions.join("/")
   )
 }
 
@@ -312,7 +314,7 @@ const profileColumns: ColumnDef<PlayerRow, unknown>[] = [
 
 type ActiveFilter = "yes" | "no" | "all"
 type LevelFilter = "all" | "mlb" | "milb"
-type MLBLeagueFilter = "all" | "al" | "nl"
+type MLBLeagueFilter = "all" | "al" | "nl" | "other"
 type RoleFilter = "all" | "batter" | "pitcher"
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -327,7 +329,6 @@ export function PlayersTable({
   initialShow = "profiles",
   onEdit,
   onClearOverride,
-  action,
 }: {
   data: PlayerRow[]
   statRows: StatRow[]
@@ -338,7 +339,6 @@ export function PlayersTable({
   initialShow?: "profiles" | "stats"
   onEdit?: (row: PlayerRow) => void
   onClearOverride?: (row: PlayerRow) => void
-  action?: ReactNode
 }) {
   const router = useRouter()
   const [show, setShow] = useState<"profiles" | "stats">(initialShow)
@@ -351,8 +351,14 @@ export function PlayersTable({
   function handleShowChange(v: string) {
     const newShow = v as "profiles" | "stats"
     setShow(newShow)
-    if (newShow === "stats" && roleFilter === "all") {
-      setRoleFilter("batter")
+    if (newShow === "stats") {
+      const effectiveRole = roleFilter === "all" ? "batter" : roleFilter
+      setRoleFilter(effectiveRole)
+      pushStatsFilter({
+        spt: effectiveRole === "pitcher" ? "PITCHER" : "BATTER",
+      })
+    } else {
+      router.push("/admin/players?show=profiles")
     }
   }
 
@@ -414,6 +420,8 @@ export function PlayersTable({
       rows = rows.filter((r) => isAL(r.team) || r.mlbLevel === "AL")
     else if (mlbLeagueFilter === "nl")
       rows = rows.filter((r) => isNL(r.team) || r.mlbLevel === "NL")
+    else if (mlbLeagueFilter === "other")
+      rows = rows.filter((r) => !isAL(r.team) && !isNL(r.team) && r.mlbLevel !== "AL" && r.mlbLevel !== "NL")
 
     if (roleFilter === "batter") rows = rows.filter((r) => !isPitcher(r))
     else if (roleFilter === "pitcher") rows = rows.filter(isPitcher)
@@ -453,6 +461,7 @@ export function PlayersTable({
 
     if (mlbLeagueFilter === "al") rows = rows.filter((r) => isAL(r.team))
     else if (mlbLeagueFilter === "nl") rows = rows.filter((r) => isNL(r.team))
+    else if (mlbLeagueFilter === "other") rows = rows.filter((r) => !isAL(r.team) && !isNL(r.team))
 
     const q = search.trim().toLowerCase()
     if (q) {
@@ -548,7 +557,10 @@ export function PlayersTable({
       cell: ({ row }) => (
         <div className="flex items-center gap-1">
           {onEdit && (
-            <IconButton onClick={() => onEdit(row.original)} aria-label="Edit player">
+            <IconButton
+              onClick={() => onEdit(row.original)}
+              aria-label="Edit player"
+            >
               <PencilIcon className="h-3.5 w-3.5" />
             </IconButton>
           )}
@@ -614,6 +626,7 @@ export function PlayersTable({
           options={[
             { value: "al", label: "AL" },
             { value: "nl", label: "NL" },
+            { value: "other", label: "Other" },
             { value: "all", label: "All" },
           ]}
           value={mlbLeagueFilter}
@@ -628,15 +641,6 @@ export function PlayersTable({
           }
           onChange={handleRoleChange}
         />
-        <span className="text-muted-foreground"> | </span>
-        <Input
-          type="search"
-          placeholder="Search…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full max-w-xs"
-        />
-        {action && <div className="ml-auto">{action}</div>}
       </div>
 
       {/* Filter row 2 */}
@@ -652,7 +656,7 @@ export function PlayersTable({
           onChange={handleShowChange}
         />
         <div className="flex items-center gap-1.5">
-          <span className="text-p font-normal text-muted-foreground">
+          <span className="text-body font-normal text-muted-foreground">
             Year:
           </span>
           <Select
@@ -668,7 +672,7 @@ export function PlayersTable({
           </Select>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="text-p font-normal text-muted-foreground">
+          <span className="text-body font-normal text-muted-foreground">
             Projection:
           </span>
           <Select
@@ -721,7 +725,7 @@ export function PlayersTable({
           </Select>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="text-p font-normal text-muted-foreground">
+          <span className="text-body font-normal text-muted-foreground">
             Splits:
           </span>
           <Select
@@ -746,10 +750,17 @@ export function PlayersTable({
             </option>
           </Select>
         </div>
+        <Input
+          type="search"
+          placeholder="Player Search…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full max-w-sm"
+        />
         <div className="ml-auto">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="secondary" size="sm">
+              <Button variant="secondary" size="md">
                 <DownloadIcon className="h-4 w-4" />
                 Export
               </Button>

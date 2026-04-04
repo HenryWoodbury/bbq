@@ -14,6 +14,7 @@ const overrideSchema = z.object({
   active: z.boolean().nullable().optional(),
   bats: z.string().nullable().optional(),
   throws: z.string().nullable().optional(),
+  positions: z.array(z.string()).optional(),
 })
 
 export async function POST(
@@ -56,6 +57,7 @@ export async function POST(
       active: data.active ?? null,
       bats: data.bats ?? null,
       throws: data.throws ?? null,
+      positions: data.positions ?? [],
       deletedAt: null,
     },
     update: {
@@ -74,6 +76,7 @@ export async function POST(
       active: data.active,
       bats: data.bats,
       throws: data.throws,
+      positions: data.positions,
       deletedAt: null,
     },
     select: { id: true, playerId: true, updatedAt: true },

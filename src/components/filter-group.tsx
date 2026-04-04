@@ -8,7 +8,7 @@ interface FilterGroupProps {
   options: { value: string; label: string }[]
   value: string
   onChange: (v: string) => void
-  size?: "md" | "sm"
+  size?: "sm" | "md" | "lg"
 }
 
 export function FilterGroup({
@@ -16,12 +16,12 @@ export function FilterGroup({
   options,
   value,
   onChange,
-  size = "sm",
+  size = "md",
 }: FilterGroupProps) {
   return (
     <div className="flex items-center gap-1.5">
       {label && (
-        <span className="text-p font-normal text-muted-foreground">
+        <span className="text-body font-normal text-muted-foreground">
           {label}
         </span>
       )}

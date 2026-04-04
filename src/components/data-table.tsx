@@ -16,7 +16,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
 } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { IconButton } from "@/components/ui/icon-button"
 import { Select } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
@@ -45,6 +45,10 @@ export function DataTable<T>({
 }: DataTableProps<T>) {
   const [sorting, setSorting] = useState<SortingState>(defaultSorting)
   const [pageIndex, setPageIndex] = useState(0)
+
+  useEffect(() => {
+    setPageIndex(0)
+  }, [data])
   const [pageSizeOption, setPageSizeOption] =
     useState<PageSizeOption>(defaultPageSize)
   const pageSize =

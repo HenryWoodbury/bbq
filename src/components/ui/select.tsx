@@ -1,18 +1,34 @@
+import { cva, type VariantProps } from "class-variance-authority"
 import { ChevronDownIcon } from "lucide-react"
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
-export type SelectProps = React.SelectHTMLAttributes<HTMLSelectElement>
+const selectVariants = cva(
+  "col-start-1 row-start-1 appearance-none rounded-md border border-border bg-card text-body leading-[calc(4/3)] focus:outline-none not-disabled:focus:ring-2 not-disabled:focus:ring-ring disabled:opacity-disabled disabled:cursor-not-allowed",
+  {
+    variants: {
+      size: {
+        sm: "pl-3 pr-8 py-1",
+        md: "pl-3 pr-8 py-1.5",
+        lg: "pl-3 pr-8 py-[7px]",
+      },
+    },
+    defaultVariants: {
+      size: "md",
+    },
+  },
+)
+
+export interface SelectProps
+  extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, "size">,
+    VariantProps<typeof selectVariants> {}
 
 const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, ...props }, ref) => (
+  ({ className, size, ...props }, ref) => (
     <span className="inline-grid">
       <select
         ref={ref}
-        className={cn(
-          "col-start-1 row-start-1 appearance-none rounded-md border border-border bg-card pl-3 pr-8 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring",
-          className,
-        )}
+        className={cn(selectVariants({ size }), className)}
         {...props}
       />
       <ChevronDownIcon
