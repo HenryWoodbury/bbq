@@ -5,10 +5,9 @@ import {
   LayoutTemplateIcon,
   SettingsIcon,
   SquareLibraryIcon,
-  UsersIcon,
 } from "lucide-react"
 import Link from "next/link"
-import { BaseballIcon } from "@/components/icons"
+import { BaseballIcon, PlayerIcon } from "@/components/icons"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,7 +17,7 @@ import {
 import { MenuButton } from "@/components/ui/menu-button"
 
 const ITEMS = [
-  { label: "Players", href: "/admin/players", icon: UsersIcon },
+  { label: "Players", href: "/admin/players", icon: PlayerIcon },
   { label: "Leagues", href: "/admin/leagues", icon: BaseballIcon },
   { label: "Templates", href: "/admin/templates", icon: LayoutTemplateIcon },
   { label: "Reports", href: "/admin/reports", icon: BarChart2Icon },

@@ -22,10 +22,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { parsePositions } from "@/lib/positions"
 import { cn } from "@/lib/utils"
-import {
-  PlayerFormGrid,
-  type OverrideFields,
-} from "./player-form-grid"
+import { type OverrideFields, PlayerFormGrid } from "./player-form-grid"
 
 // ── Shared field types ────────────────────────────────────────────────────────
 
@@ -469,11 +466,7 @@ function AddManualModal({ onClose }: { onClose: () => void }) {
       </div>
 
       <div className="mt-4">
-        <PlayerFormGrid
-          fields={fields}
-          onChange={set}
-          autoFocusDisplayName
-        />
+        <PlayerFormGrid fields={fields} onChange={set} autoFocusDisplayName />
       </div>
 
       {error && <p className="mt-3 text-xs text-destructive">{error}</p>}
@@ -525,7 +518,9 @@ export function PlayersTableAdmin({
   const [addingManual, setAddingManual] = useState(false)
 
   async function handleClearOverride(row: PlayerRow) {
-    const res = await fetch(`/api/admin/players/${row.id}/override`, { method: "DELETE" })
+    const res = await fetch(`/api/admin/players/${row.id}/override`, {
+      method: "DELETE",
+    })
     if (res.ok) router.refresh()
   }
 
@@ -545,7 +540,7 @@ export function PlayersTableAdmin({
           onClick={() => setAddingManual(true)}
           className="font-medium"
         >
-          <PlayerAddIcon size={18} className="shrink-0" />
+          <PlayerAddIcon size={15} className="shrink-0" />
           Add Player
         </Button>
       </div>

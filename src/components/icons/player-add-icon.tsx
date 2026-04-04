@@ -2,7 +2,7 @@ import type { IconProps } from "./types"
 
 export function PlayerAddIcon({
   size = 24,
-  strokeWidth = 1.6,
+  strokeWidth = 2,
   className,
   ...props
 }: IconProps) {
