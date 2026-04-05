@@ -1,12 +1,7 @@
 "use client"
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-} from "react"
+import type { ReactNode } from "react"
+import { createContext, useContext, useEffect, useState } from "react"
 
 export type Theme = "system" | "light" | "dark"
 
@@ -33,7 +28,7 @@ function applyTheme(theme: Theme) {
   }
 }
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
+export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>("system")
 
   useEffect(() => {
@@ -52,11 +47,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return () => mq.removeEventListener("change", handler)
   }, [theme])
 
-  const setTheme = useCallback((t: Theme) => {
+  function setTheme(t: Theme) {
     setThemeState(t)
     localStorage.setItem(STORAGE_KEY, t)
     applyTheme(t)
-  }, [])
+  }
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme }}>

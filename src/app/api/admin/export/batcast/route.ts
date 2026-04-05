@@ -279,7 +279,9 @@ export async function GET(request: Request) {
       r.positions,
       r.bats,
       r.throws,
-      isBatter ? (r as { wOBA: number | null }).wOBA : (r as { FIP: number | null }).FIP,
+      isBatter
+        ? (r as { wOBA: number | null }).wOBA
+        : (r as { FIP: number | null }).FIP,
       r.wOBAVsLeft,
       r.wOBAVsRight,
     ]),

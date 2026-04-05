@@ -1,6 +1,6 @@
 import { cva, type VariantProps } from "class-variance-authority"
 import { ChevronDownIcon } from "lucide-react"
-import * as React from "react"
+import type { Ref, SelectHTMLAttributes } from "react"
 import { cn } from "@/lib/utils"
 
 const selectVariants = cva(
@@ -20,11 +20,13 @@ const selectVariants = cva(
 )
 
 export interface SelectProps
-  extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, "size">,
-    VariantProps<typeof selectVariants> {}
+  extends Omit<SelectHTMLAttributes<HTMLSelectElement>, "size">,
+    VariantProps<typeof selectVariants> {
+  ref?: Ref<HTMLSelectElement>
+}
 
-const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, size, ...props }, ref) => (
+function Select({ className, size, ref, ...props }: SelectProps) {
+  return (
     <span className="inline-grid">
       <select
         ref={ref}
@@ -36,8 +38,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         className="pointer-events-none col-start-1 row-start-1 self-center justify-self-end mr-3 shrink-0 opacity-60"
       />
     </span>
-  ),
-)
-Select.displayName = "Select"
+  )
+}
 
 export { Select }

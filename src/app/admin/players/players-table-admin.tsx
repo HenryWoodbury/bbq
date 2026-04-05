@@ -1,8 +1,8 @@
 "use client"
 
-import { ChevronLeftIcon, Undo2Icon } from "lucide-react"
+import { ChevronLeftIcon, Trash2Icon, Undo2Icon } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import type { UniverseSearchResult } from "@/app/api/admin/players/universe-search/route"
 import { PlayerAddIcon } from "@/components/icons"
 import {
@@ -11,7 +11,6 @@ import {
   type StatRow,
   type StatsFilter,
 } from "@/components/players-table"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -20,7 +19,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { showToast } from "@/components/ui/sonner"
 import { parsePositions } from "@/lib/positions"
+import { deriveLevelFromFgId } from "@/lib/team-codes"
+import { useDebouncedFetch } from "@/lib/use-debounced-fetch"
 import { cn } from "@/lib/utils"
 import { type OverrideFields, PlayerFormGrid } from "./player-form-grid"
 
@@ -42,6 +44,7 @@ function emptyOverride(): OverrideFields {
     birthday: "",
     team: "",
     mlbLevel: "",
+    league: "",
     active: null,
     bats: "",
     throws: "",
@@ -57,7 +60,8 @@ function rowToOverride(row: PlayerRow): OverrideFields {
     nickname: row.nickname ?? "",
     birthday: row.birthday ?? "",
     team: row.team ?? "",
-    mlbLevel: row.mlbLevel === "N/A" ? "" : (row.mlbLevel ?? ""),
+    mlbLevel: row.mlbLevel ?? "",
+    league: row.league ?? "",
     active: row.active,
     bats: row.bats ?? "",
     throws: row.throws ?? "",
@@ -69,23 +73,36 @@ function nullify(s: string): string | null {
   return s.trim() || null
 }
 
+function buildOverridePayload(fields: OverrideFields) {
+  return {
+    displayName: nullify(fields.displayName),
+    firstName: nullify(fields.firstName),
+    lastName: nullify(fields.lastName),
+    nickname: nullify(fields.nickname),
+    birthday: nullify(fields.birthday),
+    team: nullify(fields.team),
+    mlbLevel: nullify(fields.mlbLevel),
+    league: nullify(fields.league),
+    active: fields.active,
+    bats: nullify(fields.bats),
+    throws: nullify(fields.throws),
+    positions: parsePositions(fields.positions),
+  }
+}
+
 function EditOverrideModal({
   row,
   onClose,
+  onRemoveManual,
 }: {
   row: PlayerRow
   onClose: () => void
+  onRemoveManual?: () => void
 }) {
   const router = useRouter()
   const [fields, setFields] = useState<OverrideFields>(rowToOverride(row))
   const [status, setStatus] = useState<"idle" | "saving" | "error">("idle")
   const [error, setError] = useState("")
-
-  useEffect(() => {
-    setFields(rowToOverride(row))
-    setStatus("idle")
-    setError("")
-  }, [row])
 
   function isDirty(key: OverrideStringKey): boolean {
     if (!row.baseFields) return false
@@ -130,6 +147,7 @@ function EditOverrideModal({
       "birthday",
       "team",
       "mlbLevel",
+      "league",
       "bats",
       "throws",
     ]
@@ -142,6 +160,30 @@ function EditOverrideModal({
   }
 
   async function handleSave() {
+    if (row.isManual) {
+      setStatus("saving")
+      setError("")
+      try {
+        const res = await fetch(`/api/admin/players/manual/${row.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(buildOverridePayload(fields)),
+        })
+        if (!res.ok) {
+          const d = (await res.json()) as { error: string }
+          setError(d.error ?? "Save failed")
+          setStatus("error")
+          return
+        }
+        router.refresh()
+        onClose()
+      } catch {
+        setError("Network error")
+        setStatus("error")
+      }
+      return
+    }
+
     if (!isAnyDirty()) {
       if (row.overrideId) {
         // All field overrides cleared — remove the now-empty record
@@ -158,19 +200,7 @@ function EditOverrideModal({
       const res = await fetch(`/api/admin/players/${row.id}/override`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          displayName: nullify(fields.displayName),
-          firstName: nullify(fields.firstName),
-          lastName: nullify(fields.lastName),
-          nickname: nullify(fields.nickname),
-          birthday: nullify(fields.birthday),
-          team: nullify(fields.team),
-          mlbLevel: nullify(fields.mlbLevel),
-          active: fields.active,
-          bats: nullify(fields.bats),
-          throws: nullify(fields.throws),
-          positions: parsePositions(fields.positions),
-        }),
+        body: JSON.stringify(buildOverridePayload(fields)),
       })
       if (!res.ok) {
         const d = (await res.json()) as { error: string }
@@ -215,28 +245,29 @@ function EditOverrideModal({
   return (
     <DialogContent className="max-h-[90vh] overflow-y-auto">
       <DialogHeader>
-        <DialogTitle>Override Player Profile</DialogTitle>
-        <p className="mt-2 font-bold">
-          {row.fgSpecialChar ?? row.playerName}
-          {row.isManual && (
-            <Badge variant="warning" className="ml-2">
-              manual
-            </Badge>
-          )}
-        </p>
+        <DialogTitle>
+          {row.isManual
+            ? "Edit Manually Added Player"
+            : "Override Player Profile"}
+        </DialogTitle>
+        <p className="mt-2 font-bold">{row.fgSpecialChar ?? row.playerName}</p>
       </DialogHeader>
 
       <div className="mt-3">
         <PlayerFormGrid
           fields={fields}
           onChange={set}
-          undo={{
-            isDirty,
-            isDirtyActive,
-            isDirtyPositions,
-            clearField,
-            hasNickname: !!nullify(fields.nickname),
-          }}
+          undo={
+            row.isManual
+              ? undefined
+              : {
+                  isDirty,
+                  isDirtyActive,
+                  isDirtyPositions,
+                  clearField,
+                  hasNickname: !!nullify(fields.nickname),
+                }
+          }
         />
       </div>
 
@@ -244,16 +275,28 @@ function EditOverrideModal({
 
       <div className="mt-5 flex items-center justify-between gap-2">
         <div>
-          {(row.overrideId || isAnyDirty()) && (
+          {row.isManual ? (
             <Button
               variant="subtle"
               size="md"
-              onClick={handleRemove}
+              onClick={onRemoveManual}
               disabled={status === "saving"}
             >
-              <Undo2Icon size={16} className="shrink-0" />
-              Clear Overrides
+              <Trash2Icon size={16} className="shrink-0" />
+              Remove Player
             </Button>
+          ) : (
+            (row.overrideId || isAnyDirty()) && (
+              <Button
+                variant="subtle"
+                size="md"
+                onClick={handleRemove}
+                disabled={status === "saving"}
+              >
+                <Undo2Icon size={16} className="shrink-0" />
+                Clear Overrides
+              </Button>
+            )
           )}
         </div>
         <div className="flex gap-2">
@@ -275,35 +318,22 @@ function AddManualModal({ onClose }: { onClose: () => void }) {
   // ── Step 1: Search ──────────────────────────────────────────────────────────
   const [nameQuery, setNameQuery] = useState("")
   const [idQuery, setIdQuery] = useState("")
-  const [results, setResults] = useState<UniverseSearchResult[]>([])
-  const [searching, setSearching] = useState(false)
+
+  const searchUrl = (() => {
+    if (!nameQuery && !idQuery) return null
+    const params = new URLSearchParams()
+    if (idQuery) params.set("ottoneuId", idQuery)
+    else params.set("q", nameQuery)
+    return `/api/admin/players/universe-search?${params}`
+  })()
+  const { data: results, pending: searching } =
+    useDebouncedFetch<UniverseSearchResult>(searchUrl)
 
   // ── Step 2: Fill ────────────────────────────────────────────────────────────
   const [selected, setSelected] = useState<UniverseSearchResult | null>(null)
   const [fields, setFields] = useState<OverrideFields>(emptyOverride())
   const [status, setStatus] = useState<"idle" | "saving" | "error">("idle")
   const [error, setError] = useState("")
-
-  // Debounced universe search
-  useEffect(() => {
-    if (!nameQuery && !idQuery) {
-      setResults([])
-      return
-    }
-    setSearching(true)
-    const params = new URLSearchParams()
-    if (idQuery) params.set("ottoneuId", idQuery)
-    else if (nameQuery) params.set("q", nameQuery)
-    const t = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/admin/players/universe-search?${params}`)
-        setResults((await res.json()) as UniverseSearchResult[])
-      } finally {
-        setSearching(false)
-      }
-    }, 300)
-    return () => clearTimeout(t)
-  }, [nameQuery, idQuery])
 
   function selectPlayer(u: UniverseSearchResult) {
     setSelected(u)
@@ -312,6 +342,7 @@ function AddManualModal({ onClose }: { onClose: () => void }) {
       displayName: u.playerName,
       birthday: u.birthday ?? "",
       positions: u.positions.join("/"),
+      mlbLevel: deriveLevelFromFgId(u.fangraphsId),
     })
   }
 
@@ -328,17 +359,7 @@ function AddManualModal({ onClose }: { onClose: () => void }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          displayName: nullify(fields.displayName),
-          firstName: nullify(fields.firstName),
-          lastName: nullify(fields.lastName),
-          nickname: nullify(fields.nickname),
-          birthday: nullify(fields.birthday),
-          team: nullify(fields.team),
-          mlbLevel: nullify(fields.mlbLevel),
-          active: fields.active,
-          bats: nullify(fields.bats),
-          throws: nullify(fields.throws),
-          positions: parsePositions(fields.positions),
+          ...buildOverridePayload(fields),
           fangraphsId: selected.fangraphsId,
           mlbamId: selected.mlbamId,
           ottoneuId: selected.ottoneuId,
@@ -368,10 +389,8 @@ function AddManualModal({ onClose }: { onClose: () => void }) {
     return (
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add Player</DialogTitle>
-          <p className="caption">
-            Search the Ottoneu Player Universe by name or ID
-          </p>
+          <DialogTitle>Add to Player List</DialogTitle>
+          <p className="caption">Search the Player Universe by name or ID</p>
         </DialogHeader>
 
         <div className="mt-4 flex gap-2">
@@ -397,7 +416,7 @@ function AddManualModal({ onClose }: { onClose: () => void }) {
         </div>
 
         {!searching && (nameQuery || idQuery) && (
-          <div className="mt-2 max-h-72 overflow-y-auto rounded-md border border-border">
+          <div className="mt-2 max-h-72 overflow-y-auto rounded-lg border border-border">
             {results.length === 0 ? (
               <p className="px-3 py-2 text-sm text-muted-foreground">
                 No results
@@ -443,12 +462,11 @@ function AddManualModal({ onClose }: { onClose: () => void }) {
   return (
     <DialogContent className="max-h-[90vh] overflow-y-auto">
       <DialogHeader>
-        <DialogTitle>Add Player</DialogTitle>
+        <DialogTitle>Add to Player List</DialogTitle>
         <p className="mt-2 font-bold">{fields.displayName}</p>
       </DialogHeader>
 
-      {/* Read-only universe data */}
-      <div className="mt-3 flex gap-4 rounded-md bg-muted px-3 py-2 text-sm">
+      <div className="mt-3 flex gap-4 rounded-lg bg-muted px-3 py-2 text-sm">
         <span>
           <span className="text-muted-foreground">Ott</span>{" "}
           <span className="font-medium">{selected.ottoneuId}</span>
@@ -516,19 +534,73 @@ export function PlayersTableAdmin({
   const router = useRouter()
   const [editingRow, setEditingRow] = useState<PlayerRow | null>(null)
   const [addingManual, setAddingManual] = useState(false)
+  const [pendingDeleteIds, setPendingDeleteIds] = useState<Set<string>>(
+    new Set(),
+  )
+  const [prevData, setPrevData] = useState(data)
+  if (prevData !== data) {
+    setPrevData(data)
+    if (editingRow) {
+      const updated = data.find((r) => r.id === editingRow.id)
+      if (updated) setEditingRow(updated)
+    }
+  }
+
+  const visibleData = data.filter((r) => !pendingDeleteIds.has(r.id))
+
+  function scheduleManualDelete(row: PlayerRow) {
+    setPendingDeleteIds((prev) => new Set(prev).add(row.id))
+    let cancelled = false
+    let executed = false
+
+    function removePending() {
+      setPendingDeleteIds((prev) => {
+        const next = new Set(prev)
+        next.delete(row.id)
+        return next
+      })
+    }
+
+    async function execute() {
+      if (executed || cancelled) return
+      executed = true
+      const res = await fetch(`/api/admin/players/manual/${row.id}`, {
+        method: "DELETE",
+      })
+      removePending()
+      if (res.ok) {
+        router.refresh()
+      } else {
+        showToast.error(
+          `Failed to remove ${row.fgSpecialChar ?? row.playerName}`,
+        )
+      }
+    }
+
+    showToast({
+      title: `You have removed ${row.fgSpecialChar ?? row.playerName} from the player list.`,
+      action: {
+        label: "Restore",
+        onClick: () => {
+          cancelled = true
+          removePending()
+        },
+      },
+      onDismiss: execute,
+      onAutoClose: execute,
+    })
+  }
 
   async function handleClearOverride(row: PlayerRow) {
+    if (row.isManual) {
+      scheduleManualDelete(row)
+      return
+    }
     const res = await fetch(`/api/admin/players/${row.id}/override`, {
       method: "DELETE",
     })
     if (res.ok) router.refresh()
   }
-
-  useEffect(() => {
-    if (!editingRow) return
-    const updated = data.find((r) => r.id === editingRow.id)
-    if (updated) setEditingRow(updated)
-  }, [data, editingRow])
 
   return (
     <>
@@ -546,7 +618,7 @@ export function PlayersTableAdmin({
       </div>
 
       <PlayersTable
-        data={data}
+        data={visibleData}
         statRows={statRows}
         availableYears={availableYears}
         availableProjections={availableProjections}
@@ -565,8 +637,13 @@ export function PlayersTableAdmin({
       >
         {editingRow && (
           <EditOverrideModal
+            key={editingRow.id}
             row={editingRow}
             onClose={() => setEditingRow(null)}
+            onRemoveManual={() => {
+              scheduleManualDelete(editingRow)
+              setEditingRow(null)
+            }}
           />
         )}
       </Dialog>

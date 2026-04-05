@@ -1,8 +1,8 @@
 import { cva, type VariantProps } from "class-variance-authority"
-import type * as React from "react"
+import type { HTMLAttributes } from "react"
 import { cn } from "@/lib/utils"
 
-const alertVariants = cva("rounded-md border px-4 py-3 text-sm", {
+const alertVariants = cva("rounded-lg border px-4 py-3 text-sm", {
   variants: {
     variant: {
       success: "border-success-border bg-success text-success-foreground",
@@ -17,7 +17,7 @@ const alertVariants = cva("rounded-md border px-4 py-3 text-sm", {
 })
 
 export interface AlertProps
-  extends React.HTMLAttributes<HTMLDivElement>,
+  extends HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof alertVariants> {}
 
 function Alert({ className, variant, ...props }: AlertProps) {

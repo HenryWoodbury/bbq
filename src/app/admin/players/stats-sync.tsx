@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { SectionCollapsible } from "@/components/section-collapsible"
 import { Button } from "@/components/ui/button"
-import { IconButton } from "@/components/ui/icon-button"
 import {
   Drawer,
   DrawerBody,
@@ -13,6 +12,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer"
+import { IconButton } from "@/components/ui/icon-button"
 import { cn } from "@/lib/utils"
 import { UploadStats } from "../upload-stats"
 import type { StatUploadRow, SyncStatus } from "./page"

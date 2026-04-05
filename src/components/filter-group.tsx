@@ -1,5 +1,3 @@
-"use client"
-
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -25,7 +23,7 @@ export function FilterGroup({
           {label}
         </span>
       )}
-      <div className="flex rounded-lg">
+      <div className="flex rounded-md">
         {options.map((opt, i) => (
           <Button
             key={opt.value}

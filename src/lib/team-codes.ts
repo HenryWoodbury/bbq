@@ -33,3 +33,18 @@ export const NL_TEAM_CODES = [
   "MIA",
   "WSN",
 ]
+
+const AL_TEAMS = new Set(AL_TEAM_CODES)
+const NL_TEAMS = new Set(NL_TEAM_CODES)
+
+export function deriveLeagueFromTeam(team: string | null): "AL" | "NL" | null {
+  if (!team) return null
+  if (AL_TEAMS.has(team)) return "AL"
+  if (NL_TEAMS.has(team)) return "NL"
+  return null
+}
+
+export function deriveLevelFromFgId(fangraphsId: string | null): string {
+  if (!fangraphsId) return ""
+  return fangraphsId.startsWith("sa") ? "MiLB" : "MLB"
+}

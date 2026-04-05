@@ -3,10 +3,15 @@ import type {
   StatRow,
   StatsFilter,
 } from "@/components/players-table"
-import { StatPlayerType, StatProjection, StatSplit } from "@/generated/prisma/client"
+import {
+  StatPlayerType,
+  StatProjection,
+  StatSplit,
+} from "@/generated/prisma/client"
 import { requireAdmin } from "@/lib/auth-helpers"
 import { prisma } from "@/lib/prisma"
 import { PROJECTION_MAP } from "@/lib/stat-maps"
+import { deriveLeagueFromTeam, deriveLevelFromFgId } from "@/lib/team-codes"
 import { PlayersSync } from "./players-sync"
 import { PlayersTableAdmin } from "./players-table-admin"
 
@@ -133,6 +138,7 @@ export default async function AdminPlayersPage({
             birthday: true,
             team: true,
             mlbLevel: true,
+            league: true,
             active: true,
             bats: true,
             throws: true,
@@ -154,6 +160,7 @@ export default async function AdminPlayersPage({
         birthday: true,
         team: true,
         mlbLevel: true,
+        league: true,
         active: true,
         bats: true,
         throws: true,
@@ -257,6 +264,10 @@ export default async function AdminPlayersPage({
   const playerRows: PlayerRow[] = players.map((p) => {
     const ov = p.override?.deletedAt ? null : p.override
     const canonicalPositions = p.universe[0]?.positions ?? []
+    const baseTeam = p.team
+    const baseFgId = p.fangraphsId ?? p.universe[0]?.fangraphsId
+    const derivedLevel = deriveLevelFromFgId(baseFgId ?? null) || null
+    const derivedLeague = deriveLeagueFromTeam(baseTeam ?? null)
     return {
       id: p.id,
       ottoneuId: p.ottoneuId,
@@ -268,13 +279,16 @@ export default async function AdminPlayersPage({
       active: ov?.active ?? p.active,
       birthday:
         (ov?.birthday ?? p.birthday)?.toISOString().slice(0, 10) ?? null,
-      team: ov?.team ?? p.team,
-      mlbLevel: ov?.mlbLevel ?? p.mlbLevel,
+      team: ov?.team ?? baseTeam,
+      mlbLevel: ov?.mlbLevel ?? derivedLevel,
+      league: ov?.league ?? derivedLeague,
       nickname: ov?.nickname ?? null,
       fangraphsId: p.fangraphsId,
       bats: ov?.bats ?? p.bats,
       throws: ov?.throws ?? p.throws,
-      ottoneuPositions: ov?.positions?.length ? ov.positions : canonicalPositions,
+      ottoneuPositions: ov?.positions?.length
+        ? ov.positions
+        : canonicalPositions,
       universeFgId: p.universe[0]?.fangraphsId ?? null,
       overrideId: ov?.id ?? null,
       isManual: false,
@@ -283,8 +297,9 @@ export default async function AdminPlayersPage({
         firstName: p.firstName,
         lastName: p.lastName,
         birthday: p.birthday?.toISOString().slice(0, 10) ?? null,
-        team: p.team,
-        mlbLevel: p.mlbLevel === "N/A" ? null : p.mlbLevel,
+        team: baseTeam,
+        mlbLevel: derivedLevel,
+        league: derivedLeague,
         active: p.active,
         bats: p.bats,
         throws: p.throws,
@@ -309,6 +324,7 @@ export default async function AdminPlayersPage({
     birthday: o.birthday?.toISOString().slice(0, 10) ?? null,
     team: o.team,
     mlbLevel: o.mlbLevel,
+    league: o.league,
     fangraphsId: o.fangraphsId,
     bats: o.bats,
     throws: o.throws,

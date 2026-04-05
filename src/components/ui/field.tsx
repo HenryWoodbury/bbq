@@ -1,9 +1,9 @@
-import type * as React from "react"
+import type { ReactNode } from "react"
 import { Label } from "@/components/ui/label"
 
 interface FieldProps {
   label: string
-  children: React.ReactNode
+  children: ReactNode
 }
 
 function Field({ label, children }: FieldProps) {

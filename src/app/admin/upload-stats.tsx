@@ -172,11 +172,13 @@ export function UploadStats({
               </>
             )}
           </div>
-          {state.result.unmatchedSample && state.result.unmatchedSample.length > 0 && (
-            <div className="mt-1 text-xs opacity-70">
-              Unmatched IDs (sample): {state.result.unmatchedSample.join(", ")}
-            </div>
-          )}
+          {state.result.unmatchedSample &&
+            state.result.unmatchedSample.length > 0 && (
+              <div className="mt-1 text-xs opacity-70">
+                Unmatched IDs (sample):{" "}
+                {state.result.unmatchedSample.join(", ")}
+              </div>
+            )}
           <div className="mt-1 text-xs opacity-70">
             Uploaded {new Date(state.result.uploadedAt).toLocaleString()}
           </div>
