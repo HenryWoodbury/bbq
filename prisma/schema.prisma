@@ -106,6 +106,7 @@ model PlayerOverride {
   birthday    DateTime? @db.Date
   team        String?
   mlbLevel    String?   @map("mlb_level")
+  league      String?
   active      Boolean?
   bats        String?
   throws      String?

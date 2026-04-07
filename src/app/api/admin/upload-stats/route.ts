@@ -1,5 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { StatPlayerType, StatProjection, StatSplit } from "@/generated/prisma/client"
+import {
+  StatPlayerType,
+  type StatProjection,
+  StatSplit,
+} from "@/generated/prisma/client"
 import { assertAdmin } from "@/lib/auth-helpers"
 import { chunk, parseCSVLine } from "@/lib/csv"
 import { prisma } from "@/lib/prisma"
@@ -18,7 +22,6 @@ const SPLIT_MAP: Record<string, StatSplit> = {
   vs_left: StatSplit.VsLeft,
   vs_right: StatSplit.VsRight,
 }
-
 
 export async function POST(request: NextRequest) {
   const denied = await assertAdmin()
@@ -206,7 +209,11 @@ export async function POST(request: NextRequest) {
                 split: data.split,
               },
             },
-            update: { mlbTeam: data.mlbTeam, stats: data.stats, deletedAt: null },
+            update: {
+              mlbTeam: data.mlbTeam,
+              stats: data.stats,
+              deletedAt: null,
+            },
             create: {
               playerId: data.playerId,
               season: data.season,

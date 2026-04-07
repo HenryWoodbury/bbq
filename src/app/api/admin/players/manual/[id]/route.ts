@@ -3,12 +3,12 @@ import { z } from "zod"
 import { assertAdmin } from "@/lib/auth-helpers"
 import { prisma } from "@/lib/prisma"
 
-const overrideSchema = z.object({
+const updateSchema = z.object({
   displayName: z.string().nullable().optional(),
   firstName: z.string().nullable().optional(),
   lastName: z.string().nullable().optional(),
   nickname: z.string().nullable().optional(),
-  birthday: z.string().nullable().optional(), // ISO date "YYYY-MM-DD"
+  birthday: z.string().nullable().optional(),
   team: z.string().nullable().optional(),
   mlbLevel: z.string().nullable().optional(),
   league: z.string().nullable().optional(),
@@ -18,7 +18,7 @@ const overrideSchema = z.object({
   positions: z.array(z.string()).optional(),
 })
 
-export async function POST(
+export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -27,42 +27,27 @@ export async function POST(
 
   const { id } = await params
 
-  // Verify player exists
-  const player = await prisma.player.findUnique({
+  const existing = await prisma.playerOverride.findUnique({
     where: { id },
-    select: { id: true },
+    select: { id: true, isManual: true, deletedAt: true },
   })
-  if (!player)
-    return NextResponse.json({ error: "Player not found" }, { status: 404 })
+  if (!existing || !existing.isManual || existing.deletedAt !== null)
+    return NextResponse.json(
+      { error: "Manual player not found" },
+      { status: 404 },
+    )
 
   const body = await request.json().catch(() => null)
-  const parsed = overrideSchema.safeParse(body)
+  const parsed = updateSchema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
 
   const data = parsed.data
 
-  const override = await prisma.playerOverride.upsert({
-    where: { playerId: id },
-    create: {
-      playerId: id,
-      isManual: false,
-      displayName: data.displayName ?? null,
-      firstName: data.firstName ?? null,
-      lastName: data.lastName ?? null,
-      nickname: data.nickname ?? null,
-      birthday: data.birthday ? new Date(data.birthday) : null,
-      team: data.team ?? null,
-      mlbLevel: data.mlbLevel ?? null,
-      league: data.league ?? null,
-      active: data.active ?? null,
-      bats: data.bats ?? null,
-      throws: data.throws ?? null,
-      positions: data.positions ?? [],
-      deletedAt: null,
-    },
-    update: {
+  const updated = await prisma.playerOverride.update({
+    where: { id },
+    data: {
       displayName: data.displayName,
       firstName: data.firstName,
       lastName: data.lastName,
@@ -80,12 +65,11 @@ export async function POST(
       bats: data.bats,
       throws: data.throws,
       positions: data.positions,
-      deletedAt: null,
     },
-    select: { id: true, playerId: true, updatedAt: true },
+    select: { id: true, updatedAt: true },
   })
 
-  return NextResponse.json(override)
+  return NextResponse.json(updated)
 }
 
 export async function DELETE(
@@ -98,14 +82,17 @@ export async function DELETE(
   const { id } = await params
 
   const existing = await prisma.playerOverride.findUnique({
-    where: { playerId: id },
-    select: { id: true },
+    where: { id },
+    select: { id: true, isManual: true },
   })
-  if (!existing)
-    return NextResponse.json({ error: "Override not found" }, { status: 404 })
+  if (!existing || !existing.isManual)
+    return NextResponse.json(
+      { error: "Manual player not found" },
+      { status: 404 },
+    )
 
   await prisma.playerOverride.update({
-    where: { playerId: id },
+    where: { id },
     data: { deletedAt: new Date() },
   })
 

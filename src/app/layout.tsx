@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Geist_Mono, Lato } from "next/font/google"
 import { Header } from "@/components/header"
 import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "@/components/ui/sonner"
 import { cn } from "@/lib/utils"
 import "./globals.css"
 
@@ -43,6 +44,7 @@ export default function RootLayout({
           <ThemeProvider>
             <Header />
             <main className="w-full px-4 py-8 sm:px-6 lg:px-8">{children}</main>
+            <Toaster />
           </ThemeProvider>
         </body>
       </html>

@@ -1,9 +1,9 @@
 "use client"
 
 import type { ColumnDef } from "@tanstack/react-table"
-import { DownloadIcon, PencilIcon, Undo2Icon } from "lucide-react"
+import { DownloadIcon, PencilIcon, Trash2Icon, Undo2Icon } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { DataTable } from "@/components/data-table"
 import { FilterGroup } from "@/components/filter-group"
 import { Button } from "@/components/ui/button"
@@ -35,6 +35,7 @@ export type PlayerRow = {
   birthday: string | null
   team: string | null
   mlbLevel: string | null
+  league: string | null
   fangraphsId: string | null
   nickname: string | null
   bats: string | null
@@ -58,6 +59,7 @@ export type PlayerBaseFields = {
   birthday: string | null
   team: string | null
   mlbLevel: string | null
+  league: string | null
   active: boolean
   bats: string | null
   throws: string | null
@@ -151,11 +153,13 @@ function hasActiveOverride(row: PlayerRow): boolean {
 }
 
 function isMajorLeague(row: PlayerRow): boolean {
-  return row.universeFgId !== null && !row.universeFgId.startsWith("sa")
+  const fgId = row.universeFgId ?? row.fangraphsId
+  return fgId !== null && !fgId.startsWith("sa")
 }
 
 function isMinorLeague(row: PlayerRow): boolean {
-  return row.universeFgId?.startsWith("sa") ?? false
+  const fgId = row.universeFgId ?? row.fangraphsId
+  return fgId?.startsWith("sa") ?? false
 }
 
 function isAL(team: string | null): boolean {
@@ -407,81 +411,98 @@ export function PlayersTable({
 
   // ── Profile filtering ──────────────────────────────────────────────────────
 
-  const displayedProfiles = useMemo(() => {
-    let rows = data
+  let displayedProfiles = data
 
-    if (activeFilter === "yes") rows = rows.filter((r) => r.active)
-    else if (activeFilter === "no") rows = rows.filter((r) => !r.active)
+  if (activeFilter === "yes")
+    displayedProfiles = displayedProfiles.filter((r) => r.active)
+  else if (activeFilter === "no")
+    displayedProfiles = displayedProfiles.filter((r) => !r.active)
 
-    if (levelFilter === "mlb") rows = rows.filter(isMajorLeague)
-    else if (levelFilter === "milb") rows = rows.filter(isMinorLeague)
+  if (levelFilter === "mlb")
+    displayedProfiles = displayedProfiles.filter(isMajorLeague)
+  else if (levelFilter === "milb")
+    displayedProfiles = displayedProfiles.filter(isMinorLeague)
 
-    if (mlbLeagueFilter === "al")
-      rows = rows.filter((r) => isAL(r.team) || r.mlbLevel === "AL")
-    else if (mlbLeagueFilter === "nl")
-      rows = rows.filter((r) => isNL(r.team) || r.mlbLevel === "NL")
-    else if (mlbLeagueFilter === "other")
-      rows = rows.filter((r) => !isAL(r.team) && !isNL(r.team) && r.mlbLevel !== "AL" && r.mlbLevel !== "NL")
+  if (mlbLeagueFilter === "al")
+    displayedProfiles = displayedProfiles.filter(
+      (r) => isAL(r.team) || r.league === "AL",
+    )
+  else if (mlbLeagueFilter === "nl")
+    displayedProfiles = displayedProfiles.filter(
+      (r) => isNL(r.team) || r.league === "NL",
+    )
+  else if (mlbLeagueFilter === "other")
+    displayedProfiles = displayedProfiles.filter(
+      (r) =>
+        !isAL(r.team) &&
+        !isNL(r.team) &&
+        r.league !== "AL" &&
+        r.league !== "NL",
+    )
 
-    if (roleFilter === "batter") rows = rows.filter((r) => !isPitcher(r))
-    else if (roleFilter === "pitcher") rows = rows.filter(isPitcher)
+  if (roleFilter === "batter")
+    displayedProfiles = displayedProfiles.filter((r) => !isPitcher(r))
+  else if (roleFilter === "pitcher")
+    displayedProfiles = displayedProfiles.filter(isPitcher)
 
-    const q = normalize(search.trim())
-    if (q) {
-      rows = rows.filter(
-        (r) =>
-          normalize(r.fgSpecialChar ?? r.playerName).includes(q) ||
-          normalize(r.playerName).includes(q) ||
-          normalize(r.lastName ?? "").includes(q) ||
-          normalize(r.team ?? "").includes(q) ||
-          normalize(r.mlbLevel ?? "").includes(q) ||
-          r.ottoneuPositions.join("/").toLowerCase().includes(q) ||
-          String(r.ottoneuId ?? "").includes(q) ||
-          String(r.fangraphsId ?? "").includes(q),
-      )
-    }
-
-    return rows
-  }, [data, activeFilter, levelFilter, mlbLeagueFilter, roleFilter, search])
+  const profileSearchQ = normalize(search.trim())
+  if (profileSearchQ) {
+    displayedProfiles = displayedProfiles.filter(
+      (r) =>
+        normalize(r.fgSpecialChar ?? r.playerName).includes(profileSearchQ) ||
+        normalize(r.playerName).includes(profileSearchQ) ||
+        normalize(r.lastName ?? "").includes(profileSearchQ) ||
+        normalize(r.team ?? "").includes(profileSearchQ) ||
+        normalize(r.mlbLevel ?? "").includes(profileSearchQ) ||
+        r.ottoneuPositions.join("/").toLowerCase().includes(profileSearchQ) ||
+        String(r.ottoneuId ?? "").includes(profileSearchQ) ||
+        String(r.fangraphsId ?? "").includes(profileSearchQ),
+    )
+  }
 
   // ── Stats filtering ────────────────────────────────────────────────────────
 
-  const displayedStats = useMemo(() => {
-    let rows = statRows
+  let displayedStats = statRows
 
-    if (activeFilter === "yes") rows = rows.filter((r) => r.active)
-    else if (activeFilter === "no") rows = rows.filter((r) => !r.active)
+  if (activeFilter === "yes")
+    displayedStats = displayedStats.filter((r) => r.active)
+  else if (activeFilter === "no")
+    displayedStats = displayedStats.filter((r) => !r.active)
 
-    if (levelFilter === "mlb")
-      rows = rows.filter(
-        (r) => r.fangraphsId !== null && !r.fangraphsId.startsWith("sa"),
-      )
-    else if (levelFilter === "milb")
-      rows = rows.filter((r) => r.fangraphsId?.startsWith("sa") ?? false)
+  if (levelFilter === "mlb")
+    displayedStats = displayedStats.filter(
+      (r) => r.fangraphsId !== null && !r.fangraphsId.startsWith("sa"),
+    )
+  else if (levelFilter === "milb")
+    displayedStats = displayedStats.filter(
+      (r) => r.fangraphsId?.startsWith("sa") ?? false,
+    )
 
-    if (mlbLeagueFilter === "al") rows = rows.filter((r) => isAL(r.team))
-    else if (mlbLeagueFilter === "nl") rows = rows.filter((r) => isNL(r.team))
-    else if (mlbLeagueFilter === "other") rows = rows.filter((r) => !isAL(r.team) && !isNL(r.team))
+  if (mlbLeagueFilter === "al")
+    displayedStats = displayedStats.filter((r) => isAL(r.team))
+  else if (mlbLeagueFilter === "nl")
+    displayedStats = displayedStats.filter((r) => isNL(r.team))
+  else if (mlbLeagueFilter === "other")
+    displayedStats = displayedStats.filter(
+      (r) => !isAL(r.team) && !isNL(r.team),
+    )
 
-    const q = search.trim().toLowerCase()
-    if (q) {
-      rows = rows.filter(
-        (r) =>
-          r.playerName.toLowerCase().includes(q) ||
-          String(r.ottoneuId ?? "").includes(q) ||
-          String(r.fangraphsId ?? "").includes(q),
-      )
-    }
-
-    return rows
-  }, [statRows, activeFilter, levelFilter, mlbLeagueFilter, search])
+  const statsSearchQ = search.trim().toLowerCase()
+  if (statsSearchQ) {
+    displayedStats = displayedStats.filter(
+      (r) =>
+        r.playerName.toLowerCase().includes(statsSearchQ) ||
+        String(r.ottoneuId ?? "").includes(statsSearchQ) ||
+        String(r.fangraphsId ?? "").includes(statsSearchQ),
+    )
+  }
 
   // ── Stats column definitions ───────────────────────────────────────────────
 
   const statColKeys =
     statsFilter.playerType === "PITCHER" ? PITCHING_COLS : BATTING_COLS
 
-  const statsColumnDefs = useMemo<ColumnDef<StatRow, unknown>[]>(() => {
+  const statsColumnDefs = ((): ColumnDef<StatRow, unknown>[] => {
     const base: ColumnDef<StatRow, unknown>[] = [
       {
         accessorKey: "ottoneuId",
@@ -543,11 +564,11 @@ export function PlayersTable({
       }),
     )
     return [...base, ...statValueCols]
-  }, [statColKeys])
+  })()
 
   // ── Profile columns with optional edit action ──────────────────────────────
 
-  const profileColumnDefs = useMemo<ColumnDef<PlayerRow, unknown>[]>(() => {
+  const profileColumnDefs = ((): ColumnDef<PlayerRow, unknown>[] => {
     if (!onEdit && !onClearOverride) return profileColumns
     const editCol: ColumnDef<PlayerRow, unknown> = {
       id: "_edit",
@@ -564,19 +585,29 @@ export function PlayersTable({
               <PencilIcon className="h-3.5 w-3.5" />
             </IconButton>
           )}
-          {onClearOverride && hasActiveOverride(row.original) && (
+          {onClearOverride && row.original.isManual && (
             <IconButton
               onClick={() => onClearOverride(row.original)}
-              aria-label="Clear override"
+              aria-label="Delete player"
             >
-              <Undo2Icon className="h-3.5 w-3.5" />
+              <Trash2Icon className="h-3.5 w-3.5" />
             </IconButton>
           )}
+          {onClearOverride &&
+            !row.original.isManual &&
+            hasActiveOverride(row.original) && (
+              <IconButton
+                onClick={() => onClearOverride(row.original)}
+                aria-label="Clear override"
+              >
+                <Undo2Icon className="h-3.5 w-3.5" />
+              </IconButton>
+            )}
         </div>
       ),
     }
     return [...profileColumns, editCol]
-  }, [onEdit, onClearOverride])
+  })()
 
   // ── Role options depend on mode ────────────────────────────────────────────
 

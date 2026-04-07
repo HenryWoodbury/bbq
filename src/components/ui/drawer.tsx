@@ -2,7 +2,7 @@
 
 import { XIcon } from "lucide-react"
 import { Dialog as DialogPrimitive } from "radix-ui"
-import type * as React from "react"
+import type { HTMLAttributes, ReactNode } from "react"
 import { cn } from "@/lib/utils"
 
 // ── Root ─────────────────────────────────────────────────────────────────────
@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 interface DrawerProps {
   open: boolean
   onClose: () => void
-  children: React.ReactNode
+  children: ReactNode
 }
 
 function Drawer({ open, onClose, children }: DrawerProps) {
@@ -26,7 +26,7 @@ function Drawer({ open, onClose, children }: DrawerProps) {
 interface DrawerContentProps {
   side?: "left" | "right"
   width?: string
-  children: React.ReactNode
+  children: ReactNode
   className?: string
 }
 
@@ -59,7 +59,7 @@ function DrawerContent({
 
 // ── Header ────────────────────────────────────────────────────────────────────
 
-interface DrawerHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
+interface DrawerHeaderProps extends HTMLAttributes<HTMLDivElement> {
   onClose?: () => void
 }
 
@@ -96,7 +96,7 @@ function DrawerHeader({
 function DrawerTitle({
   className,
   ...props
-}: React.HTMLAttributes<HTMLHeadingElement>) {
+}: HTMLAttributes<HTMLHeadingElement>) {
   return (
     <DialogPrimitive.Title
       className={cn("text-2xl font-semibold text-foreground", className)}
@@ -107,10 +107,7 @@ function DrawerTitle({
 
 // ── Body ──────────────────────────────────────────────────────────────────────
 
-function DrawerBody({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+function DrawerBody({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={cn("flex-1 overflow-y-auto py-6 sm:px-6 lg:px-8", className)}
@@ -121,10 +118,7 @@ function DrawerBody({
 
 // ── Footer ────────────────────────────────────────────────────────────────────
 
-function DrawerFooter({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+function DrawerFooter({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={cn("shrink-0 border-t border-border px-4 py-3", className)}

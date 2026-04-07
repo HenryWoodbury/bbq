@@ -1,12 +1,13 @@
 "use client"
 
 import { MonitorIcon, MoonIcon, SunIcon } from "lucide-react"
+import type { ReactNode } from "react"
 import { type Theme, useTheme } from "@/components/theme-provider"
 import { IconButton } from "./icon-button"
 
 const CYCLE: Theme[] = ["system", "light", "dark"]
 
-const ICONS: Record<Theme, React.ReactNode> = {
+const ICONS: Record<Theme, ReactNode> = {
   system: <MonitorIcon size={16} />,
   light: <SunIcon size={16} />,
   dark: <MoonIcon size={16} />,

@@ -1,6 +1,7 @@
 "use client"
 
 import { ChevronRightIcon } from "lucide-react"
+import type { ReactNode } from "react"
 import { useState } from "react"
 import {
   Collapsible,
@@ -10,10 +11,10 @@ import {
 import { cn } from "@/lib/utils"
 
 interface SectionCollapsibleProps {
-  title: React.ReactNode
+  title: ReactNode
   size?: string
   defaultOpen?: boolean
-  children: React.ReactNode
+  children: ReactNode
   className?: string
 }
 

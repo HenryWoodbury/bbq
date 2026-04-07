@@ -1,10 +1,4 @@
-import {
-  ClerkLoaded,
-  ClerkLoading,
-  SignedIn,
-  SignedOut,
-  SignInButton,
-} from "@clerk/nextjs"
+import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs"
 import { auth } from "@clerk/nextjs/server"
 import Link from "next/link"
 import { isAdminFromClaims } from "@/lib/auth-helpers"
@@ -40,27 +34,16 @@ export async function Header() {
         </Link>
 
         <div className="flex items-center gap-2">
-          <ClerkLoading>
-            {userId && (
-              <div className="h-8 w-8 animate-pulse rounded-full bg-muted" />
-            )}
-          </ClerkLoading>
-          <ClerkLoaded>
-            <SignedIn>
-              <LeagueSelector leagues={leagues} />
-              {isAdmin && <AdminMenu className="mr-2" />}
-            </SignedIn>
-            <SignedOut>
-              <SignInButton mode="redirect">
-                <Button>Sign in</Button>
-              </SignInButton>
-            </SignedOut>
-          </ClerkLoaded>
-          <ClerkLoaded>
-            <SignedIn>
-              <UserMenu />
-            </SignedIn>
-          </ClerkLoaded>
+          <SignedIn>
+            <LeagueSelector leagues={leagues} />
+            {isAdmin && <AdminMenu className="mr-2" />}
+            <UserMenu />
+          </SignedIn>
+          <SignedOut>
+            <SignInButton mode="redirect">
+              <Button>Sign in</Button>
+            </SignInButton>
+          </SignedOut>
         </div>
       </div>
     </header>
