@@ -425,19 +425,19 @@ export function PlayersTable({
 
   if (mlbLeagueFilter === "al")
     displayedProfiles = displayedProfiles.filter(
-      (r) => isAL(r.team) || r.mlbLevel === "AL",
+      (r) => isAL(r.team) || r.league === "AL",
     )
   else if (mlbLeagueFilter === "nl")
     displayedProfiles = displayedProfiles.filter(
-      (r) => isNL(r.team) || r.mlbLevel === "NL",
+      (r) => isNL(r.team) || r.league === "NL",
     )
   else if (mlbLeagueFilter === "other")
     displayedProfiles = displayedProfiles.filter(
       (r) =>
         !isAL(r.team) &&
         !isNL(r.team) &&
-        r.mlbLevel !== "AL" &&
-        r.mlbLevel !== "NL",
+        r.league !== "AL" &&
+        r.league !== "NL",
     )
 
   if (roleFilter === "batter")

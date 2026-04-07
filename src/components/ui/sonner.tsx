@@ -59,7 +59,7 @@ function ToastContent({
   action?: ToastAction
 }) {
   return (
-    <div className="flex w-full items-bottom justify-between gap-4 border border-border rounded-md pt-3 pb-4 px-4">
+    <div className="flex w-full items-end justify-between gap-4 border border-border rounded-md pt-3 pb-4 px-4">
       <div className="min-w-0">
         {title && (
           <p className="text-body font-medium text-foreground">{title}</p>

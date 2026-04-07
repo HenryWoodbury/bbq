@@ -2,7 +2,7 @@
 
 import { ChevronLeftIcon, Trash2Icon, Undo2Icon } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { Suspense, use, useState } from "react"
 import type { UniverseSearchResult } from "@/app/api/admin/players/universe-search/route"
 import { PlayerAddIcon } from "@/components/icons"
 import {
@@ -312,6 +312,42 @@ function EditOverrideModal({
   )
 }
 
+function SearchResults({
+  promise,
+  onSelect,
+}: {
+  promise: Promise<UniverseSearchResult[]>
+  onSelect: (r: UniverseSearchResult) => void
+}) {
+  const results = use(promise)
+  if (results.length === 0)
+    return (
+      <p className="px-3 py-2 text-sm text-muted-foreground">No results</p>
+    )
+  return results.map((r) => (
+    <Button
+      key={r.ottoneuId}
+      type="button"
+      variant="ghost"
+      disabled={r.alreadyTracked}
+      onClick={() => onSelect(r)}
+      className={cn(
+        "flex w-full items-center justify-between px-3 py-2 text-left text-sm rounded-none",
+        "border-b border-border last:border-0",
+        r.alreadyTracked
+          ? "cursor-not-allowed text-muted-foreground/40"
+          : "hover:bg-muted",
+      )}
+    >
+      <span className="font-medium">{r.playerName}</span>
+      <span className="flex items-center gap-3 text-xs">
+        {r.positions.length > 0 && <span>{r.positions.join("/")}</span>}
+        <span>#{r.ottoneuId}</span>
+      </span>
+    </Button>
+  ))
+}
+
 function AddManualModal({ onClose }: { onClose: () => void }) {
   const router = useRouter()
 
@@ -326,7 +362,7 @@ function AddManualModal({ onClose }: { onClose: () => void }) {
     else params.set("q", nameQuery)
     return `/api/admin/players/universe-search?${params}`
   })()
-  const { data: results, pending: searching } =
+  const { promise, pending: searching } =
     useDebouncedFetch<UniverseSearchResult>(searchUrl)
 
   // ── Step 2: Fill ────────────────────────────────────────────────────────────
@@ -415,38 +451,17 @@ function AddManualModal({ onClose }: { onClose: () => void }) {
           />
         </div>
 
-        {!searching && (nameQuery || idQuery) && (
+        {(nameQuery || idQuery) && (
           <div className="mt-2 max-h-72 overflow-y-auto rounded-lg border border-border">
-            {results.length === 0 ? (
-              <p className="px-3 py-2 text-sm text-muted-foreground">
-                No results
-              </p>
-            ) : (
-              results.map((r) => (
-                <Button
-                  key={r.ottoneuId}
-                  type="button"
-                  variant="ghost"
-                  disabled={r.alreadyTracked}
-                  onClick={() => selectPlayer(r)}
-                  className={cn(
-                    "flex w-full items-center justify-between px-3 py-2 text-left text-sm rounded-none",
-                    "border-b border-border last:border-0",
-                    r.alreadyTracked
-                      ? "cursor-not-allowed text-muted-foreground/40"
-                      : "hover:bg-muted",
-                  )}
-                >
-                  <span className="font-medium">{r.playerName}</span>
-                  <span className="flex items-center gap-3 text-xs">
-                    {r.positions.length > 0 && (
-                      <span>{r.positions.join("/")}</span>
-                    )}
-                    <span>#{r.ottoneuId}</span>
-                  </span>
-                </Button>
-              ))
-            )}
+            <Suspense
+              fallback={
+                <p className="px-3 py-2 text-sm text-muted-foreground">
+                  Searching…
+                </p>
+              }
+            >
+              <SearchResults promise={promise} onSelect={selectPlayer} />
+            </Suspense>
           </div>
         )}
 
