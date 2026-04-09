@@ -534,7 +534,11 @@ export function TemplatesTable({ data }: { data: TemplateRow[] }) {
       <div className="flex justify-end">
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
-            <Button size="sm" className="flex items-center gap-1.5">
+            <Button
+              size="sm"
+              variant="secondary"
+              className="flex items-center gap-1.5"
+            >
               <PlusIcon size={14} />
               New Template
             </Button>

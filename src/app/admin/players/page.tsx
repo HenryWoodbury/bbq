@@ -1,8 +1,10 @@
+import { Suspense } from "react"
 import type {
   PlayerRow,
   StatRow,
   StatsFilter,
 } from "@/components/players-table"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   StatPlayerType,
   StatProjection,
@@ -65,17 +67,33 @@ export default async function AdminPlayersPage({
   searchParams: Promise<Record<string, string | undefined>>
 }) {
   await requireAdmin()
-
   const params = await searchParams
 
+  return (
+    <div className="page-layout flex flex-col gap-4">
+      <h1>Manage Players</h1>
+      <section className="mt-2">
+        <Suspense fallback={<SyncStatusSkeleton />}>
+          <SyncStatusSection />
+        </Suspense>
+      </section>
+      <section className="mt-6">
+        <Suspense fallback={<TableSkeleton rows={10} />}>
+          <PlayersTableSection params={params} />
+        </Suspense>
+      </section>
+    </div>
+  )
+}
+
+// ── Sync status (fast: 4 metadata queries) ─────────────────────────────────────
+
+async function SyncStatusSection() {
   const [
     lastSyncedPlayer,
     lastUploadedPlayerMap,
     lastUploadedUniverse,
     recentStatUploads,
-    players,
-    manualOverrides,
-    statSeasons,
   ] = await Promise.all([
     prisma.player.findFirst({
       orderBy: { updatedAt: "desc" },
@@ -106,6 +124,29 @@ export default async function AdminPlayersPage({
         createdAt: true,
       },
     }),
+  ])
+
+  return (
+    <PlayersSync
+      status={{
+        lastSyncedPlayer,
+        lastUploadedPlayerMap,
+        lastUploadedUniverse,
+        lastUploadedStats: recentStatUploads[0] ?? null,
+        recentStatUploads,
+      }}
+    />
+  )
+}
+
+// ── Players table (slow: player + stats queries) ───────────────────────────────
+
+async function PlayersTableSection({
+  params,
+}: {
+  params: Record<string, string | undefined>
+}) {
+  const [players, manualOverrides, statSeasons] = await Promise.all([
     prisma.player.findMany({
       where: { deletedAt: null },
       orderBy: { playerName: "asc" },
@@ -341,30 +382,49 @@ export default async function AdminPlayersPage({
     params.show === "stats" ? "stats" : "profiles"
 
   return (
-    <div className="page-layout flex flex-col gap-4">
-      <h1>Manage Players</h1>
-      <section className="mt-2">
-        <PlayersSync
-          status={{
-            lastSyncedPlayer,
-            lastUploadedPlayerMap,
-            lastUploadedUniverse,
-            lastUploadedStats: recentStatUploads[0] ?? null,
-            recentStatUploads,
-          }}
-        />
-      </section>
-      <section className="mt-6">
-        <PlayersTableAdmin
-          data={allRows}
-          statRows={statRows}
-          availableYears={availableYears}
-          availableProjections={availableProjections}
-          availableSplits={availableSplits}
-          statsFilter={statsFilter}
-          initialShow={initialShow}
-        />
-      </section>
+    <PlayersTableAdmin
+      data={allRows}
+      statRows={statRows}
+      availableYears={availableYears}
+      availableProjections={availableProjections}
+      availableSplits={availableSplits}
+      statsFilter={statsFilter}
+      initialShow={initialShow}
+    />
+  )
+}
+
+// ── Skeleton fallbacks ─────────────────────────────────────────────────────────
+
+function SyncStatusSkeleton() {
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-4">
+        <Skeleton className="h-7 w-36" />
+        <Skeleton className="h-8 w-32" />
+      </div>
+      <Skeleton className="h-4 w-56" />
+    </div>
+  )
+}
+
+const SKELETON_ROW_KEYS = "abcdefghijklmnopqrstuvwxyz".split("")
+
+export function TableSkeleton({ rows }: { rows: number }) {
+  return (
+    <div className="overflow-hidden rounded-lg border border-border">
+      <div className="h-10 border-b border-border bg-muted/30" />
+      {SKELETON_ROW_KEYS.slice(0, rows).map((key) => (
+        <div
+          key={key}
+          className="flex gap-4 border-b border-border px-4 py-3 last:border-0"
+        >
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-4 w-16" />
+          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-4 flex-1" />
+        </div>
+      ))}
     </div>
   )
 }

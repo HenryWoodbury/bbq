@@ -1,7 +1,9 @@
 import { SignInButton, SignUpButton } from "@clerk/nextjs"
 import { auth } from "@clerk/nextjs/server"
 import Link from "next/link"
+import { Suspense } from "react"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import { prisma } from "@/lib/prisma"
 
 export default async function HomePage() {
@@ -11,6 +13,17 @@ export default async function HomePage() {
     return <WelcomePage />
   }
 
+  return (
+    <div className="flex flex-col gap-4">
+      <h1>Your leagues</h1>
+      <Suspense fallback={<LeagueGridSkeleton />}>
+        <LeagueList userId={userId} />
+      </Suspense>
+    </div>
+  )
+}
+
+async function LeagueList({ userId }: { userId: string }) {
   const leagues = await prisma.league.findMany({
     where: { members: { some: { clerkUserId: userId } }, deletedAt: null },
     orderBy: { leagueName: "asc" },
@@ -28,23 +41,39 @@ export default async function HomePage() {
     },
   })
 
-  return (
-    <div className="flex flex-col gap-4">
-      <h1>Your leagues</h1>
+  if (leagues.length === 0) {
+    return (
+      <p className="body-muted">
+        You&apos;re not in any leagues yet. Create or join one via the org
+        switcher in the header.
+      </p>
+    )
+  }
 
-      {leagues.length === 0 ? (
-        <p className="body-muted">
-          You&apos;re not in any leagues yet. Create or join one via the org
-          switcher in the header.
-        </p>
-      ) : (
-        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-          {leagues.map((league) => (
-            <LeagueCard key={league.id} league={league} />
-          ))}
-        </section>
-      )}
-    </div>
+  return (
+    <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+      {leagues.map((league) => (
+        <LeagueCard key={league.id} league={league} />
+      ))}
+    </section>
+  )
+}
+
+function LeagueGridSkeleton() {
+  return (
+    <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+      {["a", "b", "c"].map((key) => (
+        <div key={key} className="card-interactive flex flex-col gap-4 p-6">
+          <Skeleton className="h-5 w-36" />
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-4 w-12" />
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-4 w-12" />
+          </div>
+        </div>
+      ))}
+    </section>
   )
 }
 
