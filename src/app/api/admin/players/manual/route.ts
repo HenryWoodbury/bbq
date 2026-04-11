@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { assertAdmin } from "@/lib/auth-helpers"
 import { prisma } from "@/lib/prisma"
+import { normalizeTeamCode } from "@/lib/team-codes"
 
 const manualSchema = z
   .object({
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
       lastName: data.lastName ?? null,
       nickname: data.nickname ?? null,
       birthday: data.birthday ? new Date(data.birthday) : null,
-      team: data.team ?? null,
+      team: normalizeTeamCode(data.team ?? null),
       mlbLevel: data.mlbLevel ?? null,
       league: data.league ?? null,
       active: data.active ?? null,

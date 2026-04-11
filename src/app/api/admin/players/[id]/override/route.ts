@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { assertAdmin } from "@/lib/auth-helpers"
 import { prisma } from "@/lib/prisma"
+import { normalizeTeamCode } from "@/lib/team-codes"
 
 const overrideSchema = z.object({
   displayName: z.string().nullable().optional(),
@@ -53,7 +54,7 @@ export async function POST(
       lastName: data.lastName ?? null,
       nickname: data.nickname ?? null,
       birthday: data.birthday ? new Date(data.birthday) : null,
-      team: data.team ?? null,
+      team: normalizeTeamCode(data.team ?? null),
       mlbLevel: data.mlbLevel ?? null,
       league: data.league ?? null,
       active: data.active ?? null,
@@ -73,7 +74,7 @@ export async function POST(
             ? new Date(data.birthday)
             : null
           : undefined,
-      team: data.team,
+      team: data.team !== undefined ? normalizeTeamCode(data.team) : undefined,
       mlbLevel: data.mlbLevel,
       league: data.league,
       active: data.active,

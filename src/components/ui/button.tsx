@@ -8,20 +8,20 @@ const buttonVariants = cva(
     variants: {
       variant: {
         primary:
-          "rounded-md border-zinc-950 bg-zinc-950 text-white enabled:hover:bg-zinc-750 enabled:hover:border-zinc-750 enabled:active:bg-zinc-750 enabled:active:border-zinc-950 dark:border-zinc-50 dark:bg-zinc-50 dark:text-zinc-950 dark:enabled:hover:bg-zinc-300 dark:enabled:hover:border-zinc-300 dark:enabled:active:bg-zinc-300 dark:enabled:active:border-zinc-50",
+          "rounded-lg border-zinc-950 bg-zinc-950 text-white enabled:hover:bg-zinc-750 enabled:hover:border-zinc-750 enabled:active:bg-zinc-750 enabled:active:border-zinc-950 dark:border-zinc-50 dark:bg-zinc-50 dark:text-zinc-950 dark:enabled:hover:bg-zinc-300 dark:enabled:hover:border-zinc-300 dark:enabled:active:bg-zinc-300 dark:enabled:active:border-zinc-50",
         secondary:
-          "rounded-md border-zinc-300 bg-white text-zinc-950 enabled:hover:bg-zinc-150 enabled:hover:border-zinc-300 enabled:active:bg-zinc-150 enabled:active:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:enabled:hover:bg-zinc-750 dark:enabled:hover:border-zinc-700 dark:enabled:active:bg-zinc-750 dark:enabled:active:border-zinc-500",
+          "rounded-lg border-zinc-300 bg-white text-zinc-950 enabled:hover:bg-zinc-150 enabled:hover:border-zinc-300 enabled:active:bg-zinc-150 enabled:active:border-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:enabled:hover:bg-zinc-750 dark:enabled:hover:border-zinc-700 dark:enabled:active:bg-zinc-750 dark:enabled:active:border-zinc-500",
         destructive:
-          "rounded-md border-transparent text-destructive enabled:hover:bg-destructive/10",
+          "rounded-lg border-transparent text-destructive enabled:hover:bg-destructive/10",
         ghost:
-          "rounded-md border-transparent bg-transparent text-zinc-950 enabled:hover:bg-zinc-150 enabled:hover:border-zinc-150 enabled:active:bg-zinc-150 enabled:active:border-zinc-150 dark:text-zinc-50 dark:enabled:hover:bg-zinc-750 dark:enabled:hover:border-zinc-750 dark:enabled:active:bg-zinc-750 dark:enabled:active:border-zinc-750",
+          "rounded-lg border-transparent bg-transparent text-zinc-950 enabled:hover:bg-zinc-150 enabled:hover:border-zinc-150 enabled:active:bg-zinc-150 enabled:active:border-zinc-150 dark:text-zinc-50 dark:enabled:hover:bg-zinc-750 dark:enabled:hover:border-zinc-750 dark:enabled:active:bg-zinc-750 dark:enabled:active:border-zinc-750",
         subtle:
-          "rounded-md border-transparent text-muted-foreground enabled:hover:bg-zinc-150 enabled:hover:border-zinc-150 enabled:active:bg-zinc-150 enabled:active:border-zinc-150 dark:enabled:hover:bg-zinc-750 dark:enabled:hover:border-zinc-750 dark:enabled:active:bg-zinc-750 dark:enabled:active:border-zinc-750",
+          "rounded-lg border-transparent text-muted-foreground enabled:hover:bg-zinc-150 enabled:hover:border-zinc-150 enabled:active:bg-zinc-150 enabled:active:border-zinc-150 dark:enabled:hover:bg-zinc-750 dark:enabled:hover:border-zinc-750 dark:enabled:active:bg-zinc-750 dark:enabled:active:border-zinc-750",
       },
       size: {
         sm: "px-3 py-1",
         md: "px-4 py-1.5",
-        lg: "px-4 py-[7px]",
+        lg: "px-4 py-2",
       },
     },
     defaultVariants: {

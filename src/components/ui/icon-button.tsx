@@ -3,12 +3,13 @@ import type { ButtonHTMLAttributes, Ref } from "react"
 import { cn } from "@/lib/utils"
 
 const iconButtonVariants = cva(
-  "inline-flex items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground group-hover:hover:bg-zinc-300 dark:group-hover:hover:bg-zinc-600 disabled:opacity-30",
+  "inline-flex shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-zinc-200 dark:hover:bg-zinc-800 hover:text-foreground disabled:opacity-30",
   {
     variants: {
       size: {
-        md: "p-1.5",
         sm: "p-1",
+        md: "p-1.5",
+        lg: "p-2",
       },
     },
     defaultVariants: {

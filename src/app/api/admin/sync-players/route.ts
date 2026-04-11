@@ -4,6 +4,7 @@ import { chunk, parseCSVLine } from "@/lib/csv"
 import { parsePositions } from "@/lib/positions"
 import { prisma } from "@/lib/prisma"
 import { reconcilePlayerIds } from "@/lib/reconcile-player-ids"
+import { normalizeTeamCode } from "@/lib/team-codes"
 
 const SFBB_URL = "https://www.smartfantasybaseball.com/PLAYERIDMAPCSV"
 const BATCH_SIZE = 500
@@ -143,7 +144,7 @@ export async function POST(request: NextRequest) {
       firstName: get("firstName") || null,
       lastName: get("lastName") || null,
       positions: parsePositions(get("position")),
-      team: get("team") || null,
+      team: normalizeTeamCode(get("team") || null),
       mlbLevel: get("mlbLevel") || null,
       active: get("active").toUpperCase() !== "N",
       birthday: (() => {

@@ -9,12 +9,15 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
+  Drawer,
+  DrawerBody,
+  DrawerContent,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer"
+import { Field } from "@/components/ui/field"
 import { IconButton } from "@/components/ui/icon-button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -91,30 +94,17 @@ function toFormState(row: TemplateRow): FormState {
   }
 }
 
-function Field({
-  label,
-  children,
-}: {
-  label: string
-  children: React.ReactNode
-}) {
-  return (
-    <div className="flex flex-col gap-1">
-      <Label>{label}</Label>
-      {children}
-    </div>
-  )
-}
-
 function TemplateForm({
   mode,
   initial,
   templateId,
+  onClose,
   onDone,
 }: {
   mode: "create" | "edit"
   initial: FormState
   templateId?: string
+  onClose: () => void
   onDone: () => void
 }) {
   const [form, setForm] = useState<FormState>(initial)
@@ -194,192 +184,201 @@ function TemplateForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <Field label="Name">
-        <Input
-          value={form.name}
-          onChange={(e) => set("name", e.target.value)}
-          placeholder="e.g. ESPN H2H 5x5"
-          required
-        />
-      </Field>
+    <DrawerContent width="w-150">
+      <DrawerHeader onClose={onClose}>
+        <DrawerTitle>
+          {mode === "create" ? "New League Template" : `Edit Template — ${initial.name}`}
+        </DrawerTitle>
+      </DrawerHeader>
+      <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+        <DrawerBody className="flex flex-col gap-4">
+          <Field label="Name">
+            <Input
+              value={form.name}
+              onChange={(e) => set("name", e.target.value)}
+              placeholder="e.g. ESPN H2H 5x5"
+              required
+            />
+          </Field>
 
-      <div className="grid grid-cols-2 gap-4">
-        <Field label="Platform">
-          <Select
-            value={form.platform}
-            onChange={(e) =>
-              set("platform", e.target.value as FormState["platform"])
-            }
-            className="form-control"
-          >
-            <option value="ESPN">ESPN</option>
-            <option value="Ottoneu">Ottoneu</option>
-            <option value="Custom">Custom</option>
-          </Select>
-        </Field>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Platform">
+              <Select
+                value={form.platform}
+                onChange={(e) =>
+                  set("platform", e.target.value as FormState["platform"])
+                }
+                className="form-control"
+              >
+                <option value="ESPN">ESPN</option>
+                <option value="Ottoneu">Ottoneu</option>
+                <option value="Custom">Custom</option>
+              </Select>
+            </Field>
 
-        <Field label="Play Type">
-          <Select
-            value={form.playType}
-            onChange={(e) =>
-              set("playType", e.target.value as FormState["playType"])
-            }
-            className="form-control"
-          >
-            <option value="Season">Season Long</option>
-            <option value="H2H">H2H</option>
-          </Select>
-        </Field>
+            <Field label="Play Type">
+              <Select
+                value={form.playType}
+                onChange={(e) =>
+                  set("playType", e.target.value as FormState["playType"])
+                }
+                className="form-control"
+              >
+                <option value="Season">Season Long</option>
+                <option value="H2H">H2H</option>
+              </Select>
+            </Field>
 
-        <Field label="Scoring">
-          <Select
-            value={form.scoring}
-            onChange={(e) =>
-              set("scoring", e.target.value as FormState["scoring"])
-            }
-            className="form-control"
-          >
-            <option value="FiveX5">5×5 Roto</option>
-            <option value="FourX4">4×4 Roto</option>
-            <option value="Fangraphs">FanGraphs Points</option>
-            <option value="SABR">SABR Points</option>
-            <option value="Points">Points (ESPN)</option>
-          </Select>
-        </Field>
+            <Field label="Scoring">
+              <Select
+                value={form.scoring}
+                onChange={(e) =>
+                  set("scoring", e.target.value as FormState["scoring"])
+                }
+                className="form-control"
+              >
+                <option value="FiveX5">5×5 Roto</option>
+                <option value="FourX4">4×4 Roto</option>
+                <option value="Fangraphs">FanGraphs Points</option>
+                <option value="SABR">SABR Points</option>
+                <option value="Points">Points (ESPN)</option>
+              </Select>
+            </Field>
 
-        <Field label="Draft Type">
-          <Select
-            value={form.draftType}
-            onChange={(e) =>
-              set("draftType", e.target.value as FormState["draftType"])
-            }
-            className="form-control"
-          >
-            <option value="Snake">Snake</option>
-            <option value="Auction">Auction</option>
-          </Select>
-        </Field>
+            <Field label="Draft Type">
+              <Select
+                value={form.draftType}
+                onChange={(e) =>
+                  set("draftType", e.target.value as FormState["draftType"])
+                }
+                className="form-control"
+              >
+                <option value="Snake">Snake</option>
+                <option value="Auction">Auction</option>
+              </Select>
+            </Field>
 
-        <Field label="Draft Mode">
-          <Select
-            value={form.draftMode}
-            onChange={(e) =>
-              set("draftMode", e.target.value as FormState["draftMode"])
-            }
-            className="form-control"
-          >
-            <option value="Live">Live</option>
-            <option value="Slow">Slow (async)</option>
-          </Select>
-        </Field>
+            <Field label="Draft Mode">
+              <Select
+                value={form.draftMode}
+                onChange={(e) =>
+                  set("draftMode", e.target.value as FormState["draftMode"])
+                }
+                className="form-control"
+              >
+                <option value="Live">Live</option>
+                <option value="Slow">Slow (async)</option>
+              </Select>
+            </Field>
 
-        <Field label="Teams">
-          <Input
-            type="number"
-            min={2}
-            max={30}
-            value={form.teams}
-            onChange={(e) => set("teams", e.target.value)}
-            required
-          />
-        </Field>
+            <Field label="Teams">
+              <Input
+                type="number"
+                min={2}
+                max={30}
+                value={form.teams}
+                onChange={(e) => set("teams", e.target.value)}
+                required
+              />
+            </Field>
 
-        <Field label="Roster Size">
-          <Input
-            type="number"
-            min={1}
-            value={form.rosterSize}
-            onChange={(e) => set("rosterSize", e.target.value)}
-            required
-          />
-        </Field>
+            <Field label="Roster Size">
+              <Input
+                type="number"
+                min={1}
+                value={form.rosterSize}
+                onChange={(e) => set("rosterSize", e.target.value)}
+                required
+              />
+            </Field>
 
-        <Field label="Cap (leave blank for snake)">
-          <Input
-            type="number"
-            min={1}
-            value={form.cap}
-            onChange={(e) => set("cap", e.target.value)}
-            placeholder="e.g. 400"
-          />
-        </Field>
-      </div>
+            <Field label="Cap (leave blank for snake)">
+              <Input
+                type="number"
+                min={1}
+                value={form.cap}
+                onChange={(e) => set("cap", e.target.value)}
+                placeholder="e.g. 400"
+              />
+            </Field>
+          </div>
 
-      <Field label="Roster Slots (JSON array)">
-        <Textarea
-          value={form.rosters}
-          onChange={(e) => set("rosters", e.target.value)}
-          rows={5}
-          spellCheck={false}
-          className="form-control font-mono text-xs placeholder:text-muted-foreground"
-        />
-      </Field>
+          <Field label="Roster Slots (JSON array)">
+            <Textarea
+              value={form.rosters}
+              onChange={(e) => set("rosters", e.target.value)}
+              rows={5}
+              spellCheck={false}
+              className="form-control font-mono text-xs placeholder:text-muted-foreground"
+            />
+          </Field>
 
-      <Field label="Description">
-        <Input
-          value={form.description}
-          onChange={(e) => set("description", e.target.value)}
-          placeholder="Optional short description"
-        />
-      </Field>
+          <Field label="Description">
+            <Input
+              value={form.description}
+              onChange={(e) => set("description", e.target.value)}
+              placeholder="Optional short description"
+            />
+          </Field>
 
-      <Field label="Rules Text (Markdown)">
-        <Textarea
-          value={form.rulesText}
-          onChange={(e) => set("rulesText", e.target.value)}
-          rows={5}
-          placeholder="Human-readable league rules (markdown). Not machine-enforced."
-          className="form-control placeholder:text-muted-foreground"
-        />
-      </Field>
+          <Field label="Rules Text (Markdown)">
+            <Textarea
+              value={form.rulesText}
+              onChange={(e) => set("rulesText", e.target.value)}
+              rows={5}
+              placeholder="Human-readable league rules (markdown). Not machine-enforced."
+              className="form-control placeholder:text-muted-foreground"
+            />
+          </Field>
 
-      <div className="flex items-center gap-2">
-        <Checkbox
-          id="isActive"
-          checked={form.isActive}
-          onChange={(e) => set("isActive", e.target.checked)}
-        />
-        <Label htmlFor="isActive">Active</Label>
-      </div>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="isActive"
+              checked={form.isActive}
+              onChange={(e) => set("isActive", e.target.checked)}
+            />
+            <Label htmlFor="isActive">Active</Label>
+          </div>
 
-      {error && <p className="text-xs text-destructive">{error}</p>}
-
-      <div className="flex justify-end pt-2">
-        <Button type="submit" disabled={saving}>
-          {saving ? "Saving…" : mode === "create" ? "Create" : "Save"}
-        </Button>
-      </div>
-    </form>
+          {error && <p className="text-xs text-destructive">{error}</p>}
+        </DrawerBody>
+        <DrawerFooter className="flex justify-end">
+          <Button type="submit" disabled={saving}>
+            {saving ? "Saving…" : mode === "create" ? "Create" : "Save"}
+          </Button>
+        </DrawerFooter>
+      </form>
+    </DrawerContent>
   )
 }
 
-function EditDialog({ row }: { row: TemplateRow }) {
+function EditDrawer({ row }: { row: TemplateRow }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <IconButton aria-label={`Edit ${row.name}`}>
+    <Drawer open={open} onClose={() => setOpen(false)}>
+      <DrawerTrigger asChild>
+        <IconButton
+          aria-label={`Edit ${row.name}`}
+          onClick={() => setOpen(true)}
+        >
           <PencilIcon className="h-3.5 w-3.5" />
         </IconButton>
-      </DialogTrigger>
-      <DialogContent className="max-w-2xl overflow-y-auto max-h-[90vh]">
-        <DialogHeader>
-          <DialogTitle>Edit Template — {row.name}</DialogTitle>
-        </DialogHeader>
+      </DrawerTrigger>
+      {open && (
         <TemplateForm
           mode="edit"
           initial={toFormState(row)}
           templateId={row.id}
+          onClose={() => setOpen(false)}
           onDone={() => {
             setOpen(false)
             router.refresh()
           }}
         />
-      </DialogContent>
-    </Dialog>
+      )}
+    </Drawer>
   )
 }
 
@@ -518,7 +517,7 @@ const columns: ColumnDef<TemplateRow, unknown>[] = [
     size: 64,
     cell: ({ row }) => (
       <div className="flex items-center gap-1">
-        <EditDialog row={row.original} />
+        <EditDrawer row={row.original} />
         <DeleteButton row={row.original} />
       </div>
     ),
@@ -532,31 +531,30 @@ export function TemplatesTable({ data }: { data: TemplateRow[] }) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex justify-end">
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogTrigger asChild>
+        <Drawer open={createOpen} onClose={() => setCreateOpen(false)}>
+          <DrawerTrigger asChild>
             <Button
               size="sm"
               variant="secondary"
               className="flex items-center gap-1.5"
+              onClick={() => setCreateOpen(true)}
             >
               <PlusIcon size={14} />
-              New Template
+              New Format
             </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl overflow-y-auto max-h-[90vh]">
-            <DialogHeader>
-              <DialogTitle>New League Template</DialogTitle>
-            </DialogHeader>
+          </DrawerTrigger>
+          {createOpen && (
             <TemplateForm
               mode="create"
               initial={EMPTY_FORM}
+              onClose={() => setCreateOpen(false)}
               onDone={() => {
                 setCreateOpen(false)
                 router.refresh()
               }}
             />
-          </DialogContent>
-        </Dialog>
+          )}
+        </Drawer>
       </div>
 
       <DataTable

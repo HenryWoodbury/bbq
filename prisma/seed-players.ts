@@ -19,6 +19,7 @@ import { join, resolve } from "node:path"
 import { PrismaPg } from "@prisma/adapter-pg"
 import { PrismaClient } from "../src/generated/prisma/client"
 import { reconcilePlayerIds } from "../src/lib/reconcile-player-ids"
+import { normalizeTeamCode } from "../src/lib/team-codes"
 
 // ── Prisma ────────────────────────────────────────────────────────────────────
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
@@ -191,7 +192,7 @@ async function seedPlayers(
       firstName: get("firstName") || null,
       lastName: get("lastName") || null,
       positions: parsePositions(get("position")),
-      team: get("team") || null,
+      team: normalizeTeamCode(get("team") || null),
       mlbLevel: get("mlbLevel") || null,
       active: get("active").toUpperCase() !== "N",
       birthday,

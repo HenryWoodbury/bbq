@@ -6,7 +6,6 @@ import { prisma } from "@/lib/prisma"
 import { AdminMenu } from "./admin-menu"
 import { LeagueSelector } from "./league-selector"
 import { Button } from "./ui/button"
-// import { ThemeToggle } from "./ui/theme-toggle"
 import { UserMenu, type UserMenuLeague } from "./user-menu"
 
 export async function Header() {

@@ -144,6 +144,7 @@ function hasActiveOverride(row: PlayerRow): boolean {
     (row.birthday ?? null) !== (b.birthday ?? null) ||
     (row.team ?? null) !== (b.team ?? null) ||
     (row.mlbLevel ?? null) !== (b.mlbLevel ?? null) ||
+    (row.league ?? null) !== (b.league ?? null) ||
     row.active !== b.active ||
     (row.bats ?? null) !== (b.bats ?? null) ||
     (row.throws ?? null) !== (b.throws ?? null) ||
@@ -159,7 +160,7 @@ function isMajorLeague(row: PlayerRow): boolean {
 
 function isMinorLeague(row: PlayerRow): boolean {
   const fgId = row.universeFgId ?? row.fangraphsId
-  return fgId?.startsWith("sa") ?? false
+  return fgId !== null && fgId.startsWith("sa")
 }
 
 function isAL(team: string | null): boolean {
@@ -172,6 +173,10 @@ function isNL(team: string | null): boolean {
 
 function isPitcher(row: PlayerRow): boolean {
   return row.ottoneuPositions.some((p) => p === "SP" || p === "RP")
+}
+
+function isUtil(row: PlayerRow): boolean {
+  return row.ottoneuPositions.some((p) => p !== "SP" && p !== "RP")
 }
 
 // ── Stat formatting ───────────────────────────────────────────────────────────
@@ -269,7 +274,7 @@ const profileColumns: ColumnDef<PlayerRow, unknown>[] = [
     },
   },
   {
-    accessorKey: "mlbLevel",
+    accessorKey: "league",
     header: "LG",
     size: 60,
     cell: ({ getValue }) => {
@@ -320,6 +325,18 @@ type ActiveFilter = "yes" | "no" | "all"
 type LevelFilter = "all" | "mlb" | "milb"
 type MLBLeagueFilter = "all" | "al" | "nl" | "other"
 type RoleFilter = "all" | "batter" | "pitcher"
+type StatusFilter = "all" | "adds" | "overrides"
+type PositionFilter =
+  | "all"
+  | "C"
+  | "1B"
+  | "2B"
+  | "3B"
+  | "SS"
+  | "OF"
+  | "Util"
+  | "SP"
+  | "RP"
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -331,6 +348,7 @@ export function PlayersTable({
   availableSplits,
   statsFilter,
   initialShow = "profiles",
+  playerExports = [],
   onEdit,
   onClearOverride,
 }: {
@@ -341,6 +359,7 @@ export function PlayersTable({
   availableSplits: string[]
   statsFilter: StatsFilter
   initialShow?: "profiles" | "stats"
+  playerExports?: string[]
   onEdit?: (row: PlayerRow) => void
   onClearOverride?: (row: PlayerRow) => void
 }) {
@@ -351,6 +370,9 @@ export function PlayersTable({
   const [levelFilter, setLevelFilter] = useState<LevelFilter>("mlb")
   const [mlbLeagueFilter, setMlbLeagueFilter] = useState<MLBLeagueFilter>("all")
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all")
+  const [teamFilter, setTeamFilter] = useState<string>("all")
+  const [positionFilter, setPositionFilter] = useState<PositionFilter>("all")
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
 
   function handleShowChange(v: string) {
     const newShow = v as "profiles" | "stats"
@@ -372,6 +394,11 @@ export function PlayersTable({
     if (show === "stats" && newRole !== "all") {
       pushStatsFilter({ spt: newRole === "pitcher" ? "PITCHER" : "BATTER" })
     }
+  }
+
+  function handleLeagueChange(v: string) {
+    setMlbLeagueFilter(v as MLBLeagueFilter)
+    setTeamFilter("all")
   }
 
   function deriveLeagueParam(): string {
@@ -445,6 +472,18 @@ export function PlayersTable({
   else if (roleFilter === "pitcher")
     displayedProfiles = displayedProfiles.filter(isPitcher)
 
+  if (teamFilter !== "all")
+    displayedProfiles = displayedProfiles.filter((r) => r.team === teamFilter)
+
+  if (positionFilter !== "all") {
+    if (positionFilter === "Util")
+      displayedProfiles = displayedProfiles.filter(isUtil)
+    else
+      displayedProfiles = displayedProfiles.filter((r) =>
+        r.ottoneuPositions.includes(positionFilter),
+      )
+  }
+
   const profileSearchQ = normalize(search.trim())
   if (profileSearchQ) {
     displayedProfiles = displayedProfiles.filter(
@@ -457,6 +496,14 @@ export function PlayersTable({
         r.ottoneuPositions.join("/").toLowerCase().includes(profileSearchQ) ||
         String(r.ottoneuId ?? "").includes(profileSearchQ) ||
         String(r.fangraphsId ?? "").includes(profileSearchQ),
+    )
+  }
+
+  if (statusFilter === "adds") {
+    displayedProfiles = displayedProfiles.filter((r) => r.isManual)
+  } else if (statusFilter === "overrides") {
+    displayedProfiles = displayedProfiles.filter(
+      (r) => !r.isManual && hasActiveOverride(r),
     )
   }
 
@@ -486,6 +533,9 @@ export function PlayersTable({
     displayedStats = displayedStats.filter(
       (r) => !isAL(r.team) && !isNL(r.team),
     )
+
+  if (teamFilter !== "all")
+    displayedStats = displayedStats.filter((r) => r.team === teamFilter)
 
   const statsSearchQ = search.trim().toLowerCase()
   if (statsSearchQ) {
@@ -579,6 +629,7 @@ export function PlayersTable({
         <div className="flex items-center gap-1">
           {onEdit && (
             <IconButton
+              size="md"
               onClick={() => onEdit(row.original)}
               aria-label="Edit player"
             >
@@ -587,6 +638,7 @@ export function PlayersTable({
           )}
           {onClearOverride && row.original.isManual && (
             <IconButton
+              size="md"
               onClick={() => onClearOverride(row.original)}
               aria-label="Delete player"
             >
@@ -597,6 +649,7 @@ export function PlayersTable({
             !row.original.isManual &&
             hasActiveOverride(row.original) && (
               <IconButton
+                size="md"
                 onClick={() => onClearOverride(row.original)}
                 aria-label="Clear override"
               >
@@ -622,6 +675,13 @@ export function PlayersTable({
           { value: "pitcher", label: "Pitchers" },
           { value: "all", label: "All" },
         ]
+
+  const teamDropdownOptions =
+    mlbLeagueFilter === "al"
+      ? AL_TEAM_CODES
+      : mlbLeagueFilter === "nl"
+        ? NL_TEAM_CODES
+        : [...AL_TEAM_CODES, ...NL_TEAM_CODES].sort()
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -661,8 +721,46 @@ export function PlayersTable({
             { value: "all", label: "All" },
           ]}
           value={mlbLeagueFilter}
-          onChange={(v) => setMlbLeagueFilter(v as MLBLeagueFilter)}
+          onChange={handleLeagueChange}
         />
+        <div className="flex items-center gap-1.5">
+          <span className="text-body font-normal text-muted-foreground">
+            Team:
+          </span>
+          <Select
+            value={teamFilter}
+            onChange={(e) => setTeamFilter(e.target.value)}
+            disabled={mlbLeagueFilter === "other"}
+          >
+            <option value="all">All</option>
+            {teamDropdownOptions.map((code) => (
+              <option key={code} value={code}>
+                {code}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-body font-normal text-muted-foreground">
+            Pos:
+          </span>
+          <Select
+            value={positionFilter}
+            onChange={(e) =>
+              setPositionFilter(e.target.value as PositionFilter)
+            }
+            disabled={show === "stats"}
+          >
+            <option value="all">All</option>
+            {(
+              ["C", "1B", "2B", "3B", "SS", "OF", "Util", "SP", "RP"] as const
+            ).map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </Select>
+        </div>
         <FilterGroup
           label="Role:"
           size="sm"
@@ -671,6 +769,17 @@ export function PlayersTable({
             roleFilter === "all" && show === "stats" ? "batter" : roleFilter
           }
           onChange={handleRoleChange}
+        />
+        <FilterGroup
+          label="Status:"
+          size="sm"
+          options={[
+            { value: "all", label: "All" },
+            { value: "adds", label: "Adds" },
+            { value: "overrides", label: "Overrides" },
+          ]}
+          value={statusFilter}
+          onChange={(v) => setStatusFilter(v as StatusFilter)}
         />
       </div>
 
@@ -788,36 +897,35 @@ export function PlayersTable({
           onChange={(e) => setSearch(e.target.value)}
           className="w-full max-w-sm"
         />
-        <div className="ml-auto">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="secondary" size="md">
-                <DownloadIcon className="h-4 w-4" />
-                Export
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={() => triggerExport("BATTER", "csv")}>
-                Batters (CSV)
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() => triggerExport("BATTER", "json")}
-              >
-                Batters (JSON)
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() => triggerExport("PITCHER", "csv")}
-              >
-                Pitchers (CSV)
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() => triggerExport("PITCHER", "json")}
-              >
-                Pitchers (JSON)
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        {playerExports.length > 0 && (
+          <div className="ml-auto">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="secondary" size="md">
+                  <DownloadIcon className="h-4 w-4" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {playerExports.map((name) => (
+                  <DropdownMenuItem
+                    key={name}
+                    onSelect={() =>
+                      triggerExport(
+                        name.toLowerCase().includes("pitcher")
+                          ? "PITCHER"
+                          : "BATTER",
+                        "csv",
+                      )
+                    }
+                  >
+                    {name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
       </div>
 
       {/* Table */}

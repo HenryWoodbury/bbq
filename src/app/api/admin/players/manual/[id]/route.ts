@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { assertAdmin } from "@/lib/auth-helpers"
 import { prisma } from "@/lib/prisma"
+import { normalizeTeamCode } from "@/lib/team-codes"
 
 const updateSchema = z.object({
   displayName: z.string().nullable().optional(),
@@ -58,7 +59,7 @@ export async function PATCH(
             ? new Date(data.birthday)
             : null
           : undefined,
-      team: data.team,
+      team: data.team !== undefined ? normalizeTeamCode(data.team) : undefined,
       mlbLevel: data.mlbLevel,
       league: data.league,
       active: data.active,

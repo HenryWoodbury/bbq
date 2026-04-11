@@ -13,11 +13,15 @@ import {
 } from "@/components/players-table"
 import { Button } from "@/components/ui/button"
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+  Drawer,
+  DrawerBody,
+  DrawerContent,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer"
+import { IconButton } from "@/components/ui/icon-button"
 import { Input } from "@/components/ui/input"
 import { showToast } from "@/components/ui/sonner"
 import { parsePositions } from "@/lib/positions"
@@ -90,7 +94,7 @@ function buildOverridePayload(fields: OverrideFields) {
   }
 }
 
-function EditOverrideModal({
+function EditOverrideDrawer({
   row,
   onClose,
   onRemoveManual,
@@ -197,10 +201,26 @@ function EditOverrideModal({
     setStatus("saving")
     setError("")
     try {
+      // Null for non-dirty fields clears any previously-stored accidental override
+      // and keeps isDirty correct for derived fields (league, mlbLevel) on future opens.
+      const payload = {
+        displayName: isDirty("displayName") ? nullify(fields.displayName) : null,
+        firstName: isDirty("firstName") ? nullify(fields.firstName) : null,
+        lastName: isDirty("lastName") ? nullify(fields.lastName) : null,
+        nickname: nullify(fields.nickname),
+        birthday: isDirty("birthday") ? nullify(fields.birthday) : null,
+        team: isDirty("team") ? nullify(fields.team) : null,
+        mlbLevel: isDirty("mlbLevel") ? nullify(fields.mlbLevel) : null,
+        league: isDirty("league") ? nullify(fields.league) : null,
+        active: isDirtyActive() ? fields.active : null,
+        bats: isDirty("bats") ? nullify(fields.bats) : null,
+        throws: isDirty("throws") ? nullify(fields.throws) : null,
+        positions: isDirtyPositions() ? parsePositions(fields.positions) : [],
+      }
       const res = await fetch(`/api/admin/players/${row.id}/override`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(buildOverridePayload(fields)),
+        body: JSON.stringify(payload),
       })
       if (!res.ok) {
         const d = (await res.json()) as { error: string }
@@ -243,17 +263,17 @@ function EditOverrideModal({
   }
 
   return (
-    <DialogContent className="max-h-[90vh] overflow-y-auto">
-      <DialogHeader>
-        <DialogTitle>
+    <DrawerContent width="w-150">
+      <DrawerHeader onClose={onClose}>
+        <DrawerTitle>
           {row.isManual
             ? "Edit Manually Added Player"
             : "Override Player Profile"}
-        </DialogTitle>
-        <p className="mt-2 font-bold">{row.fgSpecialChar ?? row.playerName}</p>
-      </DialogHeader>
+        </DrawerTitle>
+      </DrawerHeader>
 
-      <div className="mt-3">
+      <DrawerBody>
+        <h2 className="mb-3">{row.fgSpecialChar ?? row.playerName}</h2>
         <PlayerFormGrid
           fields={fields}
           onChange={set}
@@ -269,11 +289,10 @@ function EditOverrideModal({
                 }
           }
         />
-      </div>
+        {error && <p className="mt-3 text-xs text-destructive">{error}</p>}
+      </DrawerBody>
 
-      {error && <p className="mt-3 text-xs text-destructive">{error}</p>}
-
-      <div className="mt-5 flex items-center justify-between gap-2">
+      <DrawerFooter className="flex items-center justify-between gap-2">
         <div>
           {row.isManual ? (
             <Button
@@ -286,11 +305,15 @@ function EditOverrideModal({
               Remove Player
             </Button>
           ) : (
-            (row.overrideId || isAnyDirty()) && (
+            isAnyDirty() && (
               <Button
                 variant="subtle"
                 size="md"
-                onClick={handleRemove}
+                onClick={() => {
+                  ;(
+                    Object.keys(emptyOverride()) as (keyof OverrideFields)[]
+                  ).forEach(clearField)
+                }}
                 disabled={status === "saving"}
               >
                 <Undo2Icon size={16} className="shrink-0" />
@@ -307,8 +330,8 @@ function EditOverrideModal({
             {status === "saving" ? "Saving…" : "Save"}
           </Button>
         </div>
-      </div>
-    </DialogContent>
+      </DrawerFooter>
+    </DrawerContent>
   )
 }
 
@@ -321,9 +344,7 @@ function SearchResults({
 }) {
   const results = use(promise)
   if (results.length === 0)
-    return (
-      <p className="px-3 py-2 text-sm text-muted-foreground">No results</p>
-    )
+    return <p className="px-3 py-2 text-sm text-muted-foreground">No results</p>
   return results.map((r) => (
     <Button
       key={r.ottoneuId}
@@ -333,22 +354,23 @@ function SearchResults({
       onClick={() => onSelect(r)}
       className={cn(
         "flex w-full items-center justify-between px-3 py-2 text-left text-sm rounded-none",
-        "border-b border-border last:border-0",
+        "border-t-0 border-x-0 border-b border-border",
+        "first:rounded-t-lg last:pb-2.125 last:rounded-b-lg last:border-b-0",
         r.alreadyTracked
-          ? "cursor-not-allowed text-muted-foreground/40"
+          ? "cursor-not-allowed text-muted-foreground/40 !opacity-100"
           : "hover:bg-muted",
       )}
     >
-      <span className="font-medium">{r.playerName}</span>
-      <span className="flex items-center gap-3 text-xs">
-        {r.positions.length > 0 && <span>{r.positions.join("/")}</span>}
-        <span>#{r.ottoneuId}</span>
-      </span>
+      <span className="font-medium flex flex-5">{r.playerName}</span>
+      {r.positions.length > 0 && (
+        <span className="flex flex-2">{r.positions.join("/")}</span>
+      )}
+      <span className="">#{r.ottoneuId}</span>
     </Button>
   ))
 }
 
-function AddManualModal({ onClose }: { onClose: () => void }) {
+function AddManualDrawer({ onClose }: { onClose: () => void }) {
   const router = useRouter()
 
   // ── Step 1: Search ──────────────────────────────────────────────────────────
@@ -421,109 +443,120 @@ function AddManualModal({ onClose }: { onClose: () => void }) {
     }
   }
 
-  if (!selected) {
-    return (
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Add to Player List</DialogTitle>
-          <p className="caption">Search the Player Universe by name or ID</p>
-        </DialogHeader>
+  return (
+    <DrawerContent width="w-150">
+      <DrawerHeader onClose={onClose}>
+        <DrawerTitle>Add to Player List</DrawerTitle>
+      </DrawerHeader>
 
-        <div className="mt-4 flex gap-2">
-          <Input
-            autoFocus
-            className="flex-1"
-            placeholder="Player name"
-            value={nameQuery}
-            onChange={(e) => {
-              setNameQuery(e.target.value)
-              setIdQuery("")
-            }}
-          />
-          <Input
-            className="w-24"
-            placeholder="ID"
-            value={idQuery}
-            onChange={(e) => {
-              setIdQuery(e.target.value)
-              setNameQuery("")
-            }}
-          />
-        </div>
+      <DrawerBody>
+        {!selected ? (
+          <>
+            <p className="caption mb-4">
+              Search the Player Universe by name or ID
+            </p>
+            <div className="flex gap-2">
+              <Input
+                autoFocus
+                className="flex-1"
+                placeholder="Player name"
+                value={nameQuery}
+                onChange={(e) => {
+                  setNameQuery(e.target.value)
+                  setIdQuery("")
+                }}
+              />
+              <Input
+                className="w-40"
+                placeholder="ID"
+                value={idQuery}
+                onChange={(e) => {
+                  setIdQuery(e.target.value)
+                  setNameQuery("")
+                }}
+              />
+            </div>
 
-        {(nameQuery || idQuery) && (
-          <div className="mt-2 max-h-72 overflow-y-auto rounded-lg border border-border">
-            <Suspense
-              fallback={
-                <p className="px-3 py-2 text-sm text-muted-foreground">
-                  Searching…
-                </p>
-              }
+            {(nameQuery || idQuery) && (
+              <div className="mt-3 rounded-lg border border-border">
+                <Suspense
+                  fallback={
+                    <p className="px-3 py-2 text-sm text-muted-foreground">
+                      Searching…
+                    </p>
+                  }
+                >
+                  <SearchResults promise={promise} onSelect={selectPlayer} />
+                </Suspense>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="mb-3 flex gap-2">
+              <IconButton
+                onClick={() => setSelected(null)}
+                className="flex items-center gap-1"
+                aria-label="Return to search"
+              >
+                <ChevronLeftIcon className="h-4 w-4" />
+              </IconButton>
+              <h2>{fields.displayName}</h2>
+            </div>
+            <div className="mb-4 flex gap-4 rounded-lg bg-muted px-3 py-2 text-sm">
+              <span>
+                <span className="text-muted-foreground">Ott ID</span>{" "}
+                <span className="font-medium">{selected.ottoneuId}</span>
+              </span>
+              <span>
+                <span className="text-muted-foreground">FG ID</span>{" "}
+                <span className="font-medium">
+                  {selected.fangraphsId ?? "—"}
+                </span>
+              </span>
+              {selected.positions.length > 0 && (
+                <span>
+                  <span className="text-muted-foreground">Pos</span>{" "}
+                  <span className="font-medium">
+                    {selected.positions.join("/")}
+                  </span>
+                </span>
+              )}
+            </div>
+
+            <PlayerFormGrid
+              fields={fields}
+              onChange={set}
+              autoFocusDisplayName
+            />
+            {error && <p className="mt-3 text-xs text-destructive">{error}</p>}
+          </>
+        )}
+      </DrawerBody>
+
+      <DrawerFooter className="flex items-center justify-between gap-2">
+        {!selected ? (
+          <div className="flex w-full justify-end">
+            <Button variant="secondary" size="md" onClick={onClose}>
+              Cancel
+            </Button>
+          </div>
+        ) : (
+          <div className="flex gap-2 w-full justify-end">
+            <Button variant="secondary" size="md" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              size="md"
+              onClick={handleSave}
+              disabled={status === "saving"}
             >
-              <SearchResults promise={promise} onSelect={selectPlayer} />
-            </Suspense>
+              {status === "saving" ? "Saving…" : "Add Player"}
+            </Button>
           </div>
         )}
-
-        <div className="mt-4 flex justify-end">
-          <Button variant="secondary" size="md" onClick={onClose}>
-            Cancel
-          </Button>
-        </div>
-      </DialogContent>
-    )
-  }
-
-  return (
-    <DialogContent className="max-h-[90vh] overflow-y-auto">
-      <DialogHeader>
-        <DialogTitle>Add to Player List</DialogTitle>
-        <p className="mt-2 font-bold">{fields.displayName}</p>
-      </DialogHeader>
-
-      <div className="mt-3 flex gap-4 rounded-lg bg-muted px-3 py-2 text-sm">
-        <span>
-          <span className="text-muted-foreground">Ott</span>{" "}
-          <span className="font-medium">{selected.ottoneuId}</span>
-        </span>
-        <span>
-          <span className="text-muted-foreground">FG</span>{" "}
-          <span className="font-medium">{selected.fangraphsId ?? "—"}</span>
-        </span>
-        {selected.positions.length > 0 && (
-          <span>
-            <span className="text-muted-foreground">Pos</span>{" "}
-            <span className="font-medium">{selected.positions.join("/")}</span>
-          </span>
-        )}
-      </div>
-
-      <div className="mt-4">
-        <PlayerFormGrid fields={fields} onChange={set} autoFocusDisplayName />
-      </div>
-
-      {error && <p className="mt-3 text-xs text-destructive">{error}</p>}
-
-      <div className="mt-5 flex items-center justify-between gap-2">
-        <Button
-          variant="ghost"
-          size="md"
-          onClick={() => setSelected(null)}
-          className="flex items-center gap-1"
-        >
-          <ChevronLeftIcon className="h-4 w-4" />
-          Back
-        </Button>
-        <div className="flex gap-2">
-          <Button variant="secondary" size="md" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button size="md" onClick={handleSave} disabled={status === "saving"}>
-            {status === "saving" ? "Saving…" : "Add Player"}
-          </Button>
-        </div>
-      </div>
-    </DialogContent>
+      </DrawerFooter>
+    </DrawerContent>
   )
 }
 
@@ -537,6 +570,7 @@ export function PlayersTableAdmin({
   availableSplits,
   statsFilter,
   initialShow = "profiles",
+  playerExports = [],
 }: {
   data: PlayerRow[]
   statRows: StatRow[]
@@ -545,6 +579,7 @@ export function PlayersTableAdmin({
   availableSplits: string[]
   statsFilter: StatsFilter
   initialShow?: "profiles" | "stats"
+  playerExports?: string[]
 }) {
   const router = useRouter()
   const [editingRow, setEditingRow] = useState<PlayerRow | null>(null)
@@ -621,15 +656,22 @@ export function PlayersTableAdmin({
     <>
       <div className="flex items-center gap-4 mb-4">
         <h2 className="min-w-36">Players</h2>
-        <Button
-          variant="secondary"
-          size="md"
-          onClick={() => setAddingManual(true)}
-          className="font-medium"
-        >
-          <PlayerAddIcon size={15} className="shrink-0" />
-          Add Player
-        </Button>
+        <Drawer open={addingManual} onClose={() => setAddingManual(false)}>
+          <DrawerTrigger asChild>
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={() => setAddingManual(true)}
+              className="font-medium"
+            >
+              <PlayerAddIcon size={15} className="shrink-0" />
+              Add Player
+            </Button>
+          </DrawerTrigger>
+          {addingManual && (
+            <AddManualDrawer onClose={() => setAddingManual(false)} />
+          )}
+        </Drawer>
       </div>
 
       <PlayersTable
@@ -640,18 +682,14 @@ export function PlayersTableAdmin({
         availableSplits={availableSplits}
         statsFilter={statsFilter}
         initialShow={initialShow}
+        playerExports={playerExports}
         onEdit={setEditingRow}
         onClearOverride={handleClearOverride}
       />
 
-      <Dialog
-        open={!!editingRow}
-        onOpenChange={(open) => {
-          if (!open) setEditingRow(null)
-        }}
-      >
+      <Drawer open={!!editingRow} onClose={() => setEditingRow(null)}>
         {editingRow && (
-          <EditOverrideModal
+          <EditOverrideDrawer
             key={editingRow.id}
             row={editingRow}
             onClose={() => setEditingRow(null)}
@@ -661,13 +699,7 @@ export function PlayersTableAdmin({
             }}
           />
         )}
-      </Dialog>
-
-      <Dialog open={addingManual} onOpenChange={setAddingManual}>
-        {addingManual && (
-          <AddManualModal onClose={() => setAddingManual(false)} />
-        )}
-      </Dialog>
+      </Drawer>
     </>
   )
 }

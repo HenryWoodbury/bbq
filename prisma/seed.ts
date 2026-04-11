@@ -472,6 +472,7 @@ async function main() {
 
   // Templates must exist before the demo league references them
   await seedLeagueTemplates()
+  await seedDataExports()
 
   // ── Demo League (note: uses placeholder Clerk org ID for dev) ─────────────
   const fgptsTemplate = await prisma.leagueTemplate.findUniqueOrThrow({
@@ -823,4 +824,52 @@ async function seedLeagueTemplates() {
     })
   }
   process.stdout.write(`Seeded ${templates.length} league templates\n`)
+}
+
+async function seedDataExports() {
+  const exports = [
+    {
+      name: "Batcast Batters",
+      scope: "Players" as const,
+      type: "Splits" as const,
+      fields: [
+        "Ottoneu ID",
+        "Fangraphs ID",
+        "Name",
+        "Birthday",
+        "Positions",
+        "Bats",
+        "Throws",
+        "wOBA",
+        "wOBA vs LHP",
+        "wOBA vs RHP",
+      ],
+    },
+    {
+      name: "Batcast Pitchers",
+      scope: "Players" as const,
+      type: "Splits" as const,
+      fields: [
+        "Ottoneu ID",
+        "Fangraphs ID",
+        "Name",
+        "Birthday",
+        "Positions",
+        "Bats",
+        "Throws",
+        "FIP",
+        "wOBA vs LHB",
+        "wOBA vs RHB",
+      ],
+    },
+  ]
+
+  for (const e of exports) {
+    await prisma.dataExport.upsert({
+      where: { name: e.name },
+      update: { scope: e.scope, type: e.type, fields: e.fields },
+      create: { name: e.name, scope: e.scope, type: e.type, fields: e.fields },
+    })
+  }
+  process.stdout.write(`Seeded ${exports.length} data exports\n`)
 }

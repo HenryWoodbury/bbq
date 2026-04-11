@@ -307,6 +307,36 @@ model RosterHistory {
   @@map("roster_history")
 }
 
+// ─── Data Exports ─────────────────────────────────────────────────────────────
+
+enum ExportScope {
+  Players  @map("players")
+  Teams    @map("teams")
+  Leagues  @map("leagues")
+  Platform @map("platform")
+}
+
+enum ExportType {
+  Standard @map("standard")
+  Splits   @map("splits")
+  Profiles @map("profiles")
+}
+
+model DataExport {
+  id        String      @id @default(cuid())
+  /// Human-readable name; unique across all exports
+  name      String      @unique
+  scope     ExportScope
+  type      ExportType
+  /// Ordered list of field names included in this export
+  fields    String[]
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+  deletedAt DateTime?   @map("deleted_at")
+
+  @@map("data_exports")
+}
+
 // ─── League Templates ─────────────────────────────────────────────────────────
 
 enum TemplatePlatform {

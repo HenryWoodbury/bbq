@@ -8,18 +8,22 @@ import { cn } from "@/lib/utils"
 // ── Root ─────────────────────────────────────────────────────────────────────
 
 interface DrawerProps {
-  open: boolean
-  onClose: () => void
+  open?: boolean
+  onClose?: () => void
   children: ReactNode
 }
 
 function Drawer({ open, onClose, children }: DrawerProps) {
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={(o) => !o && onClose()}>
+    <DialogPrimitive.Root open={open} onOpenChange={(o) => !o && onClose?.()}>
       {children}
     </DialogPrimitive.Root>
   )
 }
+
+// ── Trigger ───────────────────────────────────────────────────────────────────
+
+const DrawerTrigger = DialogPrimitive.Trigger
 
 // ── Overlay + Content ─────────────────────────────────────────────────────────
 
@@ -129,6 +133,7 @@ function DrawerFooter({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
 
 export {
   Drawer,
+  DrawerTrigger,
   DrawerContent,
   DrawerHeader,
   DrawerTitle,

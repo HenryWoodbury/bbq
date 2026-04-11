@@ -3,6 +3,7 @@ import { assertAdmin } from "@/lib/auth-helpers"
 import { chunk, parseCSVLine } from "@/lib/csv"
 import { parsePositions } from "@/lib/positions"
 import { prisma } from "@/lib/prisma"
+import { normalizeTeamCode } from "@/lib/team-codes"
 
 interface ParsedRow {
   sfbbId: string
@@ -155,7 +156,7 @@ export async function POST(request: NextRequest) {
         firstName: get("firstName") || null,
         lastName: get("lastName") || null,
         positions: parsePositions(get("positions")),
-        team: get("team") || null,
+        team: normalizeTeamCode(get("team") || null),
         mlbLevel: get("mlbLevel") || null,
         active: get("active").toUpperCase() !== "N",
         birthday,

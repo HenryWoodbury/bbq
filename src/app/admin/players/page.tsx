@@ -146,7 +146,7 @@ async function PlayersTableSection({
 }: {
   params: Record<string, string | undefined>
 }) {
-  const [players, manualOverrides, statSeasons] = await Promise.all([
+  const [players, manualOverrides, statSeasons, playerExports] = await Promise.all([
     prisma.player.findMany({
       where: { deletedAt: null },
       orderBy: { playerName: "asc" },
@@ -214,6 +214,11 @@ async function PlayersTableSection({
       select: { season: true },
       distinct: ["season"],
       orderBy: { season: "desc" },
+    }),
+    prisma.dataExport.findMany({
+      where: { scope: "Players", deletedAt: null },
+      orderBy: { name: "asc" },
+      select: { name: true },
     }),
   ])
 
@@ -390,6 +395,7 @@ async function PlayersTableSection({
       availableSplits={availableSplits}
       statsFilter={statsFilter}
       initialShow={initialShow}
+      playerExports={playerExports.map((e) => e.name)}
     />
   )
 }
