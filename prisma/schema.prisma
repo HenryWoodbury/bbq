@@ -213,9 +213,9 @@ model League {
   /// Maps 1:1 to a Clerk Organization ID — the tenancy boundary
   clerkOrgId    String          @unique @map("clerk_org_id")
   leagueName    String          @map("league_name")
-  /// FK to LeagueTemplate — drives format, platform, draft, roster config
-  templateId    String?         @map("template_id")
-  template      LeagueTemplate? @relation(fields: [templateId], references: [id])
+  /// FK to LeagueFormat — drives format, platform, draft, roster config
+  formatId      String?         @map("format_id")
+  format        LeagueFormat?   @relation(fields: [formatId], references: [id])
   /// URL or deep-link to the league on its host platform. Nullable.
   hostLeagueUrl String?         @map("host_league_url")
   /// Array of 4-digit years the league was active
@@ -227,7 +227,7 @@ model League {
   members LeagueMember[]
   teams   Team[]
 
-  @@index([templateId])
+  @@index([formatId], map: "leagues_format_id_idx")
   @@map("leagues")
 }
 
@@ -337,22 +337,22 @@ model DataExport {
   @@map("data_exports")
 }
 
-// ─── League Templates ─────────────────────────────────────────────────────────
+// ─── League Formats ───────────────────────────────────────────────────────────
 
-enum TemplatePlatform {
+enum FormatPlatform {
   ESPN    @map("ESPN")
   Ottoneu @map("Ottoneu")
   Custom  @map("Custom")
 }
 
-enum TemplatePlayType {
+enum FormatPlayType {
   H2H    @map("H2H")
   Season @map("Season")
 }
 
-/// 5x5 = rotisserie 5×5 | 4x4 = rotisserie 4×4 | fangraphs = FanGraphs linear weights |
-/// sabr = SABR linear weights | points = platform-native points (e.g. ESPN)
-enum TemplateScoring {
+/// FiveX5 = rotisserie 5×5 | FourX4 = rotisserie 4×4 | Fangraphs = FanGraphs linear weights |
+/// SABR = SABR linear weights | Points = platform-native points (e.g. ESPN)
+enum FormatScoring {
   FiveX5    @map("5x5")
   FourX4    @map("4x4")
   Fangraphs @map("fangraphs")
@@ -360,41 +360,41 @@ enum TemplateScoring {
   Points    @map("points")
 }
 
-enum TemplateDraftMode {
+enum FormatDraftMode {
   Live @map("live")
   Slow @map("slow")
 }
 
-enum TemplateDraftType {
+enum FormatDraftType {
   Snake   @map("snake")
   Auction @map("auction")
 }
 
-model LeagueTemplate {
-  id         String            @id @default(uuid())
-  /// Human-readable name; unique across all templates
-  name       String            @unique
-  platform   TemplatePlatform
-  playType   TemplatePlayType  @map("play_type")
-  scoring    TemplateScoring
-  draftMode  TemplateDraftMode @map("draft_mode")
-  draftType  TemplateDraftType @map("draft_type")
-  teams      Int               @default(12)
-  rosterSize Int               @map("roster_size")
+model LeagueFormat {
+  id         String         @id @default(uuid())
+  /// Human-readable name; unique across all formats
+  name       String         @unique
+  platform   FormatPlatform
+  playType   FormatPlayType @map("play_type")
+  scoring    FormatScoring
+  draftMode  FormatDraftMode @map("draft_mode")
+  draftType  FormatDraftType @map("draft_type")
+  teams      Int             @default(12)
+  rosterSize Int             @map("roster_size")
   /// Auction salary cap per team. Null for snake drafts.
   /// Typical defaults: 400 (Ottoneu), 260 (ESPN/Custom auction).
   cap        Int?
   /// Ordered array of roster slot positions, e.g. ["C","1B","OF","OF","P","BN"]
   rosters    Json
-  isActive   Boolean           @default(true) @map("is_active")
-  version    Int               @default(1)
+  isActive   Boolean         @default(true) @map("is_active")
+  version    Int             @default(1)
   description String?
-  rulesText   String?          @map("rules_text")
-  createdAt   DateTime         @default(now()) @map("created_at")
-  updatedAt   DateTime         @updatedAt @map("updated_at")
-  deletedAt   DateTime?        @map("deleted_at")
+  rulesText   String?        @map("rules_text")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+  deletedAt   DateTime?      @map("deleted_at")
 
   leagues League[]
 
-  @@map("league_templates")
+  @@map("league_formats")
 }

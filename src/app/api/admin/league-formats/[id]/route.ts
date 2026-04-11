@@ -2,16 +2,22 @@ import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { assertAdmin } from "@/lib/auth-helpers"
 import { prisma } from "@/lib/prisma"
+import {
+  adminFormatSelect,
+  FORMAT_DRAFT_MODE_VALUES,
+  FORMAT_DRAFT_TYPE_VALUES,
+  FORMAT_PLATFORM_VALUES,
+  FORMAT_PLAY_TYPE_VALUES,
+  FORMAT_SCORING_VALUES,
+} from "@/lib/queries/formats"
 
 const patchSchema = z.object({
   name: z.string().min(1).optional(),
-  platform: z.enum(["ESPN", "Ottoneu", "Custom"]).optional(),
-  playType: z.enum(["H2H", "Season"]).optional(),
-  scoring: z
-    .enum(["FiveX5", "FourX4", "Fangraphs", "SABR", "Points"])
-    .optional(),
-  draftMode: z.enum(["Live", "Slow"]).optional(),
-  draftType: z.enum(["Snake", "Auction"]).optional(),
+  platform: z.enum(FORMAT_PLATFORM_VALUES).optional(),
+  playType: z.enum(FORMAT_PLAY_TYPE_VALUES).optional(),
+  scoring: z.enum(FORMAT_SCORING_VALUES).optional(),
+  draftMode: z.enum(FORMAT_DRAFT_MODE_VALUES).optional(),
+  draftType: z.enum(FORMAT_DRAFT_TYPE_VALUES).optional(),
   teams: z.number().int().positive().optional(),
   rosterSize: z.number().int().positive().optional(),
   cap: z.number().int().positive().nullable().optional(),
@@ -21,23 +27,6 @@ const patchSchema = z.object({
   isActive: z.boolean().optional(),
 })
 
-const TEMPLATE_SELECT = {
-  id: true,
-  name: true,
-  platform: true,
-  playType: true,
-  scoring: true,
-  draftMode: true,
-  draftType: true,
-  teams: true,
-  rosterSize: true,
-  cap: true,
-  rosters: true,
-  isActive: true,
-  version: true,
-  description: true,
-  rulesText: true,
-} as const
 
 type RouteContext = { params: Promise<{ id: string }> }
 
@@ -46,16 +35,16 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
   if (denied) return denied
 
   const { id } = await params
-  const template = await prisma.leagueTemplate.findFirst({
+  const format = await prisma.leagueFormat.findFirst({
     where: { id, deletedAt: null },
-    select: { ...TEMPLATE_SELECT, createdAt: true, updatedAt: true },
+    select: { ...adminFormatSelect, createdAt: true, updatedAt: true },
   })
 
-  if (!template) {
+  if (!format) {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
-  return NextResponse.json(template)
+  return NextResponse.json(format)
 }
 
 export async function PATCH(request: NextRequest, { params }: RouteContext) {
@@ -70,7 +59,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
 
-  const existing = await prisma.leagueTemplate.findFirst({
+  const existing = await prisma.leagueFormat.findFirst({
     where: { id, deletedAt: null },
   })
   if (!existing) {
@@ -94,18 +83,18 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
   } = parsed.data
 
   if (name !== undefined && name !== existing.name) {
-    const nameConflict = await prisma.leagueTemplate.findUnique({
+    const nameConflict = await prisma.leagueFormat.findUnique({
       where: { name },
     })
     if (nameConflict) {
       return NextResponse.json(
-        { error: `A template named "${name}" already exists` },
+        { error: `A format named "${name}" already exists` },
         { status: 409 },
       )
     }
   }
 
-  const updated = await prisma.leagueTemplate.update({
+  const updated = await prisma.leagueFormat.update({
     where: { id },
     data: {
       ...(name !== undefined && { name }),
@@ -125,7 +114,7 @@ export async function PATCH(request: NextRequest, { params }: RouteContext) {
       ...(rulesText !== undefined && { rulesText }),
       ...(isActive !== undefined && { isActive }),
     },
-    select: { ...TEMPLATE_SELECT, createdAt: true, updatedAt: true },
+    select: { ...adminFormatSelect, createdAt: true, updatedAt: true },
   })
 
   return NextResponse.json(updated)
@@ -136,14 +125,14 @@ export async function DELETE(_request: NextRequest, { params }: RouteContext) {
   if (denied) return denied
 
   const { id } = await params
-  const existing = await prisma.leagueTemplate.findFirst({
+  const existing = await prisma.leagueFormat.findFirst({
     where: { id, deletedAt: null },
   })
   if (!existing) {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
 
-  await prisma.leagueTemplate.update({
+  await prisma.leagueFormat.update({
     where: { id },
     data: { deletedAt: new Date() },
   })

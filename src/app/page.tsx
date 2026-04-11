@@ -5,6 +5,7 @@ import { Suspense } from "react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { prisma } from "@/lib/prisma"
+import { scoringLabel } from "@/lib/queries/formats"
 
 export default async function HomePage() {
   const { userId } = await auth()
@@ -31,7 +32,7 @@ async function LeagueList({ userId }: { userId: string }) {
       id: true,
       leagueName: true,
       seasons: true,
-      template: { select: { scoring: true } },
+      format: { select: { scoring: true } },
       _count: {
         select: {
           members: true,
@@ -107,7 +108,7 @@ type LeagueSummary = {
   id: string
   leagueName: string
   seasons: number[]
-  template: { scoring: string } | null
+  format: { scoring: string } | null
   _count: { members: number; teams: number }
 }
 
@@ -115,22 +116,7 @@ function LeagueCard({ league }: { league: LeagueSummary }) {
   const currentSeason =
     league.seasons.length > 0 ? Math.max(...league.seasons) : null
 
-  const scoringLabel = (() => {
-    switch (league.template?.scoring) {
-      case "FiveX5":
-        return "5×5"
-      case "FourX4":
-        return "4×4"
-      case "Fangraphs":
-        return "FGPTs"
-      case "SABR":
-        return "SABR"
-      case "Points":
-        return "Points"
-      default:
-        return "—"
-    }
-  })()
+  const scoring = scoringLabel(league.format?.scoring)
 
   return (
     <Link
@@ -139,7 +125,7 @@ function LeagueCard({ league }: { league: LeagueSummary }) {
     >
       <h2 className="font-semibold text-foreground">{league.leagueName}</h2>
       <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-        <Stat label="Format" value={scoringLabel} />
+        <Stat label="Format" value={scoring} />
         <Stat label="Season" value={currentSeason?.toString() ?? "—"} />
         <Stat label="Teams" value={league._count.teams} />
         <Stat label="Members" value={league._count.members} />

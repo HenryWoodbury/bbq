@@ -15,7 +15,7 @@ export const getLeagueById = cache((id: string) =>
       hostLeagueUrl: true,
       seasons: true,
       _count: { select: { members: true, teams: true } },
-      template: {
+      format: {
         select: {
           platform: true,
           playType: true,

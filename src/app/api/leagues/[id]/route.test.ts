@@ -27,7 +27,7 @@ const mockLeague = {
   id: "league-1",
   clerkOrgId: "org_test",
   leagueName: "Test League",
-  templateId: null,
+  formatId: null,
   hostLeagueUrl: null,
   seasons: [],
   createdAt: new Date(),

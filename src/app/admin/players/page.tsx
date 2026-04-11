@@ -4,6 +4,7 @@ import type {
   StatRow,
   StatsFilter,
 } from "@/components/players-table"
+import { TableSkeleton } from "@/components/table-skeleton"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   StatPlayerType,
@@ -225,7 +226,9 @@ async function PlayersTableSection({
   // ── Stats filter params ──────────────────────────────────────────────────
   const availableYears = statSeasons.map((s) => s.season)
   const playerType =
-    params.spt === "PITCHER" ? StatPlayerType.PITCHER : StatPlayerType.BATTER
+    params.spt === "PITCHER" || params.show === "pitching"
+      ? StatPlayerType.PITCHER
+      : StatPlayerType.BATTER
   const season = availableYears.includes(Number(params.sse))
     ? Number(params.sse)
     : (availableYears[0] ?? new Date().getFullYear())
@@ -383,8 +386,12 @@ async function PlayersTableSection({
 
   const allRows = [...playerRows, ...manualRows]
 
-  const initialShow: "profiles" | "stats" =
-    params.show === "stats" ? "stats" : "profiles"
+  const initialShow: "profiles" | "batting" | "pitching" =
+    params.show === "batting"
+      ? "batting"
+      : params.show === "pitching"
+        ? "pitching"
+        : "profiles"
 
   return (
     <PlayersTableAdmin
@@ -414,23 +421,4 @@ function SyncStatusSkeleton() {
   )
 }
 
-const SKELETON_ROW_KEYS = "abcdefghijklmnopqrstuvwxyz".split("")
-
-export function TableSkeleton({ rows }: { rows: number }) {
-  return (
-    <div className="overflow-hidden rounded-lg border border-border">
-      <div className="h-10 border-b border-border bg-muted/30" />
-      {SKELETON_ROW_KEYS.slice(0, rows).map((key) => (
-        <div
-          key={key}
-          className="flex gap-4 border-b border-border px-4 py-3 last:border-0"
-        >
-          <Skeleton className="h-4 w-32" />
-          <Skeleton className="h-4 w-16" />
-          <Skeleton className="h-4 w-20" />
-          <Skeleton className="h-4 flex-1" />
-        </div>
-      ))}
-    </div>
-  )
-}
+export { TableSkeleton } from "@/components/table-skeleton"

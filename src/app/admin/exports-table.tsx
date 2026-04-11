@@ -5,7 +5,6 @@ import { PencilIcon, PlusIcon, Trash2Icon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { DataTable } from "@/components/data-table"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Drawer,
@@ -21,12 +20,13 @@ import { IconButton } from "@/components/ui/icon-button"
 import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import type { ExportScope, ExportType } from "@/generated/prisma/client"
 
 export type ExportRow = {
   id: string
   name: string
-  scope: "Players" | "Teams" | "Leagues" | "Platform"
-  type: "Standard" | "Splits" | "Profiles"
+  scope: ExportScope
+  type: ExportType
   fields: string[]
 }
 
@@ -120,7 +120,9 @@ function ExportForm({
     <DrawerContent width="w-120">
       <DrawerHeader onClose={onClose}>
         <DrawerTitle>
-          {mode === "create" ? "New Data Export" : `Edit Export — ${initial.name}`}
+          {mode === "create"
+            ? "New Data Export"
+            : `Edit Export — ${initial.name}`}
         </DrawerTitle>
       </DrawerHeader>
       <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
@@ -222,9 +224,7 @@ function DeleteButton({ row }: { row: ExportRow }) {
   const [pending, setPending] = useState(false)
 
   async function handleDelete() {
-    if (
-      !window.confirm(`Delete export "${row.name}"? This cannot be undone.`)
-    )
+    if (!window.confirm(`Delete export "${row.name}"? This cannot be undone.`))
       return
     setPending(true)
     try {
@@ -251,36 +251,35 @@ const columns: ColumnDef<ExportRow, unknown>[] = [
   {
     accessorKey: "name",
     header: "Name",
-    size: 200,
+    size: 180,
     cell: ({ getValue }) => (
-      <span className="font-medium text-foreground">{getValue() as string}</span>
+      <span className="font-medium text-foreground">
+        {getValue() as string}
+      </span>
     ),
   },
   {
     accessorKey: "scope",
     header: "Scope",
     size: 90,
-    cell: ({ getValue }) => <Badge>{getValue() as string}</Badge>,
+    cell: ({ getValue }) => getValue() as string,
   },
   {
     accessorKey: "type",
     header: "Type",
     size: 90,
-    cell: ({ getValue }) => <Badge variant="secondary">{getValue() as string}</Badge>,
+    cell: ({ getValue }) => getValue() as string,
   },
   {
     accessorKey: "fields",
     header: "Fields",
-    cell: ({ getValue }) => (
-      <span className="text-xs text-muted-foreground">
-        {(getValue() as string[]).join(", ")}
-      </span>
-    ),
+    size: 450,
+    cell: ({ getValue }) => (getValue() as string[]).join(", "),
   },
   {
     id: "actions",
     header: "",
-    size: 64,
+    size: 60,
     cell: ({ row }) => (
       <div className="flex items-center gap-1">
         <EditDrawer row={row.original} />

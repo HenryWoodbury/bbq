@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
 
   const league = await prisma.league.findFirst({
     where: { id: leagueId, deletedAt: null },
-    include: { template: { select: { cap: true } } },
+    include: { format: { select: { cap: true } } },
   })
   if (!league) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
       financeData: financeData ?? {
         loans_in: 0,
         loans_out: 0,
-        budget: league.template?.cap ?? 0,
+        budget: league.format?.cap ?? 0,
         spent: 0,
       },
       managers: {

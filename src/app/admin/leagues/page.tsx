@@ -18,7 +18,7 @@ export default async function AdminLeaguesPage() {
         id: true,
         leagueName: true,
         seasons: true,
-        template: { select: { name: true, platform: true, scoring: true } },
+        format: { select: { name: true, platform: true, scoring: true } },
         _count: {
           select: { members: true, teams: { where: { deletedAt: null } } },
         },

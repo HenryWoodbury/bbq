@@ -1,16 +1,16 @@
 import { SectionCollapsible } from "@/components/section-collapsible"
 import { requireAdmin } from "@/lib/auth-helpers"
 import { prisma } from "@/lib/prisma"
-import { type ExportRow, ExportsTable } from "../exports-table"
-import { TemplatesTable } from "../templates-table"
+import { ExportsTable } from "../exports-table"
+import { FormatsTable } from "../formats-table"
 
 export const metadata = { title: "League Templates — BBQ" }
 
 export default async function AdminTemplatesPage() {
   await requireAdmin()
 
-  const [templates, dataExports] = await Promise.all([
-    prisma.leagueTemplate.findMany({
+  const [leagueFormats, dataExports] = await Promise.all([
+    prisma.leagueFormat.findMany({
       where: { deletedAt: null },
       orderBy: { name: "asc" },
       select: {
@@ -38,23 +38,23 @@ export default async function AdminTemplatesPage() {
     }),
   ])
 
-  const exportRows: ExportRow[] = dataExports.map((e) => ({
+  const exportRows = dataExports.map((e) => ({
     id: e.id,
     name: e.name,
-    scope: e.scope as ExportRow["scope"],
-    type: e.type as ExportRow["type"],
+    scope: e.scope,
+    type: e.type,
     fields: e.fields,
   }))
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="page-layout flex flex-col gap-4">
       <h1 className="page-title">Templates</h1>
 
       <SectionCollapsible title="Game Formats" size="md" defaultOpen={false}>
-        <TemplatesTable data={templates} />
+        <FormatsTable data={leagueFormats} />
       </SectionCollapsible>
 
-      <SectionCollapsible title="Data Exports" size="md" defaultOpen={false}>
+      <SectionCollapsible title="Data Exports" size="md">
         <ExportsTable data={exportRows} />
       </SectionCollapsible>
     </div>

@@ -27,7 +27,7 @@ function profileStatusText(
     syncTs && (!uploadTs || new Date(syncTs) >= new Date(uploadTs))
   return isSyncMoreRecent
     ? `Last sync ${new Date(syncTs).toLocaleString()}`
-    : `Last upload ${new Date(uploadTs!).toLocaleString()}`
+    : uploadTs ? `Last upload ${new Date(uploadTs).toLocaleString()}` : ""
 }
 
 export function PlayersSync({

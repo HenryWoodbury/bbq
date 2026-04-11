@@ -5,7 +5,6 @@ import { PencilIcon, PlusIcon, Trash2Icon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { DataTable } from "@/components/data-table"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -23,16 +22,22 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import type {
+  FormatDraftMode,
+  FormatDraftType,
+  FormatPlatform,
+  FormatPlayType,
+  FormatScoring,
+} from "@/generated/prisma/client"
 
-// Scoring uses Prisma enum names (FiveX5 etc.) since @map only affects DB storage
-export type TemplateRow = {
+export type FormatRow = {
   id: string
   name: string
-  platform: "ESPN" | "Ottoneu" | "Custom"
-  playType: "H2H" | "Season"
-  scoring: "FiveX5" | "FourX4" | "Fangraphs" | "SABR" | "Points"
-  draftMode: "Live" | "Slow"
-  draftType: "Snake" | "Auction"
+  platform: FormatPlatform
+  playType: FormatPlayType
+  scoring: FormatScoring
+  draftMode: FormatDraftMode
+  draftType: FormatDraftType
   teams: number
   rosterSize: number
   cap: number | null
@@ -45,11 +50,11 @@ export type TemplateRow = {
 
 type FormState = {
   name: string
-  platform: "ESPN" | "Ottoneu" | "Custom"
-  playType: "H2H" | "Season"
-  scoring: "FiveX5" | "FourX4" | "Fangraphs" | "SABR" | "Points"
-  draftMode: "Live" | "Slow"
-  draftType: "Snake" | "Auction"
+  platform: FormatPlatform
+  playType: FormatPlayType
+  scoring: FormatScoring
+  draftMode: FormatDraftMode
+  draftType: FormatDraftType
   teams: string
   rosterSize: string
   cap: string
@@ -76,7 +81,7 @@ const EMPTY_FORM: FormState = {
   isActive: true,
 }
 
-function toFormState(row: TemplateRow): FormState {
+function toFormState(row: FormatRow): FormState {
   return {
     name: row.name,
     platform: row.platform,
@@ -94,16 +99,16 @@ function toFormState(row: TemplateRow): FormState {
   }
 }
 
-function TemplateForm({
+function FormatForm({
   mode,
   initial,
-  templateId,
+  formatId,
   onClose,
   onDone,
 }: {
   mode: "create" | "edit"
   initial: FormState
-  templateId?: string
+  formatId?: string
   onClose: () => void
   onDone: () => void
 }) {
@@ -144,8 +149,8 @@ function TemplateForm({
     try {
       const url =
         mode === "create"
-          ? "/api/admin/league-templates"
-          : `/api/admin/league-templates/${templateId}`
+          ? "/api/admin/league-formats"
+          : `/api/admin/league-formats/${formatId}`
 
       const res = await fetch(url, {
         method: mode === "create" ? "POST" : "PATCH",
@@ -187,7 +192,9 @@ function TemplateForm({
     <DrawerContent width="w-150">
       <DrawerHeader onClose={onClose}>
         <DrawerTitle>
-          {mode === "create" ? "New League Template" : `Edit Template — ${initial.name}`}
+          {mode === "create"
+            ? "New League Template"
+            : `Edit Template — ${initial.name}`}
         </DrawerTitle>
       </DrawerHeader>
       <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
@@ -352,7 +359,7 @@ function TemplateForm({
   )
 }
 
-function EditDrawer({ row }: { row: TemplateRow }) {
+function EditDrawer({ row }: { row: FormatRow }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
 
@@ -367,10 +374,10 @@ function EditDrawer({ row }: { row: TemplateRow }) {
         </IconButton>
       </DrawerTrigger>
       {open && (
-        <TemplateForm
+        <FormatForm
           mode="edit"
           initial={toFormState(row)}
-          templateId={row.id}
+          formatId={row.id}
           onClose={() => setOpen(false)}
           onDone={() => {
             setOpen(false)
@@ -382,7 +389,7 @@ function EditDrawer({ row }: { row: TemplateRow }) {
   )
 }
 
-function DeleteButton({ row }: { row: TemplateRow }) {
+function DeleteButton({ row }: { row: FormatRow }) {
   const router = useRouter()
   const [pending, setPending] = useState(false)
 
@@ -393,7 +400,7 @@ function DeleteButton({ row }: { row: TemplateRow }) {
       return
     setPending(true)
     try {
-      await fetch(`/api/admin/league-templates/${row.id}`, { method: "DELETE" })
+      await fetch(`/api/admin/league-formats/${row.id}`, { method: "DELETE" })
       router.refresh()
     } finally {
       setPending(false)
@@ -412,7 +419,7 @@ function DeleteButton({ row }: { row: TemplateRow }) {
   )
 }
 
-const SCORING_LABEL: Record<TemplateRow["scoring"], string> = {
+const SCORING_LABEL: Record<FormatScoring, string> = {
   FiveX5: "5×5",
   FourX4: "4×4",
   Fangraphs: "FGPTs",
@@ -420,11 +427,11 @@ const SCORING_LABEL: Record<TemplateRow["scoring"], string> = {
   Points: "Points",
 }
 
-const columns: ColumnDef<TemplateRow, unknown>[] = [
+const columns: ColumnDef<FormatRow, unknown>[] = [
   {
     accessorKey: "name",
     header: "Name",
-    size: 200,
+    size: 180,
     cell: ({ getValue }) => (
       <span className="font-medium text-foreground">
         {getValue() as string}
@@ -435,46 +442,32 @@ const columns: ColumnDef<TemplateRow, unknown>[] = [
     accessorKey: "platform",
     header: "Platform",
     size: 90,
-    cell: ({ getValue }) => <Badge>{getValue() as string}</Badge>,
+    cell: ({ getValue }) => getValue() as string,
   },
   {
     accessorKey: "playType",
     header: "Type",
-    size: 70,
-    cell: ({ getValue }) => (
-      <span className="text-xs text-muted-foreground">
-        {getValue() as string}
-      </span>
-    ),
+    size: 80,
+    cell: ({ getValue }) => getValue() as string,
   },
   {
     accessorKey: "scoring",
     header: "Scoring",
     size: 80,
-    cell: ({ getValue }) => (
-      <span className="text-xs text-muted-foreground">
-        {SCORING_LABEL[getValue() as TemplateRow["scoring"]]}
-      </span>
-    ),
+    cell: ({ getValue }) => SCORING_LABEL[getValue() as FormatRow["scoring"]],
   },
   {
     accessorKey: "draftType",
     header: "Draft",
-    size: 70,
-    cell: ({ getValue }) => (
-      <span className="text-xs capitalize text-muted-foreground">
-        {getValue() as string}
-      </span>
-    ),
+    size: 80,
+    cell: ({ getValue }) => getValue() as string,
   },
   {
     accessorKey: "teams",
     header: "Teams",
     size: 60,
     cell: ({ getValue }) => (
-      <span className="tabular-nums text-xs text-muted-foreground">
-        {getValue() as number}
-      </span>
+      <span className="tabular-nums">{getValue() as number}</span>
     ),
   },
   {
@@ -482,9 +475,7 @@ const columns: ColumnDef<TemplateRow, unknown>[] = [
     header: "Roster",
     size: 60,
     cell: ({ getValue }) => (
-      <span className="tabular-nums text-xs text-muted-foreground">
-        {getValue() as number}
-      </span>
+      <span className="tabular-nums">{getValue() as number}</span>
     ),
   },
   {
@@ -493,28 +484,19 @@ const columns: ColumnDef<TemplateRow, unknown>[] = [
     size: 60,
     cell: ({ getValue }) => {
       const v = getValue() as number | null
-      return (
-        <span className="tabular-nums text-xs text-muted-foreground">
-          {v !== null ? `$${v}` : "—"}
-        </span>
-      )
+      return <span className="tabular-nums">{v !== null ? `$${v}` : "—"}</span>
     },
   },
   {
     accessorKey: "isActive",
     header: "Active",
     size: 70,
-    cell: ({ getValue }) =>
-      getValue() ? (
-        <Badge>Active</Badge>
-      ) : (
-        <Badge variant="warning">Inactive</Badge>
-      ),
+    cell: ({ getValue }) => (getValue() ? "Active" : "Inactive"),
   },
   {
     id: "actions",
     header: "",
-    size: 64,
+    size: 60,
     cell: ({ row }) => (
       <div className="flex items-center gap-1">
         <EditDrawer row={row.original} />
@@ -524,7 +506,7 @@ const columns: ColumnDef<TemplateRow, unknown>[] = [
   },
 ]
 
-export function TemplatesTable({ data }: { data: TemplateRow[] }) {
+export function FormatsTable({ data }: { data: FormatRow[] }) {
   const router = useRouter()
   const [createOpen, setCreateOpen] = useState(false)
 
@@ -544,7 +526,7 @@ export function TemplatesTable({ data }: { data: TemplateRow[] }) {
             </Button>
           </DrawerTrigger>
           {createOpen && (
-            <TemplateForm
+            <FormatForm
               mode="create"
               initial={EMPTY_FORM}
               onClose={() => setCreateOpen(false)}

@@ -5,6 +5,7 @@ import { parsePositions } from "@/lib/positions"
 import { prisma } from "@/lib/prisma"
 import { reconcilePlayerIds } from "@/lib/reconcile-player-ids"
 import { normalizeTeamCode } from "@/lib/team-codes"
+import { toInt } from "@/lib/parse-utils"
 
 const SFBB_URL = "https://www.smartfantasybaseball.com/PLAYERIDMAPCSV"
 const BATCH_SIZE = 500
@@ -64,11 +65,6 @@ interface ParsedRow {
   ottoneuId: number | null
 }
 
-function toInt(raw: string): number | null {
-  if (!raw) return null
-  const n = parseInt(raw, 10)
-  return Number.isNaN(n) ? null : n
-}
 
 export async function POST(request: NextRequest) {
   const denied = await assertAdmin()

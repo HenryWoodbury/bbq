@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation"
 import { getLeagueById } from "@/lib/queries/leagues"
+import { scoringLabel } from "@/lib/queries/formats"
 
 type Props = {
   params: Promise<{ id: string }>
@@ -14,37 +15,22 @@ export default async function LeaguePage({ params }: Props) {
   const latestSeason =
     league.seasons.length > 0 ? Math.max(...league.seasons) : null
 
-  const scoringLabel = (() => {
-    switch (league.template?.scoring) {
-      case "FiveX5":
-        return "5×5"
-      case "FourX4":
-        return "4×4"
-      case "Fangraphs":
-        return "FGPTs"
-      case "SABR":
-        return "SABR"
-      case "Points":
-        return "Points"
-      default:
-        return "—"
-    }
-  })()
+  const scoring = scoringLabel(league.format?.scoring)
 
-  const typeLabel = league.template
-    ? [league.template.draftType, league.template.playType].join(" · ")
+  const typeLabel = league.format
+    ? [league.format.draftType, league.format.playType].join(" · ")
     : "—"
 
   return (
     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      <InfoCard label="Format" value={scoringLabel} />
-      <InfoCard label="Platform" value={league.template?.platform ?? "—"} />
+      <InfoCard label="Format" value={scoring} />
+      <InfoCard label="Platform" value={league.format?.platform ?? "—"} />
       <InfoCard label="Season" value={latestSeason?.toString() ?? "—"} />
       <InfoCard label="Teams" value={league._count.teams.toString()} />
       <InfoCard label="Members" value={league._count.members.toString()} />
       <InfoCard label="Type" value={typeLabel} />
-      {league.template?.cap != null && (
-        <InfoCard label="Cap" value={`$${league.template.cap}`} />
+      {league.format?.cap != null && (
+        <InfoCard label="Cap" value={`$${league.format.cap}`} />
       )}
       {league.hostLeagueUrl && (
         <div className="card p-4">

@@ -15,7 +15,8 @@
 
 import "dotenv/config"
 import { readdirSync, readFileSync } from "node:fs"
-import { join, resolve } from "node:path"
+import { fileURLToPath } from "node:url"
+import { dirname, join, resolve } from "node:path"
 import { PrismaPg } from "@prisma/adapter-pg"
 import { PrismaClient } from "../src/generated/prisma/client"
 import { reconcilePlayerIds } from "../src/lib/reconcile-player-ids"
@@ -68,7 +69,7 @@ function toInt(raw: string): number | null {
 }
 
 // ── File resolution ───────────────────────────────────────────────────────────
-const ROOT = resolve(__dirname, "..")
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 
 function resolveGlob(dir: string, prefix: string): string {
   const files = readdirSync(dir).filter(

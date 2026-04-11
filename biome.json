@@ -21,7 +21,7 @@
         "noLabelWithoutControl": "off"
       },
       "style": {
-        "noNonNullAssertion": "off"
+        "noNonNullAssertion": "warn"
       }
     }
   },

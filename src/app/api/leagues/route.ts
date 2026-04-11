@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server"
 import { type NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { templateSelect } from "@/lib/queries/templates"
+import { formatSelect } from "@/lib/queries/formats"
 
 export async function GET() {
   const { userId } = await auth.protect()
@@ -15,7 +15,7 @@ export async function GET() {
     include: {
       teams: { where: { deletedAt: null } },
       members: { where: { deletedAt: null } },
-      template: { select: templateSelect },
+      format: { select: formatSelect },
     },
   })
 
@@ -26,9 +26,9 @@ export async function POST(request: NextRequest) {
   const { orgId, userId } = await auth.protect()
 
   const body = await request.json()
-  const { leagueName, templateId, seasons } = body as {
+  const { leagueName, formatId, seasons } = body as {
     leagueName: string
-    templateId: string
+    formatId: string
     seasons?: number[]
   }
 
@@ -39,18 +39,18 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  if (!leagueName || !templateId) {
+  if (!leagueName || !formatId) {
     return NextResponse.json(
-      { error: "leagueName and templateId are required" },
+      { error: "leagueName and formatId are required" },
       { status: 400 },
     )
   }
 
-  const template = await prisma.leagueTemplate.findUnique({
-    where: { id: templateId },
+  const leagueFormat = await prisma.leagueFormat.findUnique({
+    where: { id: formatId },
   })
-  if (!template) {
-    return NextResponse.json({ error: "Template not found" }, { status: 404 })
+  if (!leagueFormat) {
+    return NextResponse.json({ error: "Format not found" }, { status: 404 })
   }
 
   const existing = await prisma.league.findUnique({
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     data: {
       clerkOrgId: orgId,
       leagueName,
-      templateId,
+      formatId,
       seasons: seasons ?? [],
       members: {
         create: {
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     },
     include: {
       members: true,
-      template: { select: templateSelect },
+      format: { select: formatSelect },
     },
   })
 

@@ -1,3 +1,4 @@
+import "dotenv/config"
 import { PrismaPg } from "@prisma/adapter-pg"
 import { PrismaClient } from "../src/generated/prisma/client"
 
@@ -471,21 +472,21 @@ async function main() {
   })
 
   // Templates must exist before the demo league references them
-  await seedLeagueTemplates()
+  await seedLeagueFormats()
   await seedDataExports()
 
   // ── Demo League (note: uses placeholder Clerk org ID for dev) ─────────────
-  const fgptsTemplate = await prisma.leagueTemplate.findUniqueOrThrow({
+  const fgptsTemplate = await prisma.leagueFormat.findUniqueOrThrow({
     where: { name: "Ottoneu FGPTs" },
   })
 
   const league = await prisma.league.upsert({
     where: { clerkOrgId: "org_dev_placeholder" },
-    update: { templateId: fgptsTemplate.id },
+    update: { formatId: fgptsTemplate.id },
     create: {
       clerkOrgId: "org_dev_placeholder",
       leagueName: "BBQ Demo League",
-      templateId: fgptsTemplate.id,
+      formatId: fgptsTemplate.id,
       hostLeagueUrl: null,
       seasons: [2024, 2025],
     },
@@ -527,7 +528,7 @@ main()
   })
   .finally(() => prisma.$disconnect())
 
-async function seedLeagueTemplates() {
+async function seedLeagueFormats() {
   // Roster slot arrays — BN covers bench, minors, and IL (no separation at draft time)
   const ESPN_ROSTER: string[] = [
     "C",
@@ -604,7 +605,7 @@ async function seedLeagueTemplates() {
   ]
 
   // Prisma enum names (TS values) differ from @map DB values
-  type TemplateInput = {
+  type FormatInput = {
     name: string
     platform: "ESPN" | "Ottoneu" | "Custom"
     playType: "H2H" | "Season"
@@ -619,7 +620,7 @@ async function seedLeagueTemplates() {
     rulesText: string
   }
 
-  const templates: TemplateInput[] = [
+  const templates: FormatInput[] = [
     {
       name: "Custom",
       platform: "Custom",
@@ -792,7 +793,7 @@ async function seedLeagueTemplates() {
   ]
 
   for (const t of templates) {
-    await prisma.leagueTemplate.upsert({
+    await prisma.leagueFormat.upsert({
       where: { name: t.name },
       update: {
         platform: t.platform,
@@ -823,7 +824,7 @@ async function seedLeagueTemplates() {
       },
     })
   }
-  process.stdout.write(`Seeded ${templates.length} league templates\n`)
+  process.stdout.write(`Seeded ${templates.length} league formats\n`)
 }
 
 async function seedDataExports() {

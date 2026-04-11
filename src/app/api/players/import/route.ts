@@ -4,6 +4,7 @@ import { chunk, parseCSVLine } from "@/lib/csv"
 import { parsePositions } from "@/lib/positions"
 import { prisma } from "@/lib/prisma"
 import { normalizeTeamCode } from "@/lib/team-codes"
+import { toInt } from "@/lib/parse-utils"
 
 interface ParsedRow {
   sfbbId: string
@@ -119,11 +120,6 @@ export async function POST(request: NextRequest) {
       if (!rawName)
         addError({ row: rowNum, field: "PLAYERNAME", message: "Required" })
 
-      const toInt = (raw: string): number | null => {
-        if (!raw) return null
-        const n = parseInt(raw, 10)
-        return Number.isNaN(n) ? null : n
-      }
 
       const rawFgId = get("fgId")
       const fangraphsId: string | null = rawFgId || null

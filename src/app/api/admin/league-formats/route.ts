@@ -2,14 +2,22 @@ import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { assertAdmin } from "@/lib/auth-helpers"
 import { prisma } from "@/lib/prisma"
+import {
+  adminFormatSelect,
+  FORMAT_DRAFT_MODE_VALUES,
+  FORMAT_DRAFT_TYPE_VALUES,
+  FORMAT_PLATFORM_VALUES,
+  FORMAT_PLAY_TYPE_VALUES,
+  FORMAT_SCORING_VALUES,
+} from "@/lib/queries/formats"
 
-const templateSchema = z.object({
+const formatSchema = z.object({
   name: z.string().min(1),
-  platform: z.enum(["ESPN", "Ottoneu", "Custom"]),
-  playType: z.enum(["H2H", "Season"]),
-  scoring: z.enum(["FiveX5", "FourX4", "Fangraphs", "SABR", "Points"]),
-  draftMode: z.enum(["Live", "Slow"]),
-  draftType: z.enum(["Snake", "Auction"]),
+  platform: z.enum(FORMAT_PLATFORM_VALUES),
+  playType: z.enum(FORMAT_PLAY_TYPE_VALUES),
+  scoring: z.enum(FORMAT_SCORING_VALUES),
+  draftMode: z.enum(FORMAT_DRAFT_MODE_VALUES),
+  draftType: z.enum(FORMAT_DRAFT_TYPE_VALUES),
   teams: z.number().int().positive().default(12),
   rosterSize: z.number().int().positive(),
   cap: z.number().int().positive().nullable(),
@@ -19,35 +27,18 @@ const templateSchema = z.object({
   isActive: z.boolean().optional(),
 })
 
-const TEMPLATE_SELECT = {
-  id: true,
-  name: true,
-  platform: true,
-  playType: true,
-  scoring: true,
-  draftMode: true,
-  draftType: true,
-  teams: true,
-  rosterSize: true,
-  cap: true,
-  rosters: true,
-  isActive: true,
-  version: true,
-  description: true,
-  rulesText: true,
-} as const
 
 export async function GET() {
   const denied = await assertAdmin()
   if (denied) return denied
 
-  const templates = await prisma.leagueTemplate.findMany({
+  const formats = await prisma.leagueFormat.findMany({
     where: { deletedAt: null },
     orderBy: { name: "asc" },
-    select: { ...TEMPLATE_SELECT, createdAt: true, updatedAt: true },
+    select: { ...adminFormatSelect, createdAt: true, updatedAt: true },
   })
 
-  return NextResponse.json(templates)
+  return NextResponse.json(formats)
 }
 
 export async function POST(request: NextRequest) {
@@ -55,7 +46,7 @@ export async function POST(request: NextRequest) {
   if (denied) return denied
 
   const body = await request.json().catch(() => null)
-  const parsed = templateSchema.safeParse(body)
+  const parsed = formatSchema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
@@ -76,15 +67,15 @@ export async function POST(request: NextRequest) {
     isActive,
   } = parsed.data
 
-  const existing = await prisma.leagueTemplate.findUnique({ where: { name } })
+  const existing = await prisma.leagueFormat.findUnique({ where: { name } })
   if (existing) {
     return NextResponse.json(
-      { error: `A template named "${name}" already exists` },
+      { error: `A format named "${name}" already exists` },
       { status: 409 },
     )
   }
 
-  const template = await prisma.leagueTemplate.create({
+  const format = await prisma.leagueFormat.create({
     data: {
       name,
       platform,
@@ -100,8 +91,8 @@ export async function POST(request: NextRequest) {
       rulesText: rulesText ?? null,
       isActive: isActive ?? true,
     },
-    select: { ...TEMPLATE_SELECT, createdAt: true, updatedAt: true },
+    select: { ...adminFormatSelect, createdAt: true, updatedAt: true },
   })
 
-  return NextResponse.json(template, { status: 201 })
+  return NextResponse.json(format, { status: 201 })
 }

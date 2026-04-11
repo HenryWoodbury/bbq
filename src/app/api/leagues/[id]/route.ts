@@ -3,7 +3,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { LeagueMemberRole } from "@/generated/prisma/client"
 import { assertLeagueRole } from "@/lib/auth-helpers"
 import { prisma } from "@/lib/prisma"
-import { templateSelect } from "@/lib/queries/templates"
+import { formatSelect } from "@/lib/queries/formats"
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -12,7 +12,7 @@ async function resolveLeague(id: string, userId: string) {
     where: { id, deletedAt: null },
     include: {
       members: { where: { clerkUserId: userId, deletedAt: null } },
-      template: { select: templateSelect },
+      format: { select: formatSelect },
     },
   })
   return league?.members.length ? league : null
@@ -44,18 +44,18 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   if (!league) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
   const body = await request.json()
-  const { leagueName, templateId, seasons } = body as {
+  const { leagueName, formatId, seasons } = body as {
     leagueName?: string
-    templateId?: string
+    formatId?: string
     seasons?: number[]
   }
 
-  if (templateId !== undefined) {
-    const template = await prisma.leagueTemplate.findUnique({
-      where: { id: templateId },
+  if (formatId !== undefined) {
+    const leagueFormat = await prisma.leagueFormat.findUnique({
+      where: { id: formatId },
     })
-    if (!template) {
-      return NextResponse.json({ error: "Template not found" }, { status: 404 })
+    if (!leagueFormat) {
+      return NextResponse.json({ error: "Format not found" }, { status: 404 })
     }
   }
 
@@ -63,10 +63,10 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     where: { id },
     data: {
       ...(leagueName !== undefined && { leagueName }),
-      ...(templateId !== undefined && { templateId }),
+      ...(formatId !== undefined && { formatId }),
       ...(seasons !== undefined && { seasons }),
     },
-    include: { template: { select: templateSelect } },
+    include: { format: { select: formatSelect } },
   })
 
   return NextResponse.json(updated)

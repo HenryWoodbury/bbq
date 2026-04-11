@@ -88,6 +88,7 @@ export type StatsFilter = {
 
 const AL_TEAMS = new Set(AL_TEAM_CODES)
 const NL_TEAMS = new Set(NL_TEAM_CODES)
+const ALL_TEAM_CODES = [...AL_TEAM_CODES, ...NL_TEAM_CODES].sort()
 
 const BATTING_COLS = [
   "G",
@@ -123,6 +124,10 @@ const PITCHING_COLS = [
   "FIP",
 ]
 
+function emptyCell() {
+  return <span className="text-muted-foreground">—</span>
+}
+
 // ── Filter helpers ────────────────────────────────────────────────────────────
 
 /** Strip diacritics so "ramirez" matches "Ramírez", "rodriguez" matches "Rodríguez", etc. */
@@ -153,14 +158,17 @@ function hasActiveOverride(row: PlayerRow): boolean {
   )
 }
 
+function isMiLBFgId(fgId: string | null): boolean {
+  return fgId !== null && fgId.startsWith("sa")
+}
+
 function isMajorLeague(row: PlayerRow): boolean {
   const fgId = row.universeFgId ?? row.fangraphsId
-  return fgId !== null && !fgId.startsWith("sa")
+  return fgId !== null && !isMiLBFgId(fgId)
 }
 
 function isMinorLeague(row: PlayerRow): boolean {
-  const fgId = row.universeFgId ?? row.fangraphsId
-  return fgId !== null && fgId.startsWith("sa")
+  return isMiLBFgId(row.universeFgId ?? row.fangraphsId)
 }
 
 function isAL(team: string | null): boolean {
@@ -178,6 +186,8 @@ function isPitcher(row: PlayerRow): boolean {
 function isUtil(row: PlayerRow): boolean {
   return row.ottoneuPositions.some((p) => p !== "SP" && p !== "RP")
 }
+
+const PITCHER_POSITIONS = new Set<PositionFilter>(["SP", "RP"])
 
 // ── Stat formatting ───────────────────────────────────────────────────────────
 
@@ -214,7 +224,7 @@ const profileColumns: ColumnDef<PlayerRow, unknown>[] = [
     size: 60,
     cell: ({ getValue }) => {
       const v = getValue() as number | null
-      return v ?? <span className="text-muted-foreground">—</span>
+      return v ?? emptyCell()
     },
   },
   {
@@ -224,7 +234,7 @@ const profileColumns: ColumnDef<PlayerRow, unknown>[] = [
     size: 60,
     cell: ({ getValue }) => {
       const v = getValue() as string | null
-      if (!v) return <span className="text-muted-foreground">—</span>
+      if (!v) return emptyCell()
       return (
         <a
           href={`https://www.fangraphs.com/statss.aspx?playerid=${v}`}
@@ -261,7 +271,7 @@ const profileColumns: ColumnDef<PlayerRow, unknown>[] = [
     size: 90,
     cell: ({ getValue }) => {
       const v = getValue() as string | null
-      return v ?? <span className="text-muted-foreground">—</span>
+      return v ?? emptyCell()
     },
   },
   {
@@ -270,7 +280,7 @@ const profileColumns: ColumnDef<PlayerRow, unknown>[] = [
     size: 60,
     cell: ({ getValue }) => {
       const v = getValue() as string | null
-      return v ?? <span className="text-muted-foreground">—</span>
+      return v ?? emptyCell()
     },
   },
   {
@@ -279,7 +289,7 @@ const profileColumns: ColumnDef<PlayerRow, unknown>[] = [
     size: 60,
     cell: ({ getValue }) => {
       const v = getValue() as string | null
-      return v ?? <span className="text-muted-foreground">—</span>
+      return v ?? emptyCell()
     },
   },
   {
@@ -288,7 +298,7 @@ const profileColumns: ColumnDef<PlayerRow, unknown>[] = [
     size: 40,
     cell: ({ getValue }) => {
       const v = getValue() as string | null
-      return v ?? <span className="text-muted-foreground">—</span>
+      return v ?? emptyCell()
     },
   },
   {
@@ -297,7 +307,7 @@ const profileColumns: ColumnDef<PlayerRow, unknown>[] = [
     size: 40,
     cell: ({ getValue }) => {
       const v = getValue() as string | null
-      return v ?? <span className="text-muted-foreground">—</span>
+      return v ?? emptyCell()
     },
   },
   {
@@ -310,11 +320,7 @@ const profileColumns: ColumnDef<PlayerRow, unknown>[] = [
         .localeCompare(b.original.ottoneuPositions.join("/")),
     cell: ({ getValue }) => {
       const pos = getValue() as string[]
-      return pos.length > 0 ? (
-        pos.join("/")
-      ) : (
-        <span className="text-muted-foreground">—</span>
-      )
+      return pos.length > 0 ? pos.join("/") : emptyCell()
     },
   },
 ]
@@ -324,7 +330,6 @@ const profileColumns: ColumnDef<PlayerRow, unknown>[] = [
 type ActiveFilter = "yes" | "no" | "all"
 type LevelFilter = "all" | "mlb" | "milb"
 type MLBLeagueFilter = "all" | "al" | "nl" | "other"
-type RoleFilter = "all" | "batter" | "pitcher"
 type StatusFilter = "all" | "adds" | "overrides"
 type PositionFilter =
   | "all"
@@ -347,7 +352,7 @@ export function PlayersTable({
   availableProjections,
   availableSplits,
   statsFilter,
-  initialShow = "profiles",
+  initialShow = "profiles" as "profiles" | "batting" | "pitching",
   playerExports = [],
   onEdit,
   onClearOverride,
@@ -358,41 +363,42 @@ export function PlayersTable({
   availableProjections: string[]
   availableSplits: string[]
   statsFilter: StatsFilter
-  initialShow?: "profiles" | "stats"
+  initialShow?: "profiles" | "batting" | "pitching"
   playerExports?: string[]
   onEdit?: (row: PlayerRow) => void
   onClearOverride?: (row: PlayerRow) => void
 }) {
   const router = useRouter()
-  const [show, setShow] = useState<"profiles" | "stats">(initialShow)
+  const [show, setShow] = useState<"profiles" | "batting" | "pitching">(
+    initialShow,
+  )
   const [search, setSearch] = useState("")
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>("yes")
   const [levelFilter, setLevelFilter] = useState<LevelFilter>("mlb")
   const [mlbLeagueFilter, setMlbLeagueFilter] = useState<MLBLeagueFilter>("all")
-  const [roleFilter, setRoleFilter] = useState<RoleFilter>("all")
   const [teamFilter, setTeamFilter] = useState<string>("all")
   const [positionFilter, setPositionFilter] = useState<PositionFilter>("all")
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
 
   function handleShowChange(v: string) {
-    const newShow = v as "profiles" | "stats"
+    const newShow = v as "profiles" | "batting" | "pitching"
     setShow(newShow)
-    if (newShow === "stats") {
-      const effectiveRole = roleFilter === "all" ? "batter" : roleFilter
-      setRoleFilter(effectiveRole)
-      pushStatsFilter({
-        spt: effectiveRole === "pitcher" ? "PITCHER" : "BATTER",
-      })
+    // Reset position filter if incompatible with the new tab
+    if (newShow === "batting" && PITCHER_POSITIONS.has(positionFilter)) {
+      setPositionFilter("all")
+    } else if (
+      newShow === "pitching" &&
+      positionFilter !== "all" &&
+      !PITCHER_POSITIONS.has(positionFilter)
+    ) {
+      setPositionFilter("all")
+    }
+    if (newShow === "batting") {
+      pushStatsFilter({ spt: "BATTER" })
+    } else if (newShow === "pitching") {
+      pushStatsFilter({ spt: "PITCHER" })
     } else {
       router.push("/admin/players?show=profiles")
-    }
-  }
-
-  function handleRoleChange(v: string) {
-    const newRole = v as RoleFilter
-    setRoleFilter(newRole)
-    if (show === "stats" && newRole !== "all") {
-      pushStatsFilter({ spt: newRole === "pitcher" ? "PITCHER" : "BATTER" })
     }
   }
 
@@ -425,8 +431,9 @@ export function PlayersTable({
   }
 
   function pushStatsFilter(updates: Record<string, string>) {
+    const effectiveShow = show === "profiles" ? "batting" : show
     const sp = new URLSearchParams({
-      show: "stats",
+      show: effectiveShow,
       spt: statsFilter.playerType,
       sse: String(statsFilter.season),
       spr: statsFilter.projection,
@@ -467,11 +474,6 @@ export function PlayersTable({
         r.league !== "NL",
     )
 
-  if (roleFilter === "batter")
-    displayedProfiles = displayedProfiles.filter((r) => !isPitcher(r))
-  else if (roleFilter === "pitcher")
-    displayedProfiles = displayedProfiles.filter(isPitcher)
-
   if (teamFilter !== "all")
     displayedProfiles = displayedProfiles.filter((r) => r.team === teamFilter)
 
@@ -488,8 +490,9 @@ export function PlayersTable({
   if (profileSearchQ) {
     displayedProfiles = displayedProfiles.filter(
       (r) =>
-        normalize(r.fgSpecialChar ?? r.playerName).includes(profileSearchQ) ||
         normalize(r.playerName).includes(profileSearchQ) ||
+        (r.fgSpecialChar !== null &&
+          normalize(r.fgSpecialChar).includes(profileSearchQ)) ||
         normalize(r.lastName ?? "").includes(profileSearchQ) ||
         normalize(r.team ?? "").includes(profileSearchQ) ||
         normalize(r.mlbLevel ?? "").includes(profileSearchQ) ||
@@ -510,6 +513,7 @@ export function PlayersTable({
   // ── Stats filtering ────────────────────────────────────────────────────────
 
   let displayedStats = statRows
+  const playerById = new Map(data.map((r) => [r.id, r]))
 
   if (activeFilter === "yes")
     displayedStats = displayedStats.filter((r) => r.active)
@@ -518,12 +522,10 @@ export function PlayersTable({
 
   if (levelFilter === "mlb")
     displayedStats = displayedStats.filter(
-      (r) => r.fangraphsId !== null && !r.fangraphsId.startsWith("sa"),
+      (r) => r.fangraphsId !== null && !isMiLBFgId(r.fangraphsId),
     )
   else if (levelFilter === "milb")
-    displayedStats = displayedStats.filter(
-      (r) => r.fangraphsId?.startsWith("sa") ?? false,
-    )
+    displayedStats = displayedStats.filter((r) => isMiLBFgId(r.fangraphsId))
 
   if (mlbLeagueFilter === "al")
     displayedStats = displayedStats.filter((r) => isAL(r.team))
@@ -547,10 +549,29 @@ export function PlayersTable({
     )
   }
 
+  if (positionFilter !== "all") {
+    displayedStats = displayedStats.filter((r) => {
+      const profile = playerById.get(r.playerId)
+      if (!profile) return false
+      if (positionFilter === "Util") return isUtil(profile)
+      return profile.ottoneuPositions.includes(positionFilter)
+    })
+  }
+
+  if (statusFilter === "adds") {
+    displayedStats = displayedStats.filter(
+      (r) => playerById.get(r.playerId)?.isManual === true,
+    )
+  } else if (statusFilter === "overrides") {
+    displayedStats = displayedStats.filter((r) => {
+      const profile = playerById.get(r.playerId)
+      return profile !== undefined && !profile.isManual && hasActiveOverride(profile)
+    })
+  }
+
   // ── Stats column definitions ───────────────────────────────────────────────
 
-  const statColKeys =
-    statsFilter.playerType === "PITCHER" ? PITCHING_COLS : BATTING_COLS
+  const statColKeys = show === "pitching" ? PITCHING_COLS : BATTING_COLS
 
   const statsColumnDefs = ((): ColumnDef<StatRow, unknown>[] => {
     const base: ColumnDef<StatRow, unknown>[] = [
@@ -560,7 +581,7 @@ export function PlayersTable({
         size: 60,
         cell: ({ getValue }) => {
           const v = getValue() as number | null
-          return v ?? <span className="text-muted-foreground">—</span>
+          return v ?? emptyCell()
         },
       },
       {
@@ -569,7 +590,7 @@ export function PlayersTable({
         size: 60,
         cell: ({ getValue }) => {
           const v = getValue() as string | null
-          if (!v) return <span className="text-muted-foreground">—</span>
+          if (!v) return emptyCell()
           return (
             <a
               href={`https://www.fangraphs.com/statss.aspx?playerid=${v}`}
@@ -598,7 +619,7 @@ export function PlayersTable({
         size: 60,
         cell: ({ getValue }) => {
           const v = getValue() as string | null
-          return v ?? <span className="text-muted-foreground">—</span>
+          return v ?? emptyCell()
         },
       },
     ]
@@ -662,32 +683,37 @@ export function PlayersTable({
     return [...profileColumns, editCol]
   })()
 
-  // ── Role options depend on mode ────────────────────────────────────────────
-
-  const roleOptions =
-    show === "stats"
-      ? [
-          { value: "batter", label: "Batters" },
-          { value: "pitcher", label: "Pitchers" },
-        ]
-      : [
-          { value: "batter", label: "Batters" },
-          { value: "pitcher", label: "Pitchers" },
-          { value: "all", label: "All" },
-        ]
-
   const teamDropdownOptions =
     mlbLeagueFilter === "al"
       ? AL_TEAM_CODES
       : mlbLeagueFilter === "nl"
         ? NL_TEAM_CODES
-        : [...AL_TEAM_CODES, ...NL_TEAM_CODES].sort()
+        : ALL_TEAM_CODES
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Filter row 1 */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <FilterGroup
+          label="Status:"
+          size="sm"
+          options={[
+            { value: "all", label: "All" },
+            { value: "adds", label: "Adds" },
+            { value: "overrides", label: "Overrides" },
+          ]}
+          value={statusFilter}
+          onChange={(v) => setStatusFilter(v as StatusFilter)}
+        />
+        <Input
+          type="search"
+          placeholder="Player Search…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full max-w-sm"
+        />
+      </div>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <FilterGroup
           label="Active:"
@@ -749,11 +775,14 @@ export function PlayersTable({
             onChange={(e) =>
               setPositionFilter(e.target.value as PositionFilter)
             }
-            disabled={show === "stats"}
           >
             <option value="all">All</option>
             {(
-              ["C", "1B", "2B", "3B", "SS", "OF", "Util", "SP", "RP"] as const
+              show === "pitching"
+                ? (["SP", "RP"] as const)
+                : show === "batting"
+                  ? (["C", "1B", "2B", "3B", "SS", "OF", "Util"] as const)
+                  : (["C", "1B", "2B", "3B", "SS", "OF", "Util", "SP", "RP"] as const)
             ).map((p) => (
               <option key={p} value={p}>
                 {p}
@@ -761,36 +790,16 @@ export function PlayersTable({
             ))}
           </Select>
         </div>
-        <FilterGroup
-          label="Role:"
-          size="sm"
-          options={roleOptions}
-          value={
-            roleFilter === "all" && show === "stats" ? "batter" : roleFilter
-          }
-          onChange={handleRoleChange}
-        />
-        <FilterGroup
-          label="Status:"
-          size="sm"
-          options={[
-            { value: "all", label: "All" },
-            { value: "adds", label: "Adds" },
-            { value: "overrides", label: "Overrides" },
-          ]}
-          value={statusFilter}
-          onChange={(v) => setStatusFilter(v as StatusFilter)}
-        />
       </div>
 
-      {/* Filter row 2 */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <FilterGroup
           label="Show:"
           size="sm"
           options={[
-            { value: "profiles", label: "Profiles" },
-            { value: "stats", label: "Stats" },
+            { value: "profiles", label: "Profile" },
+            { value: "batting", label: "Batting" },
+            { value: "pitching", label: "Pitching" },
           ]}
           value={show}
           onChange={handleShowChange}
@@ -890,13 +899,6 @@ export function PlayersTable({
             </option>
           </Select>
         </div>
-        <Input
-          type="search"
-          placeholder="Player Search…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full max-w-sm"
-        />
         {playerExports.length > 0 && (
           <div className="ml-auto">
             <DropdownMenu>
