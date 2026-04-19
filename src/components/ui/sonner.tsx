@@ -59,7 +59,7 @@ function ToastContent({
   action?: ToastAction
 }) {
   return (
-    <div className="flex w-full items-end justify-between gap-4 border border-border rounded-md pt-3 pb-4 px-4">
+    <div className="flex w-full items-end justify-between gap-4 border border-border rounded-md pt-3 pb-4 px-4 bg-popover">
       <div className="min-w-0">
         {title && (
           <p className="text-body font-medium text-foreground">{title}</p>
@@ -76,8 +76,8 @@ function ToastContent({
           size="sm"
           className="shrink-0"
           onClick={() => {
-            toast.dismiss(action.toastId)
             action.onClick()
+            toast.dismiss(action.toastId)
           }}
         >
           {action.icon}

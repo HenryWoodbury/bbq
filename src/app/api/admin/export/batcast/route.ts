@@ -6,6 +6,7 @@ import {
 } from "@/generated/prisma/client"
 import { assertAdmin } from "@/lib/auth-helpers"
 import { prisma } from "@/lib/prisma"
+import { toISODate } from "@/lib/date"
 import { PROJECTION_MAP } from "@/lib/stat-maps"
 import { AL_TEAM_CODES, NL_TEAM_CODES } from "@/lib/team-codes"
 
@@ -203,8 +204,7 @@ export async function GET(request: Request) {
   const playerRecords = sortedPlayers.map((p) => {
     const ov = p.override?.deletedAt ? null : p.override
     const displayName = ov?.displayName ?? p.fgSpecialChar ?? p.playerName
-    const birthday =
-      (ov?.birthday ?? p.birthday)?.toISOString().slice(0, 10) ?? null
+    const birthday = toISODate(ov?.birthday ?? p.birthday)
     const bats = ov?.bats ?? p.bats
     const throws_ = ov?.throws ?? p.throws
     const positions = p.universe[0]?.positions.join("/") ?? null

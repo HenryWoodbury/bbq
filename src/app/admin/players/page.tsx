@@ -9,11 +9,11 @@ import { Skeleton } from "@/components/ui/skeleton"
 import {
   StatPlayerType,
   StatProjection,
-  StatSplit,
 } from "@/generated/prisma/client"
 import { requireAdmin } from "@/lib/auth-helpers"
 import { prisma } from "@/lib/prisma"
-import { PROJECTION_MAP } from "@/lib/stat-maps"
+import { toISODate } from "@/lib/date"
+import { PROJECTION_MAP, SPLIT_MAP } from "@/lib/stat-maps"
 import { deriveLeagueFromTeam, deriveLevelFromFgId } from "@/lib/team-codes"
 import { PlayersSync } from "./players-sync"
 import { PlayersTableAdmin } from "./players-table-admin"
@@ -26,6 +26,8 @@ export type StatUploadRow = {
   playerType: string
   projection: string
   split: string
+  ros: boolean
+  fileName: string | null
   total: number
   linked: number
   skipped: number
@@ -47,12 +49,6 @@ export type SyncStatus = {
     createdAt: Date
   } | null
   recentStatUploads: StatUploadRow[]
-}
-
-const SPLIT_MAP: Record<string, StatSplit> = {
-  None: StatSplit.None,
-  VsLeft: StatSplit.VsLeft,
-  VsRight: StatSplit.VsRight,
 }
 
 const PROJECTION_KEY: Record<string, string> = Object.fromEntries(
@@ -118,6 +114,8 @@ async function SyncStatusSection() {
         playerType: true,
         projection: true,
         split: true,
+        ros: true,
+        fileName: true,
         total: true,
         linked: true,
         skipped: true,
@@ -237,8 +235,7 @@ async function PlayersTableSection({
       ? await Promise.all([
           prisma.statUpload.findMany({
             where: { season },
-            select: { projection: true },
-            distinct: ["projection"],
+            select: { projection: true, ros: true },
           }),
           prisma.statUpload.findMany({
             where: { season },
@@ -248,9 +245,18 @@ async function PlayersTableSection({
         ])
       : [[], []]
 
-  const availableProjections = seasonProjectionRows
-    .map((r) => PROJECTION_KEY[r.projection])
-    .filter((k): k is string => k !== undefined)
+  const hasRos = seasonProjectionRows.some((r) => r.ros)
+
+  const availableProjections = [
+    ...(hasRos ? ["RoS"] : []),
+    ...Array.from(
+      new Set(
+        seasonProjectionRows
+          .map((r) => PROJECTION_KEY[r.projection])
+          .filter((k): k is string => k !== undefined),
+      ),
+    ),
+  ]
 
   const availableSplits = seasonSplitRows
     .map((r) => SPLIT_KEY[r.split])
@@ -272,7 +278,9 @@ async function PlayersTableSection({
           where: {
             season,
             playerType,
-            projection,
+            ...(projectionKey === "RoS"
+              ? { ros: true }
+              : { projection }),
             split,
             deletedAt: null,
           },
@@ -326,8 +334,7 @@ async function PlayersTableSection({
       firstName: ov?.firstName ?? p.firstName,
       lastName: ov?.lastName ?? p.lastName,
       active: ov?.active ?? p.active,
-      birthday:
-        (ov?.birthday ?? p.birthday)?.toISOString().slice(0, 10) ?? null,
+      birthday: toISODate(ov?.birthday ?? p.birthday),
       team: ov?.team ?? baseTeam,
       mlbLevel: ov?.mlbLevel ?? derivedLevel,
       league: ov?.league ?? derivedLeague,
@@ -345,7 +352,7 @@ async function PlayersTableSection({
         displayName: p.fgSpecialChar ?? p.playerName,
         firstName: p.firstName,
         lastName: p.lastName,
-        birthday: p.birthday?.toISOString().slice(0, 10) ?? null,
+        birthday: toISODate(p.birthday),
         team: baseTeam,
         mlbLevel: derivedLevel,
         league: derivedLeague,
@@ -370,7 +377,7 @@ async function PlayersTableSection({
     lastName: o.lastName,
     nickname: o.nickname,
     active: o.active ?? true,
-    birthday: o.birthday?.toISOString().slice(0, 10) ?? null,
+    birthday: toISODate(o.birthday),
     team: o.team,
     mlbLevel: o.mlbLevel,
     league: o.league,

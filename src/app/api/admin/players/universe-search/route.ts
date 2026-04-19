@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { Prisma } from "@/generated/prisma/client"
+import { toISODate } from "@/lib/date"
 import { assertAdmin } from "@/lib/auth-helpers"
 import { prisma } from "@/lib/prisma"
 
@@ -94,7 +95,7 @@ export async function GET(request: NextRequest) {
     playerName: r.player_name,
     fangraphsId: r.fangraphs_id,
     mlbamId: r.mlbam_id,
-    birthday: r.birthday?.toISOString().slice(0, 10) ?? null,
+    birthday: toISODate(r.birthday),
     positions: r.positions,
     alreadyTracked: r.player_id !== null || overrideIds.has(r.ottoneu_id),
   }))

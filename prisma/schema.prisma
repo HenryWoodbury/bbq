@@ -128,18 +128,22 @@ enum StatPlayerType {
 
 enum StatSplit {
   None    @map("none")
+  Neutral @map("neutral")
   VsLeft  @map("vs_left")
   VsRight @map("vs_right")
 }
 
 enum StatProjection {
-  None    @map("none")
-  ZiPS    @map("zips")
-  Steamer @map("steamer")
-  ATC     @map("atc")
-  TheBat  @map("the_bat")
-  TheBatX @map("the_bat_x")
-  OOPSY   @map("oopsy")
+  None        @map("none")
+  ZiPS        @map("zips")
+  Steamer     @map("steamer")
+  ATC         @map("atc")
+  TheBat      @map("the_bat")
+  TheBatX     @map("the_bat_x")
+  OOPSY       @map("oopsy")
+  DepthCharts @map("depth_charts")
+  ZiPSDC      @map("zips_dc")
+  RoS         @map("ros")
 }
 
 model StatDefinition {
@@ -167,6 +171,7 @@ model PlayerStat {
   projection  StatProjection  @default(None)
   neutralized Boolean         @default(false)
   split       StatSplit       @default(None)
+  ros         Boolean         @default(false)
   mlbTeam     String?         @map("mlb_team") @db.VarChar(10)
   /// JSONB: { "HR": 40, "AVG": 0.300, ... }
   stats       Json
@@ -174,7 +179,7 @@ model PlayerStat {
   updatedAt   DateTime        @updatedAt @map("updated_at")
   deletedAt   DateTime?       @map("deleted_at")
 
-  @@unique([playerId, season, playerType, projection, neutralized, split])
+  @@unique([playerId, season, playerType, projection, neutralized, split, ros])
   @@index([season])
   @@index([projection])
   @@map("player_stats")
@@ -186,6 +191,8 @@ model StatUpload {
   playerType StatPlayerType @map("player_type")
   projection StatProjection
   split      StatSplit
+  ros        Boolean        @default(false)
+  fileName   String?        @map("file_name")
   total      Int
   linked     Int
   skipped    Int

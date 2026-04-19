@@ -1,4 +1,4 @@
-import { StatProjection } from "@/generated/prisma/client"
+import { StatProjection, StatSplit } from "@/generated/prisma/client"
 
 export const PROJECTION_MAP: Record<string, StatProjection> = {
   None: StatProjection.None,
@@ -8,4 +8,15 @@ export const PROJECTION_MAP: Record<string, StatProjection> = {
   TheBat: StatProjection.TheBat,
   TheBatX: StatProjection.TheBatX,
   OOPSY: StatProjection.OOPSY,
+  DepthCharts: StatProjection.DepthCharts,
+  ZiPSDC: StatProjection.ZiPSDC,
+  RoS: StatProjection.RoS,
 }
+
+export const SPLIT_MAP: Record<string, StatSplit> = {
+  None: StatSplit.None,
+  Neutral: StatSplit.Neutral,
+  VsLeft: StatSplit.VsLeft,
+  VsRight: StatSplit.VsRight,
+}
+

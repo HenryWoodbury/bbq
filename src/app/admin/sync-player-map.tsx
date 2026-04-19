@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { Alert } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { formatDateTime } from "@/lib/date"
 import { cn } from "@/lib/utils"
 
 type SyncResult = {
@@ -60,7 +61,7 @@ export function SyncPlayerMap({
     <div className={cn("flex flex-col gap-2", className)}>
       <p className="caption">
         {syncedAt
-          ? `Last synced ${new Date(syncedAt).toLocaleString()}`
+          ? `Last synced ${formatDateTime(syncedAt)}`
           : "No sync yet."}
       </p>
       <Button

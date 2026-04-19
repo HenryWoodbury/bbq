@@ -6,6 +6,7 @@ import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 interface FileLabelProps {
+  size?: "sm" | "md" | "lg"
   accept?: string
   onChange?: ChangeEventHandler<HTMLInputElement>
   children?: ReactNode
@@ -14,6 +15,7 @@ interface FileLabelProps {
 }
 
 function FileLabel({
+  size = "md",
   accept,
   onChange,
   children,
@@ -27,7 +29,7 @@ function FileLabel({
     <button
       type="button"
       className={cn(
-        buttonVariants({ variant: "secondary", size: "md" }),
+        buttonVariants({ variant: "secondary", size }),
         "w-fit",
         className,
       )}

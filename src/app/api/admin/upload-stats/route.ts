@@ -19,6 +19,7 @@ const SKIP_COLUMNS_LC = new Set([
 
 const SPLIT_MAP: Record<string, StatSplit> = {
   none: StatSplit.None,
+  neutral: StatSplit.Neutral,
   vs_left: StatSplit.VsLeft,
   vs_right: StatSplit.VsRight,
 }
@@ -31,16 +32,12 @@ export async function POST(request: NextRequest) {
   const file = formData.get("file")
   const seasonStr = formData.get("season")
   const playerTypeStr = formData.get("playerType")
-  const projectionStr = formData.get("projection")
-  const splitStr = formData.get("split")
+  const projectionStr = (formData.get("projection") as string | null) ?? "None"
+  const splitStr = (formData.get("split") as string | null) ?? "none"
+  const ros = formData.get("ros") === "true"
+  const fileName = (formData.get("fileName") as string | null) ?? null
 
-  if (
-    !(file instanceof File) ||
-    !seasonStr ||
-    !playerTypeStr ||
-    !projectionStr ||
-    !splitStr
-  ) {
+  if (!(file instanceof File) || !seasonStr || !playerTypeStr) {
     return NextResponse.json(
       { error: "Missing required fields" },
       { status: 400 },
@@ -162,6 +159,7 @@ export async function POST(request: NextRequest) {
     playerType: StatPlayerType
     projection: StatProjection
     split: StatSplit
+    ros: boolean
     mlbTeam: string | null
     stats: Record<string, number>
   }
@@ -188,6 +186,7 @@ export async function POST(request: NextRequest) {
       playerType,
       projection,
       split,
+      ros,
       mlbTeam: row.team,
       stats: row.stats,
     })
@@ -200,13 +199,14 @@ export async function POST(request: NextRequest) {
         batch.map((data) =>
           prisma.playerStat.upsert({
             where: {
-              playerId_season_playerType_projection_neutralized_split: {
+              playerId_season_playerType_projection_neutralized_split_ros: {
                 playerId: data.playerId,
                 season: data.season,
                 playerType: data.playerType,
                 projection: data.projection,
                 neutralized: false,
                 split: data.split,
+                ros: data.ros,
               },
             },
             update: {
@@ -221,6 +221,7 @@ export async function POST(request: NextRequest) {
               projection: data.projection,
               neutralized: false,
               split: data.split,
+              ros: data.ros,
               mlbTeam: data.mlbTeam,
               stats: data.stats,
             },
@@ -235,6 +236,8 @@ export async function POST(request: NextRequest) {
         playerType,
         projection,
         split,
+        ros,
+        fileName,
         total: rows.length,
         linked: toUpsert.length,
         skipped,

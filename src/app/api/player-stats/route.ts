@@ -83,13 +83,14 @@ export async function POST(request: NextRequest) {
 
   const stat = await prisma.playerStat.upsert({
     where: {
-      playerId_season_playerType_projection_neutralized_split: {
+      playerId_season_playerType_projection_neutralized_split_ros: {
         playerId,
         season,
         playerType: playerType ?? "BATTER",
         projection: projection ?? "None",
         neutralized: neutralized ?? false,
         split: split ?? "None",
+        ros: false,
       },
     },
     update: { mlbTeam, stats },

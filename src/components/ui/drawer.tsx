@@ -15,7 +15,11 @@ interface DrawerProps {
 
 function Drawer({ open, onClose, children }: DrawerProps) {
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={(o) => !o && onClose?.()}>
+    <DialogPrimitive.Root
+      modal={false}
+      open={open}
+      onOpenChange={(o) => !o && onClose?.()}
+    >
       {children}
     </DialogPrimitive.Root>
   )
@@ -42,9 +46,16 @@ function DrawerContent({
 }: DrawerContentProps) {
   return (
     <DialogPrimitive.Portal>
-      <DialogPrimitive.Overlay className="fixed inset-x-0 bottom-0 top-14 z-40 bg-black/30 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+      <DialogPrimitive.Close asChild>
+        <div
+          aria-hidden={true}
+          tabIndex={-1}
+          className="fixed inset-x-0 bottom-0 top-14 z-40 cursor-default bg-black/30"
+        />
+      </DialogPrimitive.Close>
       <DialogPrimitive.Content
         aria-describedby={undefined}
+        onInteractOutside={(e) => e.preventDefault()}
         className={cn(
           "fixed bottom-0 top-14 z-40 flex flex-col bg-card shadow-lg",
           "data-[state=open]:animate-in data-[state=closed]:animate-out duration-300",

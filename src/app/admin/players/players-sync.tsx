@@ -11,6 +11,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer"
+import { formatDateTime } from "@/lib/date"
 import { cn } from "@/lib/utils"
 import { SyncPlayerMap } from "../sync-player-map"
 import { UploadPlayerMap } from "../upload-player-map"
@@ -26,8 +27,10 @@ function profileStatusText(
   const isSyncMoreRecent =
     syncTs && (!uploadTs || new Date(syncTs) >= new Date(uploadTs))
   return isSyncMoreRecent
-    ? `Last sync ${new Date(syncTs).toLocaleString()}`
-    : uploadTs ? `Last upload ${new Date(uploadTs).toLocaleString()}` : ""
+    ? `Last sync ${formatDateTime(syncTs)}`
+    : uploadTs
+      ? `Last upload ${formatDateTime(uploadTs)}`
+      : ""
 }
 
 export function PlayersSync({
@@ -60,7 +63,7 @@ export function PlayersSync({
       <StatsSync status={status} className="mt-8" />
 
       <Drawer open={open} onClose={() => setOpen(false)}>
-        <DrawerContent side="right" width="w-170">
+        <DrawerContent side="right" width="w-150">
           <DrawerHeader onClose={() => setOpen(false)}>
             <DrawerTitle>Add Players</DrawerTitle>
           </DrawerHeader>

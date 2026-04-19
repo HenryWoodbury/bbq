@@ -1,6 +1,7 @@
 "use client"
 
 import { useRef, useState } from "react"
+import { formatDateTime } from "@/lib/date"
 import { Alert } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -109,7 +110,7 @@ export function PlayerImport() {
             )
           </div>
           <div className="mt-1 text-xs opacity-70">
-            Last updated {new Date(state.result.importedAt).toLocaleString()}
+            Last updated {formatDateTime(state.result.importedAt)}
           </div>
         </Alert>
       )}

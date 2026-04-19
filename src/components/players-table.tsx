@@ -327,9 +327,9 @@ const profileColumns: ColumnDef<PlayerRow, unknown>[] = [
 
 // ── Filter types ──────────────────────────────────────────────────────────────
 
-type ActiveFilter = "yes" | "no" | "all"
+type ActiveFilter = "all" | "yes" | "no"
 type LevelFilter = "all" | "mlb" | "milb"
-type MLBLeagueFilter = "all" | "al" | "nl" | "other"
+type MLBLeagueFilter = "all" | "al" | "nl"
 type StatusFilter = "all" | "adds" | "overrides"
 type PositionFilter =
   | "all"
@@ -373,8 +373,8 @@ export function PlayersTable({
     initialShow,
   )
   const [search, setSearch] = useState("")
-  const [activeFilter, setActiveFilter] = useState<ActiveFilter>("yes")
-  const [levelFilter, setLevelFilter] = useState<LevelFilter>("mlb")
+  const [activeFilter, setActiveFilter] = useState<ActiveFilter>("all")
+  const [levelFilter, setLevelFilter] = useState<LevelFilter>("all")
   const [mlbLeagueFilter, setMlbLeagueFilter] = useState<MLBLeagueFilter>("all")
   const [teamFilter, setTeamFilter] = useState<string>("all")
   const [positionFilter, setPositionFilter] = useState<PositionFilter>("all")
@@ -399,6 +399,16 @@ export function PlayersTable({
       pushStatsFilter({ spt: "PITCHER" })
     } else {
       router.push("/admin/players?show=profiles")
+    }
+  }
+
+  const statType = statsFilter.projection === "None" ? "actual" : "projected"
+
+  function handleStatTypeChange(v: string) {
+    if (v === "actual") {
+      pushStatsFilter({ spr: "None", ssp: "None" })
+    } else if (statsFilter.projection === "None") {
+      pushStatsFilter({ spr: "Steamer" })
     }
   }
 
@@ -465,15 +475,6 @@ export function PlayersTable({
     displayedProfiles = displayedProfiles.filter(
       (r) => isNL(r.team) || r.league === "NL",
     )
-  else if (mlbLeagueFilter === "other")
-    displayedProfiles = displayedProfiles.filter(
-      (r) =>
-        !isAL(r.team) &&
-        !isNL(r.team) &&
-        r.league !== "AL" &&
-        r.league !== "NL",
-    )
-
   if (teamFilter !== "all")
     displayedProfiles = displayedProfiles.filter((r) => r.team === teamFilter)
 
@@ -531,11 +532,6 @@ export function PlayersTable({
     displayedStats = displayedStats.filter((r) => isAL(r.team))
   else if (mlbLeagueFilter === "nl")
     displayedStats = displayedStats.filter((r) => isNL(r.team))
-  else if (mlbLeagueFilter === "other")
-    displayedStats = displayedStats.filter(
-      (r) => !isAL(r.team) && !isNL(r.team),
-    )
-
   if (teamFilter !== "all")
     displayedStats = displayedStats.filter((r) => r.team === teamFilter)
 
@@ -565,7 +561,9 @@ export function PlayersTable({
   } else if (statusFilter === "overrides") {
     displayedStats = displayedStats.filter((r) => {
       const profile = playerById.get(r.playerId)
-      return profile !== undefined && !profile.isManual && hasActiveOverride(profile)
+      return (
+        profile !== undefined && !profile.isManual && hasActiveOverride(profile)
+      )
     })
   }
 
@@ -719,9 +717,9 @@ export function PlayersTable({
           label="Active:"
           size="sm"
           options={[
+            { value: "all", label: "All" },
             { value: "yes", label: "Yes" },
             { value: "no", label: "No" },
-            { value: "all", label: "All" },
           ]}
           value={activeFilter}
           onChange={(v) => setActiveFilter(v as ActiveFilter)}
@@ -730,9 +728,9 @@ export function PlayersTable({
           label="Level:"
           size="sm"
           options={[
+            { value: "all", label: "All" },
             { value: "mlb", label: "MLB" },
             { value: "milb", label: "MiLB" },
-            { value: "all", label: "All" },
           ]}
           value={levelFilter}
           onChange={(v) => setLevelFilter(v as LevelFilter)}
@@ -741,10 +739,9 @@ export function PlayersTable({
           label="League:"
           size="sm"
           options={[
+            { value: "all", label: "All" },
             { value: "al", label: "AL" },
             { value: "nl", label: "NL" },
-            { value: "other", label: "Other" },
-            { value: "all", label: "All" },
           ]}
           value={mlbLeagueFilter}
           onChange={handleLeagueChange}
@@ -756,7 +753,6 @@ export function PlayersTable({
           <Select
             value={teamFilter}
             onChange={(e) => setTeamFilter(e.target.value)}
-            disabled={mlbLeagueFilter === "other"}
           >
             <option value="all">All</option>
             {teamDropdownOptions.map((code) => (
@@ -777,12 +773,21 @@ export function PlayersTable({
             }
           >
             <option value="all">All</option>
-            {(
-              show === "pitching"
-                ? (["SP", "RP"] as const)
-                : show === "batting"
-                  ? (["C", "1B", "2B", "3B", "SS", "OF", "Util"] as const)
-                  : (["C", "1B", "2B", "3B", "SS", "OF", "Util", "SP", "RP"] as const)
+            {(show === "pitching"
+              ? (["SP", "RP"] as const)
+              : show === "batting"
+                ? (["C", "1B", "2B", "3B", "SS", "OF", "Util"] as const)
+                : ([
+                    "C",
+                    "1B",
+                    "2B",
+                    "3B",
+                    "SS",
+                    "OF",
+                    "Util",
+                    "SP",
+                    "RP",
+                  ] as const)
             ).map((p) => (
               <option key={p} value={p}>
                 {p}
@@ -804,101 +809,135 @@ export function PlayersTable({
           value={show}
           onChange={handleShowChange}
         />
-        <div className="flex items-center gap-1.5">
-          <span className="text-body font-normal text-muted-foreground">
-            Year:
-          </span>
-          <Select
-            value={String(statsFilter.season)}
-            onChange={(e) => pushStatsFilter({ sse: e.target.value })}
-            disabled={show === "profiles" || availableYears.length === 0}
-          >
-            {availableYears.map((y) => (
-              <option key={y} value={String(y)}>
-                {y}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="text-body font-normal text-muted-foreground">
-            Projection:
-          </span>
-          <Select
-            value={statsFilter.projection}
-            onChange={(e) => pushStatsFilter({ spr: e.target.value })}
-            disabled={show === "profiles"}
-          >
-            <option
-              value="None"
-              disabled={!availableProjections.includes("None")}
-            >
-              None
-            </option>
-            <option
-              value="ZiPS"
-              disabled={!availableProjections.includes("ZiPS")}
-            >
-              ZiPS
-            </option>
-            <option
-              value="Steamer"
-              disabled={!availableProjections.includes("Steamer")}
-            >
-              Steamer
-            </option>
-            <option
-              value="ATC"
-              disabled={!availableProjections.includes("ATC")}
-            >
-              ATC
-            </option>
-            <option
-              value="TheBat"
-              disabled={!availableProjections.includes("TheBat")}
-            >
-              The Bat
-            </option>
-            <option
-              value="TheBatX"
-              disabled={!availableProjections.includes("TheBatX")}
-            >
-              The Bat X
-            </option>
-            <option
-              value="OOPSY"
-              disabled={!availableProjections.includes("OOPSY")}
-            >
-              OOPSY
-            </option>
-          </Select>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="text-body font-normal text-muted-foreground">
-            Splits:
-          </span>
-          <Select
-            value={statsFilter.split}
-            onChange={(e) => pushStatsFilter({ ssp: e.target.value })}
-            disabled={show === "profiles"}
-          >
-            <option value="None" disabled={!availableSplits.includes("None")}>
-              None
-            </option>
-            <option
-              value="VsLeft"
-              disabled={!availableSplits.includes("VsLeft")}
-            >
-              vs Left
-            </option>
-            <option
-              value="VsRight"
-              disabled={!availableSplits.includes("VsRight")}
-            >
-              vs Right
-            </option>
-          </Select>
-        </div>
+        {show !== "profiles" && (
+          <>
+            <FilterGroup
+              label="Stats:"
+              size="sm"
+              options={[
+                { value: "actual", label: "Actual" },
+                { value: "projected", label: "Projected" },
+              ]}
+              value={statType}
+              onChange={handleStatTypeChange}
+            />
+            <div className="flex items-center gap-1.5">
+              <span className="text-body font-normal text-muted-foreground">
+                Season:
+              </span>
+              <Select
+                value={String(statsFilter.season)}
+                onChange={(e) => pushStatsFilter({ sse: e.target.value })}
+                disabled={availableYears.length === 0}
+              >
+                {availableYears.map((y) => (
+                  <option key={y} value={String(y)}>
+                    {y}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            {statType === "projected" && (
+              <>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-body font-normal text-muted-foreground">
+                    Projection:
+                  </span>
+                  <Select
+                    value={statsFilter.projection}
+                    onChange={(e) => pushStatsFilter({ spr: e.target.value })}
+                  >
+                    {availableProjections.includes("RoS") && (
+                      <option value="RoS">{statsFilter.season} RoS</option>
+                    )}
+                    <option
+                      value="ATC"
+                      disabled={!availableProjections.includes("ATC")}
+                    >
+                      ATC
+                    </option>
+                    <option
+                      value="DepthCharts"
+                      disabled={!availableProjections.includes("DepthCharts")}
+                    >
+                      Depth Charts
+                    </option>
+                    <option
+                      value="OOPSY"
+                      disabled={!availableProjections.includes("OOPSY")}
+                    >
+                      OOPSY
+                    </option>
+                    <option
+                      value="Steamer"
+                      disabled={!availableProjections.includes("Steamer")}
+                    >
+                      Steamer
+                    </option>
+                    <option
+                      value="TheBat"
+                      disabled={!availableProjections.includes("TheBat")}
+                    >
+                      The Bat
+                    </option>
+                    <option
+                      value="TheBatX"
+                      disabled={!availableProjections.includes("TheBatX")}
+                    >
+                      The Bat X
+                    </option>
+                    <option
+                      value="ZiPS"
+                      disabled={!availableProjections.includes("ZiPS")}
+                    >
+                      ZiPS
+                    </option>
+                    <option
+                      value="ZiPSDC"
+                      disabled={!availableProjections.includes("ZiPSDC")}
+                    >
+                      ZiPS DC
+                    </option>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-body font-normal text-muted-foreground">
+                    Splits:
+                  </span>
+                  <Select
+                    value={statsFilter.split}
+                    onChange={(e) => pushStatsFilter({ ssp: e.target.value })}
+                  >
+                    <option
+                      value="None"
+                      disabled={!availableSplits.includes("None")}
+                    >
+                      None
+                    </option>
+                    <option
+                      value="Neutral"
+                      disabled={!availableSplits.includes("Neutral")}
+                    >
+                      Neutral
+                    </option>
+                    <option
+                      value="VsLeft"
+                      disabled={!availableSplits.includes("VsLeft")}
+                    >
+                      vs Left
+                    </option>
+                    <option
+                      value="VsRight"
+                      disabled={!availableSplits.includes("VsRight")}
+                    >
+                      vs Right
+                    </option>
+                  </Select>
+                </div>
+              </>
+            )}
+          </>
+        )}
         {playerExports.length > 0 && (
           <div className="ml-auto">
             <DropdownMenu>

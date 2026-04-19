@@ -10,7 +10,7 @@ const selectVariants = cva(
       size: {
         sm: "pl-3 pr-8 py-1",
         md: "pl-3 pr-8 py-1.5",
-        lg: "pl-3 pr-8 py-[7px]",
+        lg: "pl-3 pr-8 py-2",
       },
     },
     defaultVariants: {

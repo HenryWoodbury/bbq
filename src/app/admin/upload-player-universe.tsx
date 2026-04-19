@@ -5,6 +5,7 @@ import { useRef, useState } from "react"
 import { Alert } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { FileLabel } from "@/components/ui/file-label"
+import { formatDateTime } from "@/lib/date"
 import { cn } from "@/lib/utils"
 
 type UploadResult = {
@@ -71,7 +72,7 @@ export function UploadPlayerUniverse({
     <div className={cn("flex flex-col gap-2", className)}>
       <p className="caption">
         {lastUploadedAt
-          ? `Last imported ${new Date(lastUploadedAt).toLocaleString()}`
+          ? `Last imported ${formatDateTime(lastUploadedAt)}`
           : "No imports yet."}
       </p>
       <form onSubmit={handleSubmit} className="flex items-center gap-3">
@@ -107,7 +108,7 @@ export function UploadPlayerUniverse({
             )
           </div>
           <div className="mt-1 text-xs opacity-70">
-            Uploaded {new Date(state.result.uploadedAt).toLocaleString()}
+            Uploaded {formatDateTime(state.result.uploadedAt)}
           </div>
         </Alert>
       )}

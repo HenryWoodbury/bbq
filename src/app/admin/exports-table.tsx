@@ -117,7 +117,7 @@ function ExportForm({
   }
 
   return (
-    <DrawerContent width="w-120">
+    <DrawerContent width="w-150">
       <DrawerHeader onClose={onClose}>
         <DrawerTitle>
           {mode === "create"
