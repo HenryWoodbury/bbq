@@ -15,7 +15,8 @@ import { prisma } from "@/lib/prisma"
 import { toISODate } from "@/lib/date"
 import { PROJECTION_MAP, SPLIT_MAP } from "@/lib/stat-maps"
 import { deriveLeagueFromTeam, deriveLevelFromFgId } from "@/lib/team-codes"
-import { PlayersSync } from "./players-sync"
+import { PlayerProfilesSection } from "./player-profiles-section"
+import { PlayerStatsSection } from "./player-stats-section"
 import { PlayersTableAdmin } from "./players-table-admin"
 
 export const metadata = { title: "Manage Players — BBQ" }
@@ -71,7 +72,7 @@ export default async function AdminPlayersPage({
       <h1>Manage Players</h1>
       <section className="mt-2">
         <Suspense fallback={<SyncStatusSkeleton />}>
-          <SyncStatusSection />
+          <SyncStatusSection params={params} />
         </Suspense>
       </section>
       <section className="mt-6">
@@ -85,7 +86,11 @@ export default async function AdminPlayersPage({
 
 // ── Sync status (fast: 4 metadata queries) ─────────────────────────────────────
 
-async function SyncStatusSection() {
+async function SyncStatusSection({
+  params,
+}: {
+  params: Record<string, string | undefined>
+}) {
   const [
     lastSyncedPlayer,
     lastUploadedPlayerMap,
@@ -125,16 +130,25 @@ async function SyncStatusSection() {
     }),
   ])
 
+  const status: SyncStatus = {
+    lastSyncedPlayer,
+    lastUploadedPlayerMap,
+    lastUploadedUniverse,
+    lastUploadedStats: recentStatUploads[0] ?? null,
+    recentStatUploads,
+  }
+
   return (
-    <PlayersSync
-      status={{
-        lastSyncedPlayer,
-        lastUploadedPlayerMap,
-        lastUploadedUniverse,
-        lastUploadedStats: recentStatUploads[0] ?? null,
-        recentStatUploads,
-      }}
-    />
+    <div className="flex flex-col gap-4">
+      <PlayerProfilesSection
+        status={status}
+        defaultOpen={params.pp === "1"}
+      />
+      <PlayerStatsSection
+        status={status}
+        defaultOpen={params.ps === "1"}
+      />
+    </div>
   )
 }
 
@@ -418,12 +432,9 @@ async function PlayersTableSection({
 
 function SyncStatusSkeleton() {
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-4">
-        <Skeleton className="h-7 w-36" />
-        <Skeleton className="h-8 w-32" />
-      </div>
-      <Skeleton className="h-4 w-56" />
+    <div className="flex flex-col gap-4">
+      <Skeleton className="h-[46px] w-full rounded-lg" />
+      <Skeleton className="h-[46px] w-full rounded-lg" />
     </div>
   )
 }
