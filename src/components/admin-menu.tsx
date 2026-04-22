@@ -34,7 +34,7 @@ export function AdminMenu({ className }: { className?: string }) {
           aria-label="Admin menu"
           className={className}
         >
-          <SettingsIcon size={15} className="shrink-0" />
+          <SettingsIcon />
           <span className="min-w-0 truncate">Admin</span>
         </MenuButton>
       </DropdownMenuTrigger>
@@ -46,7 +46,7 @@ export function AdminMenu({ className }: { className?: string }) {
             className="flex items-center gap-2"
           >
             <Link href={href} className="flex w-full items-center gap-2">
-              <Icon size={15} className="shrink-0" />
+              <Icon />
               <span className="min-w-0 truncate">{label}</span>
             </Link>
           </DropdownMenuItem>

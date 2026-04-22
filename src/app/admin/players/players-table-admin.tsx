@@ -204,7 +204,9 @@ function EditOverrideDrawer({
       // Null for non-dirty fields clears any previously-stored accidental override
       // and keeps isDirty correct for derived fields (league, mlbLevel) on future opens.
       const payload = {
-        displayName: isDirty("displayName") ? nullify(fields.displayName) : null,
+        displayName: isDirty("displayName")
+          ? nullify(fields.displayName)
+          : null,
         firstName: isDirty("firstName") ? nullify(fields.firstName) : null,
         lastName: isDirty("lastName") ? nullify(fields.lastName) : null,
         nickname: nullify(fields.nickname),
@@ -301,7 +303,7 @@ function EditOverrideDrawer({
               onClick={onRemoveManual}
               disabled={status === "saving"}
             >
-              <Trash2Icon size={16} className="shrink-0" />
+              <Trash2Icon />
               Remove Player
             </Button>
           ) : (
@@ -316,7 +318,7 @@ function EditOverrideDrawer({
                 }}
                 disabled={status === "saving"}
               >
-                <Undo2Icon size={16} className="shrink-0" />
+                <Undo2Icon />
                 Clear Overrides
               </Button>
             )
@@ -660,11 +662,11 @@ export function PlayersTableAdmin({
           <DrawerTrigger asChild>
             <Button
               variant="secondary"
-              size="md"
+              size="sm"
               onClick={() => setAddingManual(true)}
               className="font-medium"
             >
-              <PlayerAddIcon size={15} className="shrink-0" />
+              <PlayerAddIcon />
               Add Player
             </Button>
           </DrawerTrigger>

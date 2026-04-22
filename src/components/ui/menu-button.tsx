@@ -27,7 +27,7 @@ function MenuButton({
       {...props}
     >
       {children}
-      <ChevronDownIcon className="shrink-0 opacity-60" size={14} />
+      <ChevronDownIcon className="opacity-60" />
     </Button>
   )
 }

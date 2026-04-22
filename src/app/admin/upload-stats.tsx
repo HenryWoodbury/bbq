@@ -214,7 +214,7 @@ function PendingRowDisplay({
   // Projection row:     [empty] [RoS] [Projection + Split span-2] [spacer] [empty]
   return (
     <div className="border-b border-border/50">
-      <div className="grid grid-cols-[auto_auto_auto_auto_1fr_auto] gap-x-4 gap-y-2 py-3">
+      <div className="grid grid-cols-[auto_auto_auto_auto_1fr_auto] gap-x-4 py-3">
         <div>
           <FileLabel
             ref={fileRefSetter}

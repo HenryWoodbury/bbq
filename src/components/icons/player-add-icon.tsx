@@ -1,23 +1,27 @@
+import { cn } from "@/lib/utils"
 import type { IconProps } from "./types"
 
+const SIZES = { xs: 12, sm: 14, md: 16, lg: 20 } as const
+
 export function PlayerAddIcon({
-  size = 24,
+  size = "md",
   strokeWidth = 2,
   className,
   ...props
 }: IconProps) {
+  const px = SIZES[size]
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      width={size}
-      height={size}
+      width={px}
+      height={px}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
       strokeWidth={strokeWidth}
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={className}
+      className={cn("shrink-0", className)}
       aria-hidden="true"
       {...props}
     >

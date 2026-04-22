@@ -33,7 +33,7 @@ export function LeagueSelector({ leagues }: Props) {
           aria-label="League selector"
           className="max-w-60"
         >
-          <BaseballIcon size={15} className="shrink-0" />
+          <BaseballIcon />
           <span className="min-w-0 truncate">{label}</span>
         </MenuButton>
       </DropdownMenuTrigger>

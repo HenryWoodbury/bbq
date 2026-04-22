@@ -1,10 +1,8 @@
 import type { SVGProps } from "react"
 
-/**
- * Shared props for custom icon components, matching the Lucide icon interface.
- * Extends SVGProps so icons accept any native SVG attribute.
- */
+export type IconSize = "xs" | "sm" | "md" | "lg"
+
 export interface IconProps extends SVGProps<SVGSVGElement> {
-  size?: number | string
+  size?: IconSize
   strokeWidth?: number | string
 }

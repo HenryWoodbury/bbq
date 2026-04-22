@@ -710,6 +710,7 @@ export function PlayersTable({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full max-w-sm"
+          size="sm"
         />
       </div>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -747,9 +748,7 @@ export function PlayersTable({
           onChange={handleLeagueChange}
         />
         <div className="flex items-center gap-1.5">
-          <span className="text-body font-normal text-muted-foreground">
-            Team:
-          </span>
+          <span className="text-muted-foreground">Team:</span>
           <Select
             value={teamFilter}
             onChange={(e) => setTeamFilter(e.target.value)}
@@ -763,9 +762,7 @@ export function PlayersTable({
           </Select>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="text-body font-normal text-muted-foreground">
-            Pos:
-          </span>
+          <span className="text-muted-foreground">Pos:</span>
           <Select
             value={positionFilter}
             onChange={(e) =>
@@ -822,9 +819,7 @@ export function PlayersTable({
               onChange={handleStatTypeChange}
             />
             <div className="flex items-center gap-1.5">
-              <span className="text-body font-normal text-muted-foreground">
-                Season:
-              </span>
+              <span className="text-muted-foreground">Season:</span>
               <Select
                 value={String(statsFilter.season)}
                 onChange={(e) => pushStatsFilter({ sse: e.target.value })}
@@ -840,9 +835,7 @@ export function PlayersTable({
             {statType === "projected" && (
               <>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-body font-normal text-muted-foreground">
-                    Projection:
-                  </span>
+                  <span className="text-muted-foreground">Projection:</span>
                   <Select
                     value={statsFilter.projection}
                     onChange={(e) => pushStatsFilter({ spr: e.target.value })}
@@ -901,9 +894,7 @@ export function PlayersTable({
                   </Select>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-body font-normal text-muted-foreground">
-                    Splits:
-                  </span>
+                  <span className="text-muted-foreground">Splits:</span>
                   <Select
                     value={statsFilter.split}
                     onChange={(e) => pushStatsFilter({ ssp: e.target.value })}
@@ -942,7 +933,7 @@ export function PlayersTable({
           <div className="ml-auto">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="secondary" size="md">
+                <Button variant="secondary" size="sm">
                   <DownloadIcon className="h-4 w-4" />
                   Export
                 </Button>

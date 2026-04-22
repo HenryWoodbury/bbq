@@ -39,8 +39,8 @@ export function StatsSync({
     <div className={cn(className)}>
       <div className="flex items-center gap-4">
         <h2 className="min-w-36">Player Stats</h2>
-        <Button variant="secondary" size="md" onClick={() => setOpen(true)}>
-          <BarChart2Icon size={15} className="shrink-0" />
+        <Button variant="secondary" size="sm" onClick={() => setOpen(true)}>
+          <BarChart2Icon />
           <span className="min-w-0 truncate">Import Stats</span>
         </Button>
       </div>
@@ -51,7 +51,7 @@ export function StatsSync({
       </p>
 
       <Drawer open={open} onClose={() => setOpen(false)}>
-        <DrawerContent side="right" width="w-200">
+        <DrawerContent side="right" width="w-150">
           <DrawerHeader onClose={() => setOpen(false)}>
             <DrawerTitle>Import Stats</DrawerTitle>
           </DrawerHeader>

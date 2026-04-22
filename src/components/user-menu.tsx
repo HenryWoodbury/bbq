@@ -38,7 +38,7 @@ export function UserMenu() {
           aria-label="Manage account"
           className="max-w-60"
         >
-          <UserIcon size={16} className="shrink-0" />
+          <UserIcon />
           <span className="min-w-0 truncate">You</span>
         </MenuButton>
       </DropdownMenuTrigger>
