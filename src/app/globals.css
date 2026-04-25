@@ -7,15 +7,17 @@
 @theme {
   --color-zinc-150: oklch(94.39% 0.004 286.32);
   --color-zinc-750: oklch(0.32 0.013 285.805);
-  --text-body: 0.9375rem;
+  --text-body: 0.925rem;
   --text-sm: 0.825rem;
   --text-xs: 0.725rem;
-  --opacity-disabled: 0.4;
+  --opacity-disabled: 0.6;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-subtle: var(--subtle);
+  --color-subtle-foreground: var(--subtle-foreground);
   --font-sans: var(--font-lato);
   --font-mono: var(--font-geist-mono);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -69,9 +71,11 @@
 }
 
 :root {
-  --radius: 0.625rem;
+  --radius: 0.75rem;
   --background: oklch(0.985 0 0);
   --foreground: oklch(0.145 0 0);
+  --subtle: var(--color-zinc-150);
+  --subtle-foreground: oklch(0.48 0.015 285.8); /* slightly darker than muted-foreground (zinc-500) */
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
@@ -120,6 +124,8 @@
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
+  --subtle: var(--color-zinc-750);
+  --subtle-foreground: oklch(0.63 0.013 285.9); /* slightly darker than muted-foreground (zinc-400) */
   --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
@@ -205,13 +211,13 @@
     @apply bg-background text-foreground text-body;
   }
   h1 {
-    @apply text-3xl font-extrabold leading-[calc(4/3)] text-foreground;
+    @apply text-2xl font-extrabold leading-[calc(4/3)] text-foreground;
   }
   h2 {
-    @apply text-xl font-bold leading-[calc(4/3)] text-foreground;
+    @apply text-lg font-bold leading-[calc(4/3)] text-foreground;
   }
   h3 {
-    @apply text-[1.0625rem] font-bold leading-[calc(4/3)] text-foreground;
+    @apply text-base font-bold leading-[calc(4/3)] text-foreground;
   }
   p {
     @apply text-body leading-[1.5] text-foreground;
@@ -236,7 +242,7 @@
 
   /* Standard page content wrapper */
   .page-layout {
-    @apply flex min-w-0 flex-col gap-10;
+    @apply flex min-w-0 flex-col gap-4;
   }
 
   /* ── Cards ───────────────────────────────────────────────────────────── */
@@ -263,6 +269,10 @@
 
   .section-label {
     @apply text-xs font-semibold tracking-wider text-muted-foreground;
+  }
+
+  .table-header {
+    @apply text-sm font-semibold tracking-wider text-muted-foreground;
   }
 
   .card-title {
@@ -307,7 +317,7 @@
 
   /* Raw <select> / <textarea> styled to match shadcn Input */
   .form-control {
-    @apply rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring;
+    @apply rounded-md border border-border bg-card px-3 py-2 text-sm focus:outline-none not-disabled:focus:ring-2 not-disabled:focus:ring-ring disabled:opacity-disabled disabled:cursor-not-allowed;
   }
 
   /* ── Tables ──────────────────────────────────────────────────────────── */
@@ -341,7 +351,7 @@
   }
 
   .table-cell {
-    @apply overflow-hidden text-ellipsis whitespace-nowrap px-3 py-2 text-sm text-muted-foreground;
+    @apply overflow-hidden text-ellipsis whitespace-nowrap px-3 py-2 text-sm text-subtle-foreground;
   }
 
   .table-cell:first-child {

@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils"
 interface FileLabelProps {
   size?: "sm" | "md" | "lg"
   accept?: string
+  multiple?: boolean
   onChange?: ChangeEventHandler<HTMLInputElement>
   children?: ReactNode
   className?: string
@@ -17,6 +18,7 @@ interface FileLabelProps {
 function FileLabel({
   size = "md",
   accept,
+  multiple,
   onChange,
   children,
   className,
@@ -39,6 +41,7 @@ function FileLabel({
         ref={inputRef}
         type="file"
         accept={accept}
+        multiple={multiple}
         className="sr-only"
         onChange={onChange}
       />

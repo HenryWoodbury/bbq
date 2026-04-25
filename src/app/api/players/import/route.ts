@@ -49,6 +49,14 @@ export async function POST(request: NextRequest) {
     if (!file || typeof file === "string") {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 })
     }
+    const seasonRaw = parseInt(formData.get("season") as string, 10)
+    if (Number.isNaN(seasonRaw) || seasonRaw < 2000 || seasonRaw > 2100) {
+      return NextResponse.json(
+        { error: "Valid season year is required" },
+        { status: 400 },
+      )
+    }
+    const season = seasonRaw
 
     const text = await (file as File).text()
     const lines = text
@@ -251,7 +259,14 @@ export async function POST(request: NextRequest) {
     }
 
     await prisma.playerMapImport.create({
-      data: { total: rows.length, inserted, updated, deleted },
+      data: {
+        season,
+        fileName: (file as File).name || null,
+        total: rows.length,
+        inserted,
+        updated,
+        deleted,
+      },
     })
 
     const importedAt = new Date().toISOString()

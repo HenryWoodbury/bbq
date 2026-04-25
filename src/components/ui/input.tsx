@@ -3,13 +3,13 @@ import type { InputHTMLAttributes, Ref } from "react"
 import { cn } from "@/lib/utils"
 
 const inputVariants = cva(
-  "rounded-md border border-border bg-card text-body leading-[calc(4/3)] placeholder:text-muted-foreground focus:outline-none not-disabled:focus:ring-2 not-disabled:focus:ring-ring disabled:opacity-disabled disabled:cursor-not-allowed",
+  "border border-border bg-card text-body leading-[calc(4/3)] placeholder:text-muted-foreground focus:outline-none not-disabled:focus:ring-2 not-disabled:focus:ring-ring disabled:opacity-disabled disabled:cursor-not-allowed",
   {
     variants: {
       size: {
-        sm: "px-3 py-1",
-        md: "px-3 py-1.5",
-        lg: "px-3 py-2",
+        sm: "rounded-sm px-3 py-1",
+        md: "rounded-md px-3 py-1.5",
+        lg: "rounded-lg px-3 py-2",
       },
     },
     defaultVariants: {

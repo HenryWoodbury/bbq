@@ -14,7 +14,7 @@ export default function Loading() {
           <Skeleton className="h-4 w-56" />
         </div>
       </section>
-      <section className="mt-6">
+      <section className="mt-4">
         <TableSkeleton rows={10} />
       </section>
     </div>

@@ -656,26 +656,6 @@ export function PlayersTableAdmin({
 
   return (
     <>
-      <div className="flex items-center gap-4 mb-4">
-        <h2 className="min-w-36">Players</h2>
-        <Drawer open={addingManual} onClose={() => setAddingManual(false)}>
-          <DrawerTrigger asChild>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setAddingManual(true)}
-              className="font-medium"
-            >
-              <PlayerAddIcon />
-              Add Player
-            </Button>
-          </DrawerTrigger>
-          {addingManual && (
-            <AddManualDrawer onClose={() => setAddingManual(false)} />
-          )}
-        </Drawer>
-      </div>
-
       <PlayersTable
         data={visibleData}
         statRows={statRows}
@@ -687,6 +667,24 @@ export function PlayersTableAdmin({
         playerExports={playerExports}
         onEdit={setEditingRow}
         onClearOverride={handleClearOverride}
+        searchAction={
+          <Drawer open={addingManual} onClose={() => setAddingManual(false)}>
+            <DrawerTrigger asChild>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setAddingManual(true)}
+                className="font-medium"
+              >
+                <PlayerAddIcon />
+                Add Player
+              </Button>
+            </DrawerTrigger>
+            {addingManual && (
+              <AddManualDrawer onClose={() => setAddingManual(false)} />
+            )}
+          </Drawer>
+        }
       />
 
       <Drawer open={!!editingRow} onClose={() => setEditingRow(null)}>

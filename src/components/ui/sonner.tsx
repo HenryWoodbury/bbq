@@ -59,15 +59,13 @@ function ToastContent({
   action?: ToastAction
 }) {
   return (
-    <div className="flex w-full items-end justify-between gap-4 border border-border rounded-md pt-3 pb-4 px-4 bg-popover">
+    <div className="flex w-full items-center justify-between gap-4 border border-border rounded-md pt-3 pb-4 px-4 bg-popover">
       <div className="min-w-0">
         {title && (
           <p className="text-body font-medium text-foreground">{title}</p>
         )}
         {description && (
-          <p className="mt-0.5 text-body text-muted-foreground">
-            {description}
-          </p>
+          <p className="text-body text-muted-foreground">{description}</p>
         )}
       </div>
       {action && (

@@ -1,11 +1,11 @@
 "use client"
 
 import { useRef, useState } from "react"
-import { formatDateTime } from "@/lib/date"
 import { Alert } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { FileLabel } from "@/components/ui/file-label"
+import { formatDateTime } from "@/lib/date"
 
 type ImportResult = {
   total: number
@@ -71,7 +71,7 @@ export function PlayerImport() {
           accept=".csv"
           onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)}
         >
-          {fileName ?? "Choose CSV…"}
+          {fileName ?? "Select File…"}
         </FileLabel>
         <Button
           type="submit"

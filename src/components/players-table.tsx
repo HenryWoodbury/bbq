@@ -3,6 +3,7 @@
 import type { ColumnDef } from "@tanstack/react-table"
 import { DownloadIcon, PencilIcon, Trash2Icon, Undo2Icon } from "lucide-react"
 import { useRouter } from "next/navigation"
+import type React from "react"
 import { useState } from "react"
 import { DataTable } from "@/components/data-table"
 import { FilterGroup } from "@/components/filter-group"
@@ -16,6 +17,7 @@ import {
 import { IconButton } from "@/components/ui/icon-button"
 import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
+import { PROJECTION_OPTIONS, SPLIT_FILTER_OPTIONS } from "@/lib/stat-labels"
 import { AL_TEAM_CODES, NL_TEAM_CODES } from "@/lib/team-codes"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -356,6 +358,7 @@ export function PlayersTable({
   playerExports = [],
   onEdit,
   onClearOverride,
+  searchAction,
 }: {
   data: PlayerRow[]
   statRows: StatRow[]
@@ -367,6 +370,7 @@ export function PlayersTable({
   playerExports?: string[]
   onEdit?: (row: PlayerRow) => void
   onClearOverride?: (row: PlayerRow) => void
+  searchAction?: React.ReactNode
 }) {
   const router = useRouter()
   const [show, setShow] = useState<"profiles" | "batting" | "pitching">(
@@ -403,12 +407,13 @@ export function PlayersTable({
   }
 
   const statType = statsFilter.projection === "None" ? "actual" : "projected"
+  const defaultSplit = availableSplits[0] ?? "None"
 
   function handleStatTypeChange(v: string) {
     if (v === "actual") {
       pushStatsFilter({ spr: "None", ssp: "None" })
     } else if (statsFilter.projection === "None") {
-      pushStatsFilter({ spr: "Steamer" })
+      pushStatsFilter({ spr: "Steamer", ssp: defaultSplit })
     }
   }
 
@@ -712,6 +717,7 @@ export function PlayersTable({
           className="w-full max-w-sm"
           size="sm"
         />
+        {searchAction}
       </div>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <FilterGroup
@@ -752,6 +758,7 @@ export function PlayersTable({
           <Select
             value={teamFilter}
             onChange={(e) => setTeamFilter(e.target.value)}
+            size="sm"
           >
             <option value="all">All</option>
             {teamDropdownOptions.map((code) => (
@@ -768,6 +775,7 @@ export function PlayersTable({
             onChange={(e) =>
               setPositionFilter(e.target.value as PositionFilter)
             }
+            size="sm"
           >
             <option value="all">All</option>
             {(show === "pitching"
@@ -821,12 +829,13 @@ export function PlayersTable({
             <div className="flex items-center gap-1.5">
               <span className="text-muted-foreground">Season:</span>
               <Select
-                value={String(statsFilter.season)}
+                size="sm"
+                value={statsFilter.season}
                 onChange={(e) => pushStatsFilter({ sse: e.target.value })}
                 disabled={availableYears.length === 0}
               >
                 {availableYears.map((y) => (
-                  <option key={y} value={String(y)}>
+                  <option key={y} value={y}>
                     {y}
                   </option>
                 ))}
@@ -837,92 +846,41 @@ export function PlayersTable({
                 <div className="flex items-center gap-1.5">
                   <span className="text-muted-foreground">Projection:</span>
                   <Select
+                    size="sm"
                     value={statsFilter.projection}
-                    onChange={(e) => pushStatsFilter({ spr: e.target.value })}
+                    onChange={(e) =>
+                      pushStatsFilter({ spr: e.target.value, ssp: defaultSplit })
+                    }
+                    disabled={availableProjections.length === 0}
                   >
-                    {availableProjections.includes("RoS") && (
-                      <option value="RoS">{statsFilter.season} RoS</option>
-                    )}
-                    <option
-                      value="ATC"
-                      disabled={!availableProjections.includes("ATC")}
-                    >
-                      ATC
-                    </option>
-                    <option
-                      value="DepthCharts"
-                      disabled={!availableProjections.includes("DepthCharts")}
-                    >
-                      Depth Charts
-                    </option>
-                    <option
-                      value="OOPSY"
-                      disabled={!availableProjections.includes("OOPSY")}
-                    >
-                      OOPSY
-                    </option>
-                    <option
-                      value="Steamer"
-                      disabled={!availableProjections.includes("Steamer")}
-                    >
-                      Steamer
-                    </option>
-                    <option
-                      value="TheBat"
-                      disabled={!availableProjections.includes("TheBat")}
-                    >
-                      The Bat
-                    </option>
-                    <option
-                      value="TheBatX"
-                      disabled={!availableProjections.includes("TheBatX")}
-                    >
-                      The Bat X
-                    </option>
-                    <option
-                      value="ZiPS"
-                      disabled={!availableProjections.includes("ZiPS")}
-                    >
-                      ZiPS
-                    </option>
-                    <option
-                      value="ZiPSDC"
-                      disabled={!availableProjections.includes("ZiPSDC")}
-                    >
-                      ZiPS DC
-                    </option>
+                    {PROJECTION_OPTIONS.map((o) => (
+                      <option
+                        key={o.value}
+                        value={o.value}
+                        disabled={!availableProjections.includes(o.value)}
+                      >
+                        {o.label}
+                      </option>
+                    ))}
                   </Select>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="text-muted-foreground">Splits:</span>
                   <Select
+                    size="sm"
                     value={statsFilter.split}
                     onChange={(e) => pushStatsFilter({ ssp: e.target.value })}
+                    disabled={availableSplits.length === 0}
                   >
-                    <option
-                      value="None"
-                      disabled={!availableSplits.includes("None")}
-                    >
-                      None
-                    </option>
-                    <option
-                      value="Neutral"
-                      disabled={!availableSplits.includes("Neutral")}
-                    >
-                      Neutral
-                    </option>
-                    <option
-                      value="VsLeft"
-                      disabled={!availableSplits.includes("VsLeft")}
-                    >
-                      vs Left
-                    </option>
-                    <option
-                      value="VsRight"
-                      disabled={!availableSplits.includes("VsRight")}
-                    >
-                      vs Right
-                    </option>
+                    {SPLIT_FILTER_OPTIONS.map((o) => (
+                      <option
+                        key={o.value}
+                        value={o.value}
+                        disabled={!availableSplits.includes(o.value)}
+                      >
+                        {o.label}
+                      </option>
+                    ))}
                   </Select>
                 </div>
               </>

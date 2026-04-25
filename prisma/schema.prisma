@@ -204,6 +204,8 @@ model StatUpload {
 
 model PlayerMapImport {
   id        String   @id @default(cuid())
+  season    Int
+  fileName  String?  @map("file_name")
   createdAt DateTime @default(now()) @map("created_at")
   total     Int
   inserted  Int
@@ -211,6 +213,19 @@ model PlayerMapImport {
   deleted   Int
 
   @@map("player_map_imports")
+}
+
+model PlayerUniverseUpload {
+  id        String   @id @default(cuid())
+  season    Int
+  fileName  String?  @map("file_name")
+  total     Int
+  inserted  Int
+  updated   Int
+  deleted   Int
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("player_universe_uploads")
 }
 
 // ─── League & Multi-Tenancy (Clerk Linked) ───────────────────────────────────

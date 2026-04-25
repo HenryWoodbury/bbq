@@ -1,9 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import {
-  StatPlayerType,
-  type StatProjection,
-  StatSplit,
-} from "@/generated/prisma/client"
+import { StatPlayerType, type StatProjection, StatSplit } from "@/generated/prisma/client"
 import { assertAdmin } from "@/lib/auth-helpers"
 import { chunk, parseCSVLine } from "@/lib/csv"
 import { prisma } from "@/lib/prisma"
@@ -34,7 +30,6 @@ export async function POST(request: NextRequest) {
   const playerTypeStr = formData.get("playerType")
   const projectionStr = (formData.get("projection") as string | null) ?? "None"
   const splitStr = (formData.get("split") as string | null) ?? "none"
-  const ros = formData.get("ros") === "true"
   const fileName = (formData.get("fileName") as string | null) ?? null
 
   if (!(file instanceof File) || !seasonStr || !playerTypeStr) {
@@ -153,18 +148,17 @@ export async function POST(request: NextRequest) {
   const fgMap = new Map(byFgId.map((p) => [p.fangraphsId, p.id]))
   const mlbamMap = new Map(byMlbamId.map((p) => [p.mlbamId, p.id]))
 
-  type UpsertData = {
+  type RowData = {
     playerId: string
     season: number
     playerType: StatPlayerType
     projection: StatProjection
     split: StatSplit
-    ros: boolean
     mlbTeam: string | null
     stats: Record<string, number>
   }
 
-  const toUpsert: UpsertData[] = []
+  const toUpsert: RowData[] = []
   let skipped = 0
   const unmatchedSample: string[] = []
 
@@ -186,57 +180,40 @@ export async function POST(request: NextRequest) {
       playerType,
       projection,
       split,
-      ros,
       mlbTeam: row.team,
       stats: row.stats,
     })
   }
 
-  let upserted = 0
+  const upserted = toUpsert.length
   try {
-    for (const batch of chunk(toUpsert, 100)) {
-      await prisma.$transaction(
-        batch.map((data) =>
-          prisma.playerStat.upsert({
-            where: {
-              playerId_season_playerType_projection_neutralized_split_ros: {
-                playerId: data.playerId,
-                season: data.season,
-                playerType: data.playerType,
-                projection: data.projection,
-                neutralized: false,
-                split: data.split,
-                ros: data.ros,
-              },
-            },
-            update: {
-              mlbTeam: data.mlbTeam,
-              stats: data.stats,
-              deletedAt: null,
-            },
-            create: {
-              playerId: data.playerId,
-              season: data.season,
-              playerType: data.playerType,
-              projection: data.projection,
-              neutralized: false,
-              split: data.split,
-              ros: data.ros,
-              mlbTeam: data.mlbTeam,
-              stats: data.stats,
-            },
-          }),
-        ),
-      )
-      upserted += batch.length
-    }
+    await prisma.$transaction(async (tx) => {
+      await tx.playerStat.deleteMany({
+        where: { season, playerType, projection, split, ros: false },
+      })
+      for (const batch of chunk(toUpsert, 500)) {
+        await tx.playerStat.createMany({
+          data: batch.map((data) => ({
+            playerId: data.playerId,
+            season: data.season,
+            playerType: data.playerType,
+            projection: data.projection,
+            neutralized: false,
+            split: data.split,
+            ros: false,
+            mlbTeam: data.mlbTeam,
+            stats: data.stats,
+          })),
+        })
+      }
+    })
     const upload = await prisma.statUpload.create({
       data: {
         season,
         playerType,
         projection,
         split,
-        ros,
+        ros: false,
         fileName,
         total: rows.length,
         linked: toUpsert.length,

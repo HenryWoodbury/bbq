@@ -6,15 +6,13 @@ import type {
 } from "@/components/players-table"
 import { TableSkeleton } from "@/components/table-skeleton"
 import { Skeleton } from "@/components/ui/skeleton"
-import {
-  StatPlayerType,
-  StatProjection,
-} from "@/generated/prisma/client"
+import { StatPlayerType, StatProjection } from "@/generated/prisma/client"
 import { requireAdmin } from "@/lib/auth-helpers"
-import { prisma } from "@/lib/prisma"
 import { toISODate } from "@/lib/date"
+import { prisma } from "@/lib/prisma"
 import { PROJECTION_MAP, SPLIT_MAP } from "@/lib/stat-maps"
 import { deriveLeagueFromTeam, deriveLevelFromFgId } from "@/lib/team-codes"
+import { PlayerPageTabs, type Tab } from "./player-page-tabs"
 import { PlayerProfilesSection } from "./player-profiles-section"
 import { PlayerStatsSection } from "./player-stats-section"
 import { PlayersTableAdmin } from "./players-table-admin"
@@ -27,7 +25,6 @@ export type StatUploadRow = {
   playerType: string
   projection: string
   split: string
-  ros: boolean
   fileName: string | null
   total: number
   linked: number
@@ -36,21 +33,6 @@ export type StatUploadRow = {
   createdAt: Date
 }
 
-export type SyncStatus = {
-  lastSyncedPlayer: {
-    updatedAt: Date
-  } | null
-  lastUploadedPlayerMap: {
-    createdAt: Date
-  } | null
-  lastUploadedUniverse: {
-    updatedAt: Date
-  } | null
-  lastUploadedStats: {
-    createdAt: Date
-  } | null
-  recentStatUploads: StatUploadRow[]
-}
 
 const PROJECTION_KEY: Record<string, string> = Object.fromEntries(
   Object.entries(PROJECTION_MAP).map(([k, v]) => [v, k]),
@@ -67,89 +49,79 @@ export default async function AdminPlayersPage({
   await requireAdmin()
   const params = await searchParams
 
+  const TABS: Tab[] = ["players", "stats", "profiles"]
+  const tab: Tab = TABS.includes(params.tab as Tab) ? (params.tab as Tab) : "players"
+
   return (
-    <div className="page-layout flex flex-col gap-4">
+    <div className="page-layout">
       <h1>Manage Players</h1>
-      <section className="mt-2">
-        <Suspense fallback={<SyncStatusSkeleton />}>
-          <SyncStatusSection params={params} />
-        </Suspense>
-      </section>
-      <section className="mt-6">
-        <Suspense fallback={<TableSkeleton rows={10} />}>
-          <PlayersTableSection params={params} />
-        </Suspense>
-      </section>
+      <PlayerPageTabs currentTab={tab}>
+        {tab === "players" && (
+          <Suspense fallback={<TableSkeleton rows={10} />}>
+            <PlayersTableSection params={params} />
+          </Suspense>
+        )}
+        {tab === "stats" && (
+          <Suspense fallback={<SectionSkeleton />}>
+            <StatsTabContent />
+          </Suspense>
+        )}
+        {tab === "profiles" && (
+          <Suspense fallback={<SectionSkeleton />}>
+            <ProfilesTabContent />
+          </Suspense>
+        )}
+      </PlayerPageTabs>
     </div>
   )
 }
 
-// ── Sync status (fast: 4 metadata queries) ─────────────────────────────────────
+// ── Tab content: Profiles ──────────────────────────────────────────────────────
 
-async function SyncStatusSection({
-  params,
-}: {
-  params: Record<string, string | undefined>
-}) {
-  const [
-    lastSyncedPlayer,
-    lastUploadedPlayerMap,
-    lastUploadedUniverse,
-    recentStatUploads,
-  ] = await Promise.all([
-    prisma.player.findFirst({
-      orderBy: { updatedAt: "desc" },
-      select: { updatedAt: true },
-    }),
-    prisma.playerMapImport.findFirst({
+async function ProfilesTabContent() {
+  const [playerMapUploads, playerUniverseUploads] = await Promise.all([
+    prisma.playerMapImport.findMany({
       orderBy: { createdAt: "desc" },
-      select: { createdAt: true },
+      take: 50,
+      select: { id: true, season: true, fileName: true, createdAt: true },
     }),
-    prisma.playerUniverse.findFirst({
-      where: { format: "ottoneu", deletedAt: null },
-      orderBy: { updatedAt: "desc" },
-      select: { updatedAt: true },
-    }),
-    prisma.statUpload.findMany({
+    prisma.playerUniverseUpload.findMany({
       orderBy: { createdAt: "desc" },
-      take: 20,
-      select: {
-        id: true,
-        season: true,
-        playerType: true,
-        projection: true,
-        split: true,
-        ros: true,
-        fileName: true,
-        total: true,
-        linked: true,
-        skipped: true,
-        upserted: true,
-        createdAt: true,
-      },
+      take: 50,
+      select: { id: true, season: true, fileName: true, createdAt: true },
     }),
   ])
 
-  const status: SyncStatus = {
-    lastSyncedPlayer,
-    lastUploadedPlayerMap,
-    lastUploadedUniverse,
-    lastUploadedStats: recentStatUploads[0] ?? null,
-    recentStatUploads,
-  }
-
   return (
-    <div className="flex flex-col gap-4">
-      <PlayerProfilesSection
-        status={status}
-        defaultOpen={params.pp === "1"}
-      />
-      <PlayerStatsSection
-        status={status}
-        defaultOpen={params.ps === "1"}
-      />
-    </div>
+    <PlayerProfilesSection
+      playerMapUploads={playerMapUploads}
+      playerUniverseUploads={playerUniverseUploads}
+    />
   )
+}
+
+// ── Tab content: Stats ─────────────────────────────────────────────────────────
+
+async function StatsTabContent() {
+  const recentStatUploads = await prisma.statUpload.findMany({
+    orderBy: { createdAt: "desc" },
+    take: 20,
+    select: {
+      id: true,
+      season: true,
+      playerType: true,
+      projection: true,
+      split: true,
+      fileName: true,
+      total: true,
+      linked: true,
+      skipped: true,
+      upserted: true,
+      createdAt: true,
+    },
+  })
+
+  return <PlayerStatsSection recentStatUploads={recentStatUploads} />
 }
 
 // ── Players table (slow: player + stats queries) ───────────────────────────────
@@ -159,128 +131,118 @@ async function PlayersTableSection({
 }: {
   params: Record<string, string | undefined>
 }) {
-  const [players, manualOverrides, statSeasons, playerExports] = await Promise.all([
-    prisma.player.findMany({
-      where: { deletedAt: null },
-      orderBy: { playerName: "asc" },
-      select: {
-        id: true,
-        ottoneuId: true,
-        playerName: true,
-        fgSpecialChar: true,
-        firstName: true,
-        lastName: true,
-        active: true,
-        birthday: true,
-        team: true,
-        mlbLevel: true,
-        fangraphsId: true,
-        bats: true,
-        throws: true,
-        universe: {
-          where: { format: "ottoneu", deletedAt: null },
-          select: { positions: true, fangraphsId: true },
-          take: 1,
-        },
-        override: {
-          select: {
-            id: true,
-            displayName: true,
-            firstName: true,
-            lastName: true,
-            nickname: true,
-            birthday: true,
-            team: true,
-            mlbLevel: true,
-            league: true,
-            active: true,
-            bats: true,
-            throws: true,
-            positions: true,
-            deletedAt: true,
+  const [players, manualOverrides, statSeasons, playerExports] =
+    await Promise.all([
+      prisma.player.findMany({
+        where: { deletedAt: null },
+        orderBy: { playerName: "asc" },
+        select: {
+          id: true,
+          ottoneuId: true,
+          playerName: true,
+          fgSpecialChar: true,
+          firstName: true,
+          lastName: true,
+          active: true,
+          birthday: true,
+          team: true,
+          mlbLevel: true,
+          fangraphsId: true,
+          bats: true,
+          throws: true,
+          universe: {
+            where: { format: "ottoneu", deletedAt: null },
+            select: { positions: true, fangraphsId: true },
+            take: 1,
+          },
+          override: {
+            select: {
+              id: true,
+              displayName: true,
+              firstName: true,
+              lastName: true,
+              nickname: true,
+              birthday: true,
+              team: true,
+              mlbLevel: true,
+              league: true,
+              active: true,
+              bats: true,
+              throws: true,
+              positions: true,
+              deletedAt: true,
+            },
           },
         },
-      },
-    }),
-    // Manual overrides not yet linked to a Player
-    prisma.playerOverride.findMany({
-      where: { isManual: true, playerId: null, deletedAt: null },
-      select: {
-        id: true,
-        displayName: true,
-        firstName: true,
-        lastName: true,
-        nickname: true,
-        birthday: true,
-        team: true,
-        mlbLevel: true,
-        league: true,
-        active: true,
-        bats: true,
-        throws: true,
-        positions: true,
-        fangraphsId: true,
-        ottoneuId: true,
-      },
-    }),
-    prisma.statUpload.findMany({
-      select: { season: true },
-      distinct: ["season"],
-      orderBy: { season: "desc" },
-    }),
-    prisma.dataExport.findMany({
-      where: { scope: "Players", deletedAt: null },
-      orderBy: { name: "asc" },
-      select: { name: true },
-    }),
-  ])
+      }),
+      // Manual overrides not yet linked to a Player
+      prisma.playerOverride.findMany({
+        where: { isManual: true, playerId: null, deletedAt: null },
+        select: {
+          id: true,
+          displayName: true,
+          firstName: true,
+          lastName: true,
+          nickname: true,
+          birthday: true,
+          team: true,
+          mlbLevel: true,
+          league: true,
+          active: true,
+          bats: true,
+          throws: true,
+          positions: true,
+          fangraphsId: true,
+          ottoneuId: true,
+        },
+      }),
+      prisma.statUpload.findMany({
+        select: { season: true, projection: true, split: true },
+        orderBy: { season: "desc" },
+        take: 500,
+      }),
+      prisma.dataExport.findMany({
+        where: { scope: "Players", deletedAt: null },
+        orderBy: { name: "asc" },
+        select: { name: true },
+      }),
+    ])
 
   // ── Stats filter params ──────────────────────────────────────────────────
-  const availableYears = statSeasons.map((s) => s.season)
+
+  const availableYears: number[] = [...new Set(statSeasons.map((r) => r.season))]
+
   const playerType =
     params.spt === "PITCHER" || params.show === "pitching"
       ? StatPlayerType.PITCHER
       : StatPlayerType.BATTER
-  const season = availableYears.includes(Number(params.sse))
-    ? Number(params.sse)
+
+  const sseRaw = params.sse ? Number(params.sse) : NaN
+  const selectedSeason: number = availableYears.includes(sseRaw)
+    ? sseRaw
     : (availableYears[0] ?? new Date().getFullYear())
-  const [seasonProjectionRows, seasonSplitRows] =
-    availableYears.length > 0
-      ? await Promise.all([
-          prisma.statUpload.findMany({
-            where: { season },
-            select: { projection: true, ros: true },
-          }),
-          prisma.statUpload.findMany({
-            where: { season },
-            select: { split: true },
-            distinct: ["split"],
-          }),
-        ])
-      : [[], []]
 
-  const hasRos = seasonProjectionRows.some((r) => r.ros)
+  const seasonRows = statSeasons.filter((r) => r.season === selectedSeason)
 
-  const availableProjections = [
-    ...(hasRos ? ["RoS"] : []),
-    ...Array.from(
-      new Set(
-        seasonProjectionRows
-          .map((r) => PROJECTION_KEY[r.projection])
-          .filter((k): k is string => k !== undefined),
-      ),
+  const availableProjections = Array.from(
+    new Set(
+      seasonRows
+        .map((r) => PROJECTION_KEY[r.projection])
+        .filter((k): k is string => k !== undefined),
     ),
-  ]
+  )
 
-  const availableSplits = seasonSplitRows
-    .map((r) => SPLIT_KEY[r.split])
+  const availableSplits = Array.from(new Set(seasonRows.map((r) => r.split)))
+    .map((s) => SPLIT_KEY[s])
     .filter((k): k is string => k !== undefined)
 
   const defaultProjectionKey = availableProjections[0] ?? "None"
   const projectionKey =
-    params.spr && availableProjections.includes(params.spr)
-      ? params.spr
-      : defaultProjectionKey
+    params.spr === "None"
+      ? "None"
+      : params.spr && availableProjections.includes(params.spr)
+        ? params.spr
+        : defaultProjectionKey
   const splitKey =
     params.ssp !== undefined && params.ssp in SPLIT_MAP ? params.ssp : "None"
   const projection = PROJECTION_MAP[projectionKey] ?? StatProjection.None
@@ -290,11 +252,10 @@ async function PlayersTableSection({
     availableYears.length > 0
       ? await prisma.playerStat.findMany({
           where: {
-            season,
+            season: selectedSeason,
             playerType,
-            ...(projectionKey === "RoS"
-              ? { ros: true }
-              : { projection }),
+            ros: false,
+            projection,
             split,
             deletedAt: null,
           },
@@ -327,7 +288,7 @@ async function PlayersTableSection({
 
   const statsFilter: StatsFilter = {
     playerType,
-    season,
+    season: selectedSeason,
     projection: projectionKey,
     split: splitKey,
   }
@@ -430,11 +391,12 @@ async function PlayersTableSection({
 
 // ── Skeleton fallbacks ─────────────────────────────────────────────────────────
 
-function SyncStatusSkeleton() {
+function SectionSkeleton() {
   return (
     <div className="flex flex-col gap-4">
-      <Skeleton className="h-[46px] w-full rounded-lg" />
-      <Skeleton className="h-[46px] w-full rounded-lg" />
+      <Skeleton className="h-4 w-48" />
+      <Skeleton className="h-4 w-full" />
+      <Skeleton className="h-32 w-full rounded-lg" />
     </div>
   )
 }

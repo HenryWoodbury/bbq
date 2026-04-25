@@ -53,6 +53,11 @@ export async function POST(request: NextRequest) {
   }
 
   const mode = formData.get("mode") === "additive" ? "additive" : "replace"
+  const seasonRaw = parseInt(formData.get("season") as string, 10)
+  const season =
+    !Number.isNaN(seasonRaw) && seasonRaw >= 2000 && seasonRaw <= 2100
+      ? seasonRaw
+      : new Date().getFullYear()
   const text = await file.text()
 
   const lines = text
@@ -193,6 +198,17 @@ export async function POST(request: NextRequest) {
 
   const { linked, ottoneuIdsFilled, manualOverridesLinked } =
     await reconcilePlayerIds()
+
+  await prisma.playerUniverseUpload.create({
+    data: {
+      season,
+      fileName: file.name || null,
+      total: rows.length,
+      inserted,
+      updated,
+      deleted,
+    },
+  })
 
   const uploadedAt = new Date().toISOString()
   return NextResponse.json({
