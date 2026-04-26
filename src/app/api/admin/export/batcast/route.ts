@@ -93,13 +93,31 @@ export async function GET(request: Request) {
     ...(hasPlayerFilter ? { player: playerFilter } : {}),
   })
 
-  // ── Fetch all splits (union = all players with stats for any split) ─────────
+  const isBatter = playerType === StatPlayerType.BATTER
 
-  const [noneRows, vsLeftRows, vsRightRows] = await Promise.all([
-    prisma.playerStat.findMany({
-      where: statsWhere(StatSplit.None),
-      select: { playerId: true, stats: true },
-    }),
+  const pitcherPrimaryWhere = {
+    ...statsWhere(StatSplit.None),
+    split: { in: [StatSplit.None, StatSplit.Neutral] },
+  }
+
+  const [primaryRows, vsLeftRows, vsRightRows] = await Promise.all([
+    isBatter
+      ? prisma.playerStat.findMany({
+          where: statsWhere(StatSplit.None),
+          select: { playerId: true, stats: true },
+        })
+      : prisma.playerStat
+          .findMany({
+            where: pitcherPrimaryWhere,
+            select: { playerId: true, stats: true, split: true },
+          })
+          .then((rows) => {
+            const merged = new Map<string, (typeof rows)[number]["stats"]>()
+            for (const r of rows) {
+              if (!merged.has(r.playerId) || r.split === StatSplit.Neutral) merged.set(r.playerId, r.stats)
+            }
+            return Array.from(merged.entries()).map(([playerId, stats]) => ({ playerId, stats }))
+          }),
     prisma.playerStat.findMany({
       where: statsWhere(StatSplit.VsLeft),
       select: { playerId: true, stats: true },
@@ -112,7 +130,7 @@ export async function GET(request: Request) {
 
   const allPlayerIds = [
     ...new Set([
-      ...noneRows.map((r) => r.playerId),
+      ...primaryRows.map((r) => r.playerId),
       ...vsLeftRows.map((r) => r.playerId),
       ...vsRightRows.map((r) => r.playerId),
     ]),
@@ -178,7 +196,7 @@ export async function GET(request: Request) {
 
   // ── Build lookup maps ──────────────────────────────────────────────────────
 
-  const noneMap = new Map(noneRows.map((r) => [r.playerId, r.stats]))
+  const primaryMap = new Map(primaryRows.map((r) => [r.playerId, r.stats]))
   const vsLeftMap = new Map(vsLeftRows.map((r) => [r.playerId, r.stats]))
   const vsRightMap = new Map(vsRightRows.map((r) => [r.playerId, r.stats]))
 
@@ -198,7 +216,6 @@ export async function GET(request: Request) {
 
   // ── Build player records ───────────────────────────────────────────────────
 
-  const isBatter = playerType === StatPlayerType.BATTER
   const typeLabel = isBatter ? "batters" : "pitchers"
 
   const playerRecords = sortedPlayers.map((p) => {
@@ -210,8 +227,8 @@ export async function GET(request: Request) {
     const positions = p.universe[0]?.positions.join("/") ?? null
 
     const mainStat = isBatter
-      ? getRawStat(noneMap.get(p.id), "wOBA")
-      : getRawStat(noneMap.get(p.id), "FIP")
+      ? getRawStat(primaryMap.get(p.id), "wOBA")
+      : getRawStat(primaryMap.get(p.id), "FIP")
     const vsLeft = getRawStat(vsLeftMap.get(p.id), "wOBA")
     const vsRight = getRawStat(vsRightMap.get(p.id), "wOBA")
 

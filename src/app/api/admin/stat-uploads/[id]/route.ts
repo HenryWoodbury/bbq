@@ -24,6 +24,7 @@ export async function DELETE(
         playerType: upload.playerType,
         projection: upload.projection,
         split: upload.split,
+        ros: upload.ros,
         deletedAt: null,
       },
       data: { deletedAt: now },

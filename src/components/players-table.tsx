@@ -80,7 +80,6 @@ export type StatRow = {
 }
 
 export type StatsFilter = {
-  playerType: "BATTER" | "PITCHER"
   season: number
   projection: string
   split: string
@@ -354,7 +353,7 @@ export function PlayersTable({
   availableProjections,
   availableSplits,
   statsFilter,
-  initialShow = "profiles" as "profiles" | "batting" | "pitching",
+  initialShow = "profiles" as "profiles" | "batters" | "pitchers",
   playerExports = [],
   onEdit,
   onClearOverride,
@@ -366,14 +365,14 @@ export function PlayersTable({
   availableProjections: string[]
   availableSplits: string[]
   statsFilter: StatsFilter
-  initialShow?: "profiles" | "batting" | "pitching"
+  initialShow?: "profiles" | "batters" | "pitchers"
   playerExports?: string[]
   onEdit?: (row: PlayerRow) => void
   onClearOverride?: (row: PlayerRow) => void
   searchAction?: React.ReactNode
 }) {
   const router = useRouter()
-  const [show, setShow] = useState<"profiles" | "batting" | "pitching">(
+  const [show, setShow] = useState<"profiles" | "batters" | "pitchers">(
     initialShow,
   )
   const [search, setSearch] = useState("")
@@ -385,22 +384,29 @@ export function PlayersTable({
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
 
   function handleShowChange(v: string) {
-    const newShow = v as "profiles" | "batting" | "pitching"
+    const newShow = v as "profiles" | "batters" | "pitchers"
     setShow(newShow)
-    // Reset position filter if incompatible with the new tab
-    if (newShow === "batting" && PITCHER_POSITIONS.has(positionFilter)) {
+    if (newShow === "batters" && PITCHER_POSITIONS.has(positionFilter)) {
       setPositionFilter("all")
     } else if (
-      newShow === "pitching" &&
+      newShow === "pitchers" &&
       positionFilter !== "all" &&
       !PITCHER_POSITIONS.has(positionFilter)
     ) {
       setPositionFilter("all")
     }
-    if (newShow === "batting") {
-      pushStatsFilter({ spt: "BATTER" })
-    } else if (newShow === "pitching") {
-      pushStatsFilter({ spt: "PITCHER" })
+    if (newShow === "batters" || newShow === "pitchers") {
+      const sse = String(availableYears[0] ?? new Date().getFullYear())
+      const hasActual = availableProjections.includes("None")
+      const hasProjected = availableProjections.some((p) => p !== "None")
+      if (hasProjected && !hasActual) {
+        const spr = availableProjections.includes("Steamer")
+          ? "Steamer"
+          : (availableProjections.find((p) => p !== "None") ?? "Steamer")
+        pushStatsFilter({ show: newShow, sse, spr, ssp: newShow === "pitchers" ? "None" : defaultSplit })
+      } else {
+        pushStatsFilter({ show: newShow, sse, spr: "None", ssp: "None" })
+      }
     } else {
       router.push("/admin/players?show=profiles")
     }
@@ -446,16 +452,16 @@ export function PlayersTable({
   }
 
   function pushStatsFilter(updates: Record<string, string>) {
-    const effectiveShow = show === "profiles" ? "batting" : show
-    const sp = new URLSearchParams({
-      show: effectiveShow,
-      spt: statsFilter.playerType,
+    const params: Record<string, string> = {
+      show: show === "profiles" ? "batters" : show,
       sse: String(statsFilter.season),
       spr: statsFilter.projection,
       ssp: statsFilter.split,
       ...updates,
-    })
-    router.push(`/admin/players?${sp.toString()}`)
+    }
+    const effectiveShow = params.show
+    if (effectiveShow === "pitchers") delete params.ssp
+    router.push(`/admin/players?${new URLSearchParams(params).toString()}`)
   }
 
   // ── Profile filtering ──────────────────────────────────────────────────────
@@ -574,7 +580,13 @@ export function PlayersTable({
 
   // ── Stats column definitions ───────────────────────────────────────────────
 
-  const statColKeys = show === "pitching" ? PITCHING_COLS : BATTING_COLS
+  // Use server-driven initialShow to determine columns — show may be ahead of statRows during navigation
+  const statColKeys = initialShow === "pitchers" ? PITCHING_COLS : BATTING_COLS
+
+  // statRows reflects the previous URL; suppress them until the server catches up
+  const inTransition =
+    (show === "batters" && initialShow === "pitchers") ||
+    (show === "pitchers" && initialShow === "batters")
 
   const statsColumnDefs = ((): ColumnDef<StatRow, unknown>[] => {
     const base: ColumnDef<StatRow, unknown>[] = [
@@ -778,9 +790,9 @@ export function PlayersTable({
             size="sm"
           >
             <option value="all">All</option>
-            {(show === "pitching"
+            {(show === "pitchers"
               ? (["SP", "RP"] as const)
-              : show === "batting"
+              : show === "batters"
                 ? (["C", "1B", "2B", "3B", "SS", "OF", "Util"] as const)
                 : ([
                     "C",
@@ -807,9 +819,9 @@ export function PlayersTable({
           label="Show:"
           size="sm"
           options={[
-            { value: "profiles", label: "Profile" },
-            { value: "batting", label: "Batting" },
-            { value: "pitching", label: "Pitching" },
+            { value: "profiles", label: "Profiles" },
+            { value: "batters", label: "Batters" },
+            { value: "pitchers", label: "Pitchers" },
           ]}
           value={show}
           onChange={handleShowChange}
@@ -849,7 +861,7 @@ export function PlayersTable({
                     size="sm"
                     value={statsFilter.projection}
                     onChange={(e) =>
-                      pushStatsFilter({ spr: e.target.value, ssp: defaultSplit })
+                      pushStatsFilter({ spr: e.target.value, ssp: show === "pitchers" ? "None" : defaultSplit })
                     }
                     disabled={availableProjections.length === 0}
                   >
@@ -864,25 +876,27 @@ export function PlayersTable({
                     ))}
                   </Select>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-muted-foreground">Splits:</span>
-                  <Select
-                    size="sm"
-                    value={statsFilter.split}
-                    onChange={(e) => pushStatsFilter({ ssp: e.target.value })}
-                    disabled={availableSplits.length === 0}
-                  >
-                    {SPLIT_FILTER_OPTIONS.map((o) => (
-                      <option
-                        key={o.value}
-                        value={o.value}
-                        disabled={!availableSplits.includes(o.value)}
-                      >
-                        {o.label}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
+                {show !== "pitchers" && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-muted-foreground">Splits:</span>
+                    <Select
+                      size="sm"
+                      value={statsFilter.split}
+                      onChange={(e) => pushStatsFilter({ ssp: e.target.value })}
+                      disabled={availableSplits.length === 0}
+                    >
+                      {SPLIT_FILTER_OPTIONS.map((o) => (
+                        <option
+                          key={o.value}
+                          value={o.value}
+                          disabled={!availableSplits.includes(o.value)}
+                        >
+                          {o.label}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                )}
               </>
             )}
           </>
@@ -929,7 +943,7 @@ export function PlayersTable({
       ) : (
         <DataTable
           columns={statsColumnDefs}
-          data={displayedStats}
+          data={inTransition ? [] : displayedStats}
           defaultPageSize={20}
           defaultSorting={[{ id: "displayName", desc: false }]}
         />

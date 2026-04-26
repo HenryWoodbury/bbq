@@ -580,7 +580,7 @@ export function PlayersTableAdmin({
   availableProjections: string[]
   availableSplits: string[]
   statsFilter: StatsFilter
-  initialShow?: "profiles" | "batting" | "pitching"
+  initialShow?: "profiles" | "batters" | "pitchers"
   playerExports?: string[]
 }) {
   const router = useRouter()

@@ -6,7 +6,7 @@ import type {
 } from "@/components/players-table"
 import { TableSkeleton } from "@/components/table-skeleton"
 import { Skeleton } from "@/components/ui/skeleton"
-import { StatPlayerType, StatProjection } from "@/generated/prisma/client"
+import { StatPlayerType, StatProjection, StatSplit } from "@/generated/prisma/client"
 import { requireAdmin } from "@/lib/auth-helpers"
 import { toISODate } from "@/lib/date"
 import { prisma } from "@/lib/prisma"
@@ -213,7 +213,7 @@ async function PlayersTableSection({
   const availableYears: number[] = [...new Set(statSeasons.map((r) => r.season))]
 
   const playerType =
-    params.spt === "PITCHER" || params.show === "pitching"
+    params.show === "pitchers"
       ? StatPlayerType.PITCHER
       : StatPlayerType.BATTER
 
@@ -243,37 +243,46 @@ async function PlayersTableSection({
       : params.spr && availableProjections.includes(params.spr)
         ? params.spr
         : defaultProjectionKey
-  const splitKey =
-    params.ssp !== undefined && params.ssp in SPLIT_MAP ? params.ssp : "None"
   const projection = PROJECTION_MAP[projectionKey] ?? StatProjection.None
+
+  const splitKey =
+    playerType === StatPlayerType.PITCHER
+      ? "None"
+      : params.ssp !== undefined && params.ssp in SPLIT_MAP
+        ? params.ssp
+        : "None"
   const split = SPLIT_MAP[splitKey]
 
-  const rawStatRows =
-    availableYears.length > 0
-      ? await prisma.playerStat.findMany({
-          where: {
-            season: selectedSeason,
-            playerType,
-            ros: false,
-            projection,
-            split,
-            deletedAt: null,
-          },
-          include: {
-            player: {
-              select: {
-                playerName: true,
-                ottoneuId: true,
-                fangraphsId: true,
-                mlbLevel: true,
-                team: true,
-                active: true,
-              },
-            },
-          },
-          orderBy: { player: { playerName: "asc" } },
-        })
-      : []
+  const playerStatSelect = {
+    player: {
+      select: {
+        playerName: true,
+        ottoneuId: true,
+        fangraphsId: true,
+        mlbLevel: true,
+        team: true,
+        active: true,
+      },
+    },
+  } as const
+
+  const rawStatRows = await (async () => {
+    if (availableYears.length === 0) return []
+    const baseWhere = { season: selectedSeason, playerType, ros: false, projection, deletedAt: null }
+    if (playerType === StatPlayerType.PITCHER) {
+      const rows = await prisma.playerStat.findMany({
+        where: { ...baseWhere, split: { in: [StatSplit.None, StatSplit.Neutral] } },
+        include: playerStatSelect,
+        orderBy: { player: { playerName: "asc" } },
+      })
+      const rowMap = new Map<string, (typeof rows)[number]>()
+      for (const r of rows) {
+        if (!rowMap.has(r.playerId) || r.split === StatSplit.Neutral) rowMap.set(r.playerId, r)
+      }
+      return [...rowMap.values()].sort((a, b) => a.player.playerName.localeCompare(b.player.playerName))
+    }
+    return prisma.playerStat.findMany({ where: { ...baseWhere, split }, include: playerStatSelect, orderBy: { player: { playerName: "asc" } } })
+  })()
 
   const statRows: StatRow[] = rawStatRows.map((r) => ({
     playerId: r.playerId,
@@ -287,7 +296,6 @@ async function PlayersTableSection({
   }))
 
   const statsFilter: StatsFilter = {
-    playerType,
     season: selectedSeason,
     projection: projectionKey,
     split: splitKey,
@@ -368,11 +376,11 @@ async function PlayersTableSection({
 
   const allRows = [...playerRows, ...manualRows]
 
-  const initialShow: "profiles" | "batting" | "pitching" =
-    params.show === "batting"
-      ? "batting"
-      : params.show === "pitching"
-        ? "pitching"
+  const initialShow: "profiles" | "batters" | "pitchers" =
+    params.show === "batters"
+      ? "batters"
+      : params.show === "pitchers"
+        ? "pitchers"
         : "profiles"
 
   return (

@@ -177,6 +177,7 @@ export function UploadStats({
   const columns: ColumnDef<StatUploadRow>[] = [
     {
       id: "file",
+      accessorFn: (row) => row.fileName ?? "",
       header: "File",
       size: 240,
       cell: ({ row }) => (
@@ -193,6 +194,7 @@ export function UploadStats({
     },
     {
       id: "role",
+      accessorFn: (row) => row.playerType,
       header: "Role",
       size: 80,
       cell: ({ row }) =>
@@ -200,6 +202,7 @@ export function UploadStats({
     },
     {
       id: "type",
+      accessorFn: (row) => (row.projection === "None" ? "Actual" : "Projected"),
       header: "Type",
       size: 80,
       cell: ({ row }) =>
@@ -207,6 +210,10 @@ export function UploadStats({
     },
     {
       id: "model",
+      accessorFn: (row) =>
+        row.projection !== "None"
+          ? (PROJECTION_DISPLAY[row.projection] ?? row.projection)
+          : "",
       header: "Model",
       size: 80,
       cell: ({ row }) =>
@@ -217,6 +224,7 @@ export function UploadStats({
     },
     {
       id: "split",
+      accessorFn: (row) => SPLIT_DISPLAY[row.split] ?? row.split,
       header: "Split",
       size: 80,
       cell: ({ row }) =>
@@ -226,6 +234,7 @@ export function UploadStats({
       id: "actions",
       header: "",
       size: 50,
+      enableSorting: false,
       cell: ({ row }) => (
         <div className="flex justify-end">
           <IconButton
@@ -253,6 +262,7 @@ export function UploadStats({
             columns={columns}
             data={visibleExisting}
             pagination={false}
+            defaultSorting={[{ id: "season", desc: true }]}
           />
         )}
 
