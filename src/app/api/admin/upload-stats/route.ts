@@ -187,8 +187,11 @@ export async function POST(request: NextRequest) {
 
   const upserted = toUpsert.length
   try {
-    await prisma.$transaction(async (tx) => {
+    const upload = await prisma.$transaction(async (tx) => {
       await tx.playerStat.deleteMany({
+        where: { season, playerType, projection, split, ros: false },
+      })
+      await tx.statUpload.deleteMany({
         where: { season, playerType, projection, split, ros: false },
       })
       for (const batch of chunk(toUpsert, 500)) {
@@ -206,20 +209,20 @@ export async function POST(request: NextRequest) {
           })),
         })
       }
-    })
-    const upload = await prisma.statUpload.create({
-      data: {
-        season,
-        playerType,
-        projection,
-        split,
-        ros: false,
-        fileName,
-        total: rows.length,
-        linked: toUpsert.length,
-        skipped,
-        upserted,
-      },
+      return tx.statUpload.create({
+        data: {
+          season,
+          playerType,
+          projection,
+          split,
+          ros: false,
+          fileName,
+          total: rows.length,
+          linked: toUpsert.length,
+          skipped,
+          upserted,
+        },
+      })
     })
 
     return NextResponse.json({

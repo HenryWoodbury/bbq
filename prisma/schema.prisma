@@ -180,8 +180,7 @@ model PlayerStat {
   deletedAt   DateTime?       @map("deleted_at")
 
   @@unique([playerId, season, playerType, projection, neutralized, split, ros])
-  @@index([season])
-  @@index([projection])
+  @@index([season, playerType, projection, split, ros])
   @@map("player_stats")
 }
 
@@ -199,6 +198,7 @@ model StatUpload {
   upserted   Int
   createdAt  DateTime       @default(now()) @map("created_at")
 
+  @@unique([season, playerType, projection, split, ros])
   @@map("stat_uploads")
 }
 

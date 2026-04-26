@@ -403,7 +403,7 @@ export function PlayersTable({
         const spr = availableProjections.includes("Steamer")
           ? "Steamer"
           : (availableProjections.find((p) => p !== "None") ?? "Steamer")
-        pushStatsFilter({ show: newShow, sse, spr, ssp: newShow === "pitchers" ? "None" : defaultSplit })
+        pushStatsFilter({ show: newShow, sse, spr, ssp: defaultSplit })
       } else {
         pushStatsFilter({ show: newShow, sse, spr: "None", ssp: "None" })
       }

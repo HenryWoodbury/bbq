@@ -1,7 +1,7 @@
 "use client"
 
 import type { ColumnDef } from "@tanstack/react-table"
-import { Trash2Icon, UploadIcon } from "lucide-react"
+import { Trash2Icon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useRef, useState } from "react"
 import { DataTable } from "@/components/data-table"
@@ -63,10 +63,10 @@ export function UploadHistoryPanel({
       const res = await fetch(`${deleteUrlBase}/${row.id}`, {
         method: "DELETE",
       })
-      removePending()
       if (res.ok) {
         router.refresh()
       } else {
+        removePending()
         showToast.error("Failed to delete upload")
       }
     }
@@ -191,6 +191,21 @@ export function UploadHistoryPanel({
           size="sm"
           placeholder="Year"
         />
+        {fileName && (
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={status === "saving"}
+            onClick={() => {
+              if (fileRef.current) fileRef.current.value = ""
+              setFileName(null)
+              setStatus("idle")
+              setErrorMessage("")
+            }}
+          >
+            Clear
+          </Button>
+        )}
         <Button
           size="sm"
           disabled={!fileName || status === "saving"}

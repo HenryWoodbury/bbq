@@ -10,7 +10,7 @@ import { StatPlayerType, StatProjection, StatSplit } from "@/generated/prisma/cl
 import { requireAdmin } from "@/lib/auth-helpers"
 import { toISODate } from "@/lib/date"
 import { prisma } from "@/lib/prisma"
-import { PROJECTION_MAP, SPLIT_MAP } from "@/lib/stat-maps"
+import { deduplicatePitcherSplits, PROJECTION_MAP, SPLIT_MAP } from "@/lib/stat-maps"
 import { deriveLeagueFromTeam, deriveLevelFromFgId } from "@/lib/team-codes"
 import { PlayerPageTabs, type Tab } from "./player-page-tabs"
 import { PlayerProfilesSection } from "./player-profiles-section"
@@ -275,11 +275,7 @@ async function PlayersTableSection({
         include: playerStatSelect,
         orderBy: { player: { playerName: "asc" } },
       })
-      const rowMap = new Map<string, (typeof rows)[number]>()
-      for (const r of rows) {
-        if (!rowMap.has(r.playerId) || r.split === StatSplit.Neutral) rowMap.set(r.playerId, r)
-      }
-      return [...rowMap.values()].sort((a, b) => a.player.playerName.localeCompare(b.player.playerName))
+      return deduplicatePitcherSplits(rows)
     }
     return prisma.playerStat.findMany({ where: { ...baseWhere, split }, include: playerStatSelect, orderBy: { player: { playerName: "asc" } } })
   })()

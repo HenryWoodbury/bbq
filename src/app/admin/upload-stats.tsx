@@ -3,7 +3,7 @@
 import type { ColumnDef } from "@tanstack/react-table"
 import { Trash2Icon, XIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useEffect, useRef, useState } from "react"
+import { type CSSProperties, useEffect, useRef, useState } from "react"
 import { DataTable } from "@/components/data-table"
 import { DropZoneOverlay } from "@/components/drop-zone-overlay"
 import { FilterGroup } from "@/components/filter-group"
@@ -26,12 +26,28 @@ import {
   PROJECTION_DISPLAY,
   PROJECTION_OPTIONS,
   SPLIT_DISPLAY,
+  SPLIT_NORM,
   SPLIT_OPTIONS,
 } from "@/lib/stat-labels"
 import { cn } from "@/lib/utils"
 import type { StatUploadRow } from "./players/page"
 
 const CURRENT_YEAR = new Date().getFullYear()
+// amber-500, amber-400, amber-300 in hex
+const MATCH_COLOR_HEX = ["#f59e0b", "#fbbf24", "#fcd34d"] as const
+
+function specKey(r: {
+  season: number
+  playerType: string
+  projection: string
+  split: string
+}) {
+  return `${r.season}|${r.playerType}|${r.projection}|${r.split}`
+}
+
+function matchGradient(hex: string) {
+  return `linear-gradient(to right, ${hex} 10px, transparent 10px)`
+}
 
 function buildStatsBody(
   file: File,
@@ -81,6 +97,25 @@ export function UploadStats({
   const visibleExisting = existingUploads.filter(
     (u) => !pendingDeleteIds.has(u.id),
   )
+
+  // Build spec-key → hex map. Pending splits are snake_case; normalize to Prisma PascalCase.
+  const specToHex = new Map<string, string>()
+  for (let i = 0; i < pendingRows.length; i++) {
+    const row = pendingRows[i]
+    const k = specKey({ ...row, split: SPLIT_NORM[row.split] ?? row.split })
+    if (!specToHex.has(k))
+      specToHex.set(k, MATCH_COLOR_HEX[i % MATCH_COLOR_HEX.length])
+  }
+  const existingSpecKeys = new Set(visibleExisting.map(specKey))
+
+  function getCellStyle(
+    upload: StatUploadRow,
+    columnId: string,
+  ): CSSProperties | undefined {
+    if (columnId !== "file") return undefined
+    const hex = specToHex.get(specKey(upload))
+    return hex ? { background: matchGradient(hex) } : undefined
+  }
 
   function addFiles(files: File[]) {
     setPendingRows((prev) => [
@@ -155,7 +190,7 @@ export function UploadStats({
       executed = true
       try {
         await onDelete(id)
-      } finally {
+      } catch {
         clearPending()
       }
     }
@@ -263,13 +298,21 @@ export function UploadStats({
             data={visibleExisting}
             pagination={false}
             defaultSorting={[{ id: "season", desc: true }]}
+            getCellStyle={getCellStyle}
           />
         )}
 
         {hasPending && (
           <div className={cn("flex flex-col", hasExisting && "mt-1")}>
-            {pendingRows.map((row) => {
+            {pendingRows.map((row, i) => {
               const isProjected = row.statType === "projected"
+              const pendingKey = specKey({
+                ...row,
+                split: SPLIT_NORM[row.split] ?? row.split,
+              })
+              const pendingHex = existingSpecKeys.has(pendingKey)
+                ? (specToHex.get(pendingKey) ?? null)
+                : null
               return (
                 <div
                   key={row.id}
@@ -279,6 +322,11 @@ export function UploadStats({
                       ? "max-h-0 opacity-0 overflow-hidden"
                       : "max-h-20 opacity-100",
                   )}
+                  style={
+                    pendingHex
+                      ? { background: matchGradient(pendingHex) }
+                      : undefined
+                  }
                 >
                   <span className="pl-4 pr-3 py-2 truncate font-medium">
                     {row.file.name}
@@ -318,7 +366,8 @@ export function UploadStats({
                         const statType = v as StatType
                         patchRow(row.id, {
                           statType,
-                          projection: statType === "actual" ? "None" : "Steamer",
+                          projection:
+                            statType === "actual" ? "None" : "Steamer",
                           split: statType === "actual" ? "none" : row.split,
                         })
                       }}
@@ -327,14 +376,22 @@ export function UploadStats({
                     {isProjected && (
                       <>
                         <Select
-                          value={row.projection === "None" ? "Steamer" : row.projection}
+                          value={
+                            row.projection === "None"
+                              ? "Steamer"
+                              : row.projection
+                          }
                           onChange={(e) =>
-                            patchRow(row.id, { projection: e.target.value as Projection })
+                            patchRow(row.id, {
+                              projection: e.target.value as Projection,
+                            })
                           }
                           size="sm"
                         >
                           {PROJECTION_OPTIONS.map((o) => (
-                            <option key={o.value} value={o.value}>{o.label}</option>
+                            <option key={o.value} value={o.value}>
+                              {o.label}
+                            </option>
                           ))}
                         </Select>
                         <Select
@@ -345,20 +402,26 @@ export function UploadStats({
                           size="sm"
                         >
                           {SPLIT_OPTIONS.map((o) => (
-                            <option key={o.value} value={o.value}>{o.label}</option>
+                            <option key={o.value} value={o.value}>
+                              {o.label}
+                            </option>
                           ))}
                         </Select>
                       </>
                     )}
                     {row.error && (
-                      <span className="w-full text-destructive text-xs">{row.error}</span>
+                      <span className="w-full text-destructive text-xs">
+                        {row.error}
+                      </span>
                     )}
                   </div>
                   <div className="pl-3 pr-4 py-2 flex justify-end">
                     <IconButton
                       aria-label="Dismiss"
                       title="Dismiss"
-                      onClick={() => triggerDismiss(row.id, () => removeRow(row.id))}
+                      onClick={() =>
+                        triggerDismiss(row.id, () => removeRow(row.id))
+                      }
                     >
                       <XIcon className="h-4 w-4" />
                     </IconButton>
@@ -384,13 +447,23 @@ export function UploadStats({
             Select Files…
           </FileLabel>
           {hasPending && (
-            <Button
-              size="sm"
-              disabled={pendingRows.some((r) => r.saving)}
-              onClick={handleSaveAll}
-            >
-              {pendingRows.some((r) => r.saving) ? "Saving…" : "Save"}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={pendingRows.some((r) => r.saving)}
+                onClick={() => setPendingRows([])}
+              >
+                Clear
+              </Button>
+              <Button
+                size="sm"
+                disabled={pendingRows.some((r) => r.saving)}
+                onClick={handleSaveAll}
+              >
+                {pendingRows.some((r) => r.saving) ? "Saving…" : "Save"}
+              </Button>
+            </div>
           )}
         </div>
       </div>

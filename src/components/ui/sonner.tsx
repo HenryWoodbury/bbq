@@ -11,6 +11,7 @@ import type { CSSProperties, ReactNode } from "react"
 import { Toaster as Sonner, type ToasterProps, toast } from "sonner"
 import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 // ── Toaster ───────────────────────────────────────────────────────────────────
 
@@ -42,6 +43,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
   )
 }
 
+// ── ToastContent ──────────────────────────────────────────────────────────────
+
+type ToastVariant = "default" | "info" | "warning" | "error"
+
 type ToastAction = {
   label: string
   icon?: ReactNode
@@ -49,24 +54,48 @@ type ToastAction = {
   toastId: string | number
 }
 
+const VARIANT_STYLES: Record<ToastVariant, string> = {
+  default: "bg-popover border-border text-foreground",
+  info:    "bg-info border-info-border text-info-foreground",
+  warning: "bg-warning border-warning-border text-warning-foreground",
+  error:   "bg-error border-error-border text-error-foreground",
+}
+
+const VARIANT_ICONS: Partial<Record<ToastVariant, ReactNode>> = {
+  info:    <InfoIcon className="size-4 shrink-0" />,
+  warning: <TriangleAlertIcon className="size-4 shrink-0" />,
+  error:   <OctagonXIcon className="size-4 shrink-0" />,
+}
+
 function ToastContent({
   title,
   description,
   action,
+  variant = "default",
 }: {
   title?: string
   description?: string
   action?: ToastAction
+  variant?: ToastVariant
 }) {
+  const icon = VARIANT_ICONS[variant]
   return (
-    <div className="flex w-full items-center justify-between gap-4 border border-border rounded-md pt-3 pb-4 px-4 bg-popover">
-      <div className="min-w-0">
-        {title && (
-          <p className="text-body font-medium text-foreground">{title}</p>
-        )}
-        {description && (
-          <p className="text-body text-muted-foreground">{description}</p>
-        )}
+    <div
+      className={cn(
+        "flex w-full items-center justify-between gap-4 border rounded-md pt-3 pb-4 px-4",
+        VARIANT_STYLES[variant],
+      )}
+    >
+      <div className="flex items-start gap-3 min-w-0">
+        {icon && <span className="mt-0.5">{icon}</span>}
+        <div className="min-w-0">
+          {title && (
+            <p className="text-body font-medium">{title}</p>
+          )}
+          {description && (
+            <p className="text-body opacity-80">{description}</p>
+          )}
+        </div>
       </div>
       {action && (
         <Button
@@ -91,6 +120,7 @@ function ToastContent({
 type ShowToastOptions = {
   title: string
   description?: string
+  variant?: ToastVariant
   action?: Omit<ToastAction, "toastId">
   onDismiss?: () => void
   onAutoClose?: () => void
@@ -99,6 +129,7 @@ type ShowToastOptions = {
 function showToast({
   title,
   description,
+  variant,
   action,
   onDismiss,
   onAutoClose,
@@ -108,6 +139,7 @@ function showToast({
       <ToastContent
         title={title}
         description={description}
+        variant={variant}
         action={action ? { ...action, toastId: id } : undefined}
       />
     ),
@@ -115,7 +147,13 @@ function showToast({
   )
 }
 
+showToast.info = (title: string, description?: string) =>
+  showToast({ title, description, variant: "info" })
+
+showToast.warning = (title: string, description?: string) =>
+  showToast({ title, description, variant: "warning" })
+
 showToast.error = (title: string, description?: string) =>
-  toast.error(title, { description })
+  showToast({ title, description, variant: "error" })
 
 export { showToast, Toaster }

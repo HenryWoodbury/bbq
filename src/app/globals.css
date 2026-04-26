@@ -66,6 +66,9 @@
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
   --color-warning-border: var(--warning-border);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-info-border: var(--info-border);
   /* ── Positive / active indicator ─────────────────────────────────────────── */
   --color-positive: var(--positive);
 }
@@ -117,6 +120,10 @@
   --warning: oklch(0.987 0.022 95.277);
   --warning-foreground: oklch(0.555 0.163 48.998);
   --warning-border: oklch(0.924 0.12 95.746);
+  /* ── Status: info (sky scale) ────────────────────────────────────────────── */
+  --info: oklch(0.977 0.013 236);
+  --info-foreground: oklch(0.44 0.14 236);
+  --info-border: oklch(0.906 0.065 236);
   /* ── Positive / active indicator (emerald-600) ───────────────────────────── */
   --positive: oklch(0.596 0.145 163.225);
 }
@@ -167,6 +174,10 @@
   --warning: oklch(0.279 0.077 45.635);
   --warning-foreground: oklch(0.924 0.12 95.746);
   --warning-border: oklch(0.555 0.163 48.998);
+  /* ── Status: info (sky scale) ────────────────────────────────────────────── */
+  --info: oklch(0.26 0.055 236);
+  --info-foreground: oklch(0.906 0.065 236);
+  --info-border: oklch(0.44 0.14 236);
   /* ── Positive / active indicator (emerald-400) ───────────────────────────── */
   --positive: oklch(0.765 0.177 163.223);
 }

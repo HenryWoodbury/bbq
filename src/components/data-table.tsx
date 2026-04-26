@@ -9,6 +9,7 @@ import {
   type SortingState,
   useReactTable,
 } from "@tanstack/react-table"
+import type { CSSProperties } from "react"
 import {
   ArrowDownIcon,
   ArrowUpDownIcon,
@@ -34,6 +35,7 @@ interface DataTableProps<T> {
   defaultPageSize?: PageSizeOption
   defaultSorting?: SortingState
   pagination?: boolean
+  getCellStyle?: (row: T, columnId: string) => CSSProperties | undefined
 }
 
 export function DataTable<T>({
@@ -42,6 +44,7 @@ export function DataTable<T>({
   defaultPageSize = 20,
   defaultSorting = [],
   pagination = true,
+  getCellStyle,
 }: DataTableProps<T>) {
   const [sorting, setSorting] = useState<SortingState>(defaultSorting)
   const [pageIndex, setPageIndex] = useState(0)
@@ -147,7 +150,11 @@ export function DataTable<T>({
               rows.map((row) => (
                 <tr key={row.id} className="table-row group">
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="table-cell">
+                    <td
+                      key={cell.id}
+                      className="table-cell"
+                      style={getCellStyle?.(row.original, cell.column.id)}
+                    >
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext(),

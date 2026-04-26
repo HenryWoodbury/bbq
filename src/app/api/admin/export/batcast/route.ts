@@ -7,7 +7,7 @@ import {
 import { assertAdmin } from "@/lib/auth-helpers"
 import { prisma } from "@/lib/prisma"
 import { toISODate } from "@/lib/date"
-import { PROJECTION_MAP } from "@/lib/stat-maps"
+import { deduplicatePitcherSplits, PROJECTION_MAP } from "@/lib/stat-maps"
 import { AL_TEAM_CODES, NL_TEAM_CODES } from "@/lib/team-codes"
 
 // ── CSV helpers ───────────────────────────────────────────────────────────────
@@ -111,13 +111,9 @@ export async function GET(request: Request) {
             where: pitcherPrimaryWhere,
             select: { playerId: true, stats: true, split: true },
           })
-          .then((rows) => {
-            const merged = new Map<string, (typeof rows)[number]["stats"]>()
-            for (const r of rows) {
-              if (!merged.has(r.playerId) || r.split === StatSplit.Neutral) merged.set(r.playerId, r.stats)
-            }
-            return Array.from(merged.entries()).map(([playerId, stats]) => ({ playerId, stats }))
-          }),
+          .then((rows) =>
+            deduplicatePitcherSplits(rows).map((r) => ({ playerId: r.playerId, stats: r.stats })),
+          ),
     prisma.playerStat.findMany({
       where: statsWhere(StatSplit.VsLeft),
       select: { playerId: true, stats: true },

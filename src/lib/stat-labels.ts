@@ -11,6 +11,15 @@ export const PROJECTION_OPTIONS: { value: string; label: string }[] = [
   { value: "ZiPSDC", label: "ZiPS DC" },
 ]
 
+// PendingRow (upload form) uses snake_case splits; Prisma stores PascalCase enum values.
+// This map normalizes form values to Prisma format for cross-system key comparisons.
+export const SPLIT_NORM: Record<string, string> = {
+  none: "None",
+  neutral: "Neutral",
+  vs_left: "VsLeft",
+  vs_right: "VsRight",
+}
+
 // Snake-case values — used in PendingRow (upload form)
 export const SPLIT_OPTIONS: { value: string; label: string }[] = [
   { value: "none", label: "None" },
