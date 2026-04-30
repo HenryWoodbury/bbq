@@ -126,6 +126,10 @@
   --info-border: oklch(0.906 0.065 236);
   /* ── Positive / active indicator (emerald-600) ───────────────────────────── */
   --positive: oklch(0.596 0.145 163.225);
+  /* ── Spinning ball ───────────────────────────────────────────────────────── */
+  --ball-fill: oklch(0.98 0.008 80);
+  --ball-stroke: oklch(0.82 0.006 80);
+  --ball-seam: oklch(0.52 0.19 25);
 }
 
 .dark {
@@ -180,6 +184,10 @@
   --info-border: oklch(0.44 0.14 236);
   /* ── Positive / active indicator (emerald-400) ───────────────────────────── */
   --positive: oklch(0.765 0.177 163.223);
+  /* ── Spinning ball ───────────────────────────────────────────────────────── */
+  --ball-fill: oklch(0.22 0.006 80);
+  --ball-stroke: oklch(0.32 0.008 80);
+  --ball-seam: oklch(0.62 0.19 25);
 }
 
 /* ── Clerk UserButton overrides ─────────────────────────────────────────── */
@@ -242,6 +250,24 @@
   a {
     @apply text-blue-600 underline-offset-2 hover:underline dark:text-blue-400;
   }
+}
+
+@keyframes ball-travel-ltr {
+  from { transform: translateX(-200px); }
+  to   { transform: translateX(calc(100vw + 200px)); }
+}
+
+@keyframes ball-travel-rtl {
+  from { transform: translateX(calc(100vw + 200px)); }
+  to   { transform: translateX(-200px); }
+}
+
+.ball-travel-ltr { animation: ball-travel-ltr 18s linear infinite; }
+.ball-travel-rtl { animation: ball-travel-rtl 18s linear infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ball-travel-ltr,
+  .ball-travel-rtl { animation: none; }
 }
 
 @layer components {

@@ -2,6 +2,7 @@ import { SignInButton, SignUpButton } from "@clerk/nextjs"
 import { auth } from "@clerk/nextjs/server"
 import Link from "next/link"
 import { Suspense } from "react"
+import { SpinningBall } from "@/components/spinning-ball"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { prisma } from "@/lib/prisma"
@@ -10,16 +11,29 @@ import { scoringLabel } from "@/lib/queries/formats"
 export default async function HomePage() {
   const { userId } = await auth()
 
-  if (!userId) {
-    return <WelcomePage />
-  }
-
   return (
-    <div className="flex flex-col gap-4">
-      <h1>Your leagues</h1>
-      <Suspense fallback={<LeagueGridSkeleton />}>
-        <LeagueList userId={userId} />
-      </Suspense>
+    <div className="flex flex-col gap-12">
+      <section className="relative flex flex-col overflow-hidden">
+        <SpinningBall
+          size={160}
+          pitch={30}
+          yaw={155}
+          spinRpm={10}
+          spinAxis="yaw"
+          direction="ltr"
+          className="pointer-events-none absolute top-0 opacity-35 dark:opacity-20"
+        />
+        {userId ? (
+          <div className="relative z-10">
+            <h1 className="mb-4">Your leagues</h1>
+            <Suspense fallback={<LeagueGridSkeleton />}>
+              <LeagueList userId={userId} />
+            </Suspense>
+          </div>
+        ) : (
+          <WelcomeContent />
+        )}
+      </section>
     </div>
   )
 }
@@ -78,29 +92,19 @@ function LeagueGridSkeleton() {
   )
 }
 
-function WelcomePage() {
+function WelcomeContent() {
   return (
-    <div className="flex flex-col gap-12">
-      <section className="flex flex-col">
-        <div className="flex flex-col gap-3">
-          <h1 className="hero-heading">BBQ</h1>
-          <p className="hero-subtitle">
-            Fantasy baseball league management — drafts, rosters, and auction
-            tools.
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <SignUpButton mode="redirect">
-            <Button className="px-5 py-2.5">Get started</Button>
-          </SignUpButton>
-          <SignInButton mode="redirect">
-            <Button variant="secondary" className="px-5 py-2.5">
-              Sign in
-            </Button>
-          </SignInButton>
-        </div>
-      </section>
-    </div>
+    <>
+      <div className="relative z-10 flex flex-col gap-3 mb-4">
+        <h1 className="hero-heading">BBQ</h1>
+        <p className="hero-subtitle">Rosters, Drafts, Tools</p>
+      </div>
+      <div className="relative z-10 flex gap-3">
+        <SignUpButton mode="redirect">
+          <Button className="px-5 py-2.5">Get started</Button>
+        </SignUpButton>
+      </div>
+    </>
   )
 }
 
