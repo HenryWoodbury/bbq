@@ -21,6 +21,7 @@ type StitchLine = { x1: number; y1: number; x2: number; y2: number; w: number }
 
 const SEAM_A = 0.42
 const SEAM_NZ_FACTOR = 2 * Math.sqrt(SEAM_A - SEAM_A * SEAM_A)
+const INV_SQRT2 = 1 / Math.sqrt(2)
 
 const STITCH_COUNT = 216
 const STITCH_SPREAD = 0.2
@@ -41,10 +42,14 @@ function rotate3d(
   cosRoll: number,
   sinRoll: number,
 ): [number, number, number] {
-  const y1 = y * cosPitch - z * sinPitch
-  const z1 = y * sinPitch + z * cosPitch
-  const x2 = x * cosYaw + z1 * sinYaw
-  const z2 = -x * sinYaw + z1 * cosYaw
+  // Canonical pre-rotation (yaw=45°, pitch=90°) so yaw=0, pitch=0 is the symmetric horseshoe view
+  const xp = (x + y) * INV_SQRT2
+  const yp = -z
+  const zp = (-x + y) * INV_SQRT2
+  const y1 = yp * cosPitch - zp * sinPitch
+  const z1 = yp * sinPitch + zp * cosPitch
+  const x2 = xp * cosYaw + z1 * sinYaw
+  const z2 = -xp * sinYaw + z1 * cosYaw
   const x3 = x2 * cosRoll - y1 * sinRoll
   const y3 = x2 * sinRoll + y1 * cosRoll
   return [x3, y3, z2]

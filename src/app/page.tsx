@@ -16,8 +16,9 @@ export default async function HomePage() {
       <section className="relative flex flex-col overflow-hidden">
         <SpinningStitchBall
           size={160}
-          pitch={30}
-          yaw={155}
+          pitch={0}
+          roll={0}
+          yaw={0}
           spinRpm={10}
           spinAxis="yaw"
           direction="ltr"

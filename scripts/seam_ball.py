@@ -6,6 +6,8 @@ RADIUS = 1.45
 SCALE  = 200       
 YAW, PITCH, ROLL = 0, 0, 0 # See docs/ball_svg.md
 
+_INV_SQRT2 = 1.0 / math.sqrt(2.0)
+
 def get_baseball_svg(yaw: float, pitch: float, roll: float, is_icon: bool = False) -> str:
     if is_icon:
         canvas_size = 24
@@ -26,9 +28,13 @@ def get_baseball_svg(yaw: float, pitch: float, roll: float, is_icon: bool = Fals
     y_rad, p_rad, r_rad = [math.radians(a) for a in (yaw, pitch, roll)]
 
     def rotate_3d(x, y, z):
+        # Canonical pre-rotation (yaw=45°, pitch=90°) so yaw=0, pitch=0 is the symmetric horseshoe view
+        xp = (x + y) * _INV_SQRT2
+        yp = -z
+        zp = (-x + y) * _INV_SQRT2
         # Pitch -> Yaw -> Roll
-        y1, z1 = y*math.cos(p_rad) - z*math.sin(p_rad), y*math.sin(p_rad) + z*math.cos(p_rad)
-        x2, z2 = x*math.cos(y_rad) + z1*math.sin(y_rad), -x*math.sin(y_rad) + z1*math.cos(y_rad)
+        y1, z1 = yp*math.cos(p_rad) - zp*math.sin(p_rad), yp*math.sin(p_rad) + zp*math.cos(p_rad)
+        x2, z2 = xp*math.cos(y_rad) + z1*math.sin(y_rad), -xp*math.sin(y_rad) + z1*math.cos(y_rad)
         x3, y3 = x2*math.cos(r_rad) - y1*math.sin(r_rad), x2*math.sin(r_rad) + y1*math.cos(r_rad)
         return x3, y3, z2
 

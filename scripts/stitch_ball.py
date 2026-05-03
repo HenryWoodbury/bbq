@@ -17,6 +17,8 @@ SCALE  = 200
 # - ROLL: spin the ball around the view axis (like turning a knob while looking at the logo).
 YAW, PITCH, ROLL = 0, 0, 0  # Defaults; can be overridden via CLI
 
+_INV_SQRT2 = 1.0 / math.sqrt(2.0)
+
 # STITCHING SPECS (Regulation 216 individual threads)
 STITCH_COUNT = 216      # 108 pairs = 216 total threads
 STITCH_SPREAD = 0.2   
@@ -35,8 +37,12 @@ def get_baseball_svg(yaw: float, pitch: float, roll: float, show_seam: bool = SH
     y_rad, p_rad, r_rad = [math.radians(a) for a in (yaw, pitch, roll)]
 
     def rotate_3d(x, y, z):
-        y1, z1 = y*math.cos(p_rad) - z*math.sin(p_rad), y*math.sin(p_rad) + z*math.cos(p_rad)
-        x2, z2 = x*math.cos(y_rad) + z1*math.sin(y_rad), -x*math.sin(y_rad) + z1*math.cos(y_rad)
+        # Canonical pre-rotation (yaw=45°, pitch=90°) so yaw=0, pitch=0 is the symmetric horseshoe view
+        xp = (x + y) * _INV_SQRT2
+        yp = -z
+        zp = (-x + y) * _INV_SQRT2
+        y1, z1 = yp*math.cos(p_rad) - zp*math.sin(p_rad), yp*math.sin(p_rad) + zp*math.cos(p_rad)
+        x2, z2 = xp*math.cos(y_rad) + z1*math.sin(y_rad), -xp*math.sin(y_rad) + z1*math.cos(y_rad)
         x3, y3 = x2*math.cos(r_rad) - y1*math.sin(r_rad), x2*math.sin(r_rad) + y1*math.cos(r_rad)
         return x3, y3, z2
 

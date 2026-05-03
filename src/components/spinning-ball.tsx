@@ -19,6 +19,7 @@ type SpinningBallProps = {
 
 const SEAM_A = 0.42
 const SEAM_NZ_FACTOR = 2 * Math.sqrt(SEAM_A - SEAM_A * SEAM_A)
+const INV_SQRT2 = 1 / Math.sqrt(2)
 const NUM_PTS = 150
 const BASE_TRAVEL_DURATION = 18
 
@@ -52,10 +53,14 @@ function computeSeamPolylines(
     const uy = ny / mag
     const uz = nz / mag
 
-    const y1 = uy * cosPitch - uz * sinPitch
-    const z1 = uy * sinPitch + uz * cosPitch
-    const x2 = ux * cosYaw + z1 * sinYaw
-    const z2 = -ux * sinYaw + z1 * cosYaw
+    // Canonical pre-rotation (yaw=45°, pitch=90°) so yaw=0, pitch=0 is the symmetric horseshoe view
+    const xp = (ux + uy) * INV_SQRT2
+    const yp = -uz
+    const zp = (-ux + uy) * INV_SQRT2
+    const y1 = yp * cosPitch - zp * sinPitch
+    const z1 = yp * sinPitch + zp * cosPitch
+    const x2 = xp * cosYaw + z1 * sinYaw
+    const z2 = -xp * sinYaw + z1 * cosYaw
     const x3 = x2 * cosRoll - y1 * sinRoll
     const y3 = x2 * sinRoll + y1 * cosRoll
 
