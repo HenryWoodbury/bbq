@@ -10,10 +10,15 @@ type SpinningStitchBallProps = {
   yaw?: number
   pitch?: number
   roll?: number
-  spinRpm?: number
+  rpm?: number
+  sloMoFactor?: number
   spinAxis?: SpinAxis
   direction?: "ltr" | "rtl"
   speed?: number
+  paused?: boolean
+  ballFill?: string
+  ballStroke?: string
+  ballSeam?: string
   className?: string
 } & Omit<HTMLAttributes<HTMLDivElement>, "className">
 
@@ -123,8 +128,15 @@ function computeStitchLines(
       let cosTheta = 0
       if (d3m > 1e-10) {
         const [, , rzDir] = rotate3d(
-          d3x / d3m, d3y / d3m, d3z / d3m,
-          cosPitch, sinPitch, cosYaw, sinYaw, cosRoll, sinRoll,
+          d3x / d3m,
+          d3y / d3m,
+          d3z / d3m,
+          cosPitch,
+          sinPitch,
+          cosYaw,
+          sinYaw,
+          cosRoll,
+          sinRoll,
         )
         cosTheta = Math.abs(rzDir)
       }
@@ -132,16 +144,30 @@ function computeStitchLines(
       // Project puncture onto unit sphere, rotate, cull back-facing
       const pMag = Math.sqrt(px * px + py * py + pz * pz)
       const [px3, py3, pz2] = rotate3d(
-        px / pMag, py / pMag, pz / pMag,
-        cosPitch, sinPitch, cosYaw, sinYaw, cosRoll, sinRoll,
+        px / pMag,
+        py / pMag,
+        pz / pMag,
+        cosPitch,
+        sinPitch,
+        cosYaw,
+        sinYaw,
+        cosRoll,
+        sinRoll,
       )
       if (pz2 <= 0) continue
 
       // Project destination onto unit sphere, rotate, cull back-facing
       const dMag = Math.sqrt(dx * dx + dy * dy + dz * dz)
       const [dx3, dy3, dz2] = rotate3d(
-        dx / dMag, dy / dMag, dz / dMag,
-        cosPitch, sinPitch, cosYaw, sinYaw, cosRoll, sinRoll,
+        dx / dMag,
+        dy / dMag,
+        dz / dMag,
+        cosPitch,
+        sinPitch,
+        cosYaw,
+        sinYaw,
+        cosRoll,
+        sinRoll,
       )
       if (dz2 <= 0) continue
 
@@ -172,23 +198,31 @@ export function SpinningStitchBall({
   yaw = 0,
   pitch = 0,
   roll = 0,
-  spinRpm = 10,
+  rpm = 10,
+  sloMoFactor = 1,
   spinAxis = "yaw",
   direction,
   speed = 1,
+  paused = false,
+  ballFill,
+  ballStroke,
+  ballSeam,
   className,
-  onClick,
-  ...handlers
+  ...props
 }: SpinningStitchBallProps) {
   const r = size / 2
   const seamRadius = r * 0.97
 
-  const [clickPaused, setClickPaused] = useState(false)
-  const clickPausedRef = useRef(false)
+  const pausedRef = useRef(paused)
   const rafRef = useRef<number>(0)
   const lastTsRef = useRef<number | null>(null)
   const visibilityPausedRef = useRef(false)
   const startRef = useRef<(() => void) | null>(null)
+  const spinStateRef = useRef({
+    yaw: yaw * (Math.PI / 180),
+    pitch: pitch * (Math.PI / 180),
+    roll: roll * (Math.PI / 180),
+  })
 
   const [stitches, setStitches] = useState<StitchLine[]>(() =>
     computeStitchLines(
@@ -202,29 +236,37 @@ export function SpinningStitchBall({
   )
 
   useEffect(() => {
-    const state = {
-      yaw: yaw * (Math.PI / 180),
-      pitch: pitch * (Math.PI / 180),
-      roll: roll * (Math.PI / 180),
-    }
+    spinStateRef.current.yaw = yaw * (Math.PI / 180)
+    spinStateRef.current.pitch = pitch * (Math.PI / 180)
+    spinStateRef.current.roll = roll * (Math.PI / 180)
+  }, [yaw, pitch, roll])
 
+  useEffect(() => {
     function start() {
       lastTsRef.current = null
       rafRef.current = requestAnimationFrame(tick)
     }
 
     function tick(ts: number) {
-      if (visibilityPausedRef.current || clickPausedRef.current) return
+      if (visibilityPausedRef.current || pausedRef.current) return
 
-      const dt = lastTsRef.current !== null ? (ts - lastTsRef.current) / 1000 : 0
+      const dt =
+        lastTsRef.current !== null ? (ts - lastTsRef.current) / 1000 : 0
       lastTsRef.current = ts
 
-      const delta = spinRpm * 6 * (Math.PI / 180) * dt
-      state[spinAxis] += delta
+      const delta = (rpm / sloMoFactor) * 6 * (Math.PI / 180) * dt
+      spinStateRef.current[spinAxis] += delta
 
       if (delta !== 0) {
         setStitches(
-          computeStitchLines(r, r, seamRadius, state.yaw, state.pitch, state.roll),
+          computeStitchLines(
+            r,
+            r,
+            seamRadius,
+            spinStateRef.current.yaw,
+            spinStateRef.current.pitch,
+            spinStateRef.current.roll,
+          ),
         )
       }
 
@@ -233,7 +275,7 @@ export function SpinningStitchBall({
 
     function onVisibilityChange() {
       visibilityPausedRef.current = document.hidden
-      if (!visibilityPausedRef.current && !clickPausedRef.current) {
+      if (!visibilityPausedRef.current && !pausedRef.current) {
         cancelAnimationFrame(rafRef.current)
         start()
       }
@@ -241,43 +283,43 @@ export function SpinningStitchBall({
 
     startRef.current = start
     document.addEventListener("visibilitychange", onVisibilityChange)
-    start()
+    if (!pausedRef.current) start()
 
     return () => {
       cancelAnimationFrame(rafRef.current)
       document.removeEventListener("visibilitychange", onVisibilityChange)
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [rpm, sloMoFactor, spinAxis, r, seamRadius])
+
+  useEffect(() => {
+    const prev = pausedRef.current
+    pausedRef.current = paused
+    if (!prev && paused) {
+      cancelAnimationFrame(rafRef.current)
+    } else if (prev && !paused && !visibilityPausedRef.current) {
+      startRef.current?.()
+    }
+  }, [paused])
 
   const strokeWidth = Math.max(2, size / 50)
 
-  function handleClick(e: React.MouseEvent<HTMLDivElement>) {
-    const nowPaused = !clickPausedRef.current
-    clickPausedRef.current = nowPaused
-    setClickPaused(nowPaused)
-    if (nowPaused) {
-      cancelAnimationFrame(rafRef.current)
-    } else if (!visibilityPausedRef.current) {
-      startRef.current?.()
-    }
-    onClick?.(e)
-  }
-
   const traveling = speed > 0 && direction !== undefined
-  const travelStyle = traveling
-    ? ({
-        "--ball-travel-duration": `${BASE_TRAVEL_DURATION / speed}s`,
-        animationPlayState: clickPaused ? "paused" : "running",
-      } as React.CSSProperties)
-    : undefined
+  const style = {
+    ...(traveling && {
+      "--ball-travel-duration": `${BASE_TRAVEL_DURATION / speed}s`,
+      animationPlayState: paused ? "paused" : "running",
+    }),
+    ...(ballFill !== undefined && { "--ball-fill": ballFill }),
+    ...(ballStroke !== undefined && { "--ball-stroke": ballStroke }),
+    ...(ballSeam !== undefined && { "--ball-seam": ballSeam }),
+  } as React.CSSProperties
 
   return (
     <div
       aria-hidden="true"
       className={cn(traveling && `ball-travel-${direction}`, className)}
-      style={travelStyle}
-      onClick={handleClick}
-      {...handlers}
+      style={style}
+      {...props}
     >
       <svg
         width={size}
@@ -295,6 +337,7 @@ export function SpinningStitchBall({
         />
         {stitches.map((s, i) => (
           <line
+            // biome-ignore lint/suspicious/noArrayIndexKey: stable computed array, no reordering
             key={i}
             x1={s.x1.toFixed(2)}
             y1={s.y1.toFixed(2)}

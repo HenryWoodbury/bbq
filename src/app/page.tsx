@@ -2,7 +2,7 @@ import { SignUpButton } from "@clerk/nextjs"
 import { auth } from "@clerk/nextjs/server"
 import Link from "next/link"
 import { Suspense } from "react"
-import { SpinningStitchBall } from "@/components/spinning-stitch-ball"
+import { AnimatedBall } from "@/components/animated-ball"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { prisma } from "@/lib/prisma"
@@ -14,16 +14,9 @@ export default async function HomePage() {
   return (
     <div className="flex flex-col gap-12">
       <section className="relative flex flex-col overflow-hidden">
-        <SpinningStitchBall
+        <AnimatedBall
           size={160}
-          pitch={0}
-          roll={0}
-          yaw={0}
-          spinRpm={10}
-          spinAxis="yaw"
-          direction="ltr"
-          speed={1}
-          className="absolute top-0 left-0 opacity-35 dark:opacity-20 z-10"
+          className="absolute top-0 left-0 opacity-65 dark:opacity-65 z-10"
         />
         {userId ? (
           <div className="relative">
