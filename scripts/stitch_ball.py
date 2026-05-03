@@ -4,8 +4,9 @@ import argparse
 
 # --- CONFIGURATION FLAGS ---
 USE_GRADIENT = False
-SHOW_PUNCTURES = True   
-USE_JITTER = True       # Adds slight randomness to stitches
+SHOW_PUNCTURES = False
+SHOW_SEAM = False
+USE_JITTER = False      # Adds slight randomness to stitches
 
 # --- REALISTIC DIMENSIONS ---
 RADIUS = 1.45      
@@ -19,13 +20,14 @@ YAW, PITCH, ROLL = 0, 0, 0  # Defaults; can be overridden via CLI
 # STITCHING SPECS (Regulation 216 individual threads)
 STITCH_COUNT = 216      # 108 pairs = 216 total threads
 STITCH_SPREAD = 0.2   
-CHEVRON_OFFSET = 0.01   
-ZIPPER_STAGGER = 0.0075  # Creates the interleaved 'zipper' look
-THREAD_WIDTH = 6
-SEAM_WIDTH = 6       
+CHEVRON_OFFSET = 0.04   # tangential lean of each stitch toward the seam center; controls the V angle
+ZIPPER_STAGGER = 0.0      # 0 = stitches meet at seam; >0 = interleaved zipper offset
+THREAD_WIDTH = 8
+THREAD_WIDTH_EDGE = 4  # width at the sphere limb; tapers from THREAD_WIDTH starting at 50% from center
+SEAM_WIDTH = 6
 PUNCTURE_SIZE = 4     
 
-def get_baseball_svg(yaw: float, pitch: float, roll: float) -> str:
+def get_baseball_svg(yaw: float, pitch: float, roll: float, show_seam: bool = SHOW_SEAM) -> str:
     r_px = RADIUS * SCALE
     padding = 50
     canvas_size = (r_px * 2) + padding
@@ -47,23 +49,24 @@ def get_baseball_svg(yaw: float, pitch: float, roll: float) -> str:
     a = 0.42 # Thompson Seam Factor
     
     # 2. SEAM PATH (Underlay)
-    num_seam_pts = 1000
-    current_segment = []
-    for i in range(num_seam_pts + 1):
-        t = (i / num_seam_pts) * 4 * math.pi
-        nx = math.cos(t) + a * math.cos(3 * t)
-        ny = math.sin(t) - a * math.sin(3 * t)
-        nz = 2 * math.sqrt(a - a**2) * math.sin(2 * t)
-        mag = math.sqrt(nx**2 + ny**2 + nz**2)
-        rx, ry, rz = rotate_3d(nx/mag, ny/mag, nz/mag)
-        if rz > 0:
-            current_segment.append(f"{center + rx * r_px:.2f},{center - ry * r_px:.2f}")
-        else:
-            if current_segment:
-                svg.append(f'<polyline points="{" ".join(current_segment)}" fill="none" stroke="#D6D4C8" stroke-width="{SEAM_WIDTH}" stroke-linecap="round"/>')
-                current_segment = []
-    if current_segment:
-        svg.append(f'<polyline points="{" ".join(current_segment)}" fill="none" stroke="#D6D4C8" stroke-width="{SEAM_WIDTH}" stroke-linecap="round"/>')
+    if show_seam:
+        num_seam_pts = 1000
+        current_segment = []
+        for i in range(num_seam_pts + 1):
+            t = (i / num_seam_pts) * 4 * math.pi
+            nx = math.cos(t) + a * math.cos(3 * t)
+            ny = math.sin(t) - a * math.sin(3 * t)
+            nz = 2 * math.sqrt(a - a**2) * math.sin(2 * t)
+            mag = math.sqrt(nx**2 + ny**2 + nz**2)
+            rx, ry, rz = rotate_3d(nx/mag, ny/mag, nz/mag)
+            if rz > 0:
+                current_segment.append(f"{center + rx * r_px:.2f},{center - ry * r_px:.2f}")
+            else:
+                if current_segment:
+                    svg.append(f'<polyline points="{" ".join(current_segment)}" fill="none" stroke="#D6D4C8" stroke-width="{SEAM_WIDTH}" stroke-linecap="round"/>')
+                    current_segment = []
+        if current_segment:
+            svg.append(f'<polyline points="{" ".join(current_segment)}" fill="none" stroke="#D6D4C8" stroke-width="{SEAM_WIDTH}" stroke-linecap="round"/>')
 
     # 3. INTERLEAVED ZIPPER STITCHES
     random.seed(42) # Keep jitter consistent between runs
@@ -99,17 +102,43 @@ def get_baseball_svg(yaw: float, pitch: float, roll: float) -> str:
             px, py, pz = nx + (side * bx * (jit_spread/2)), ny + (side * by * (jit_spread/2)), nz + (side * bz * (jit_spread/2))
             dx, dy, dz = nx + (tx * jit_offset), ny + (ty * jit_offset), nz + (tz * jit_offset)
 
+            # Thread orientation in view space: cos(θ) = dot(thread_dir, view_axis).
+            # Threads parallel to the line of sight (cos θ ≈ 1) present their circular
+            # cross-section to the viewer and should taper less than threads that run
+            # perpendicular to it (cos θ ≈ 0) and follow the sphere's curving surface.
+            d3x, d3y, d3z = dx - px, dy - py, dz - pz
+            d3m = math.sqrt(d3x**2 + d3y**2 + d3z**2)
+            if d3m > 1e-10:
+                _, _, rz_dir = rotate_3d(d3x/d3m, d3y/d3m, d3z/d3m)
+            else:
+                rz_dir = 0.0
+            cos_theta = abs(rz_dir)
+
             # Project and Cull
             pts_2d = []
+            rz_vals = []
             visible = True
             for x, y, z in [(px, py, pz), (dx, dy, dz)]:
                 m = math.sqrt(x**2 + y**2 + z**2)
                 rx, ry, rz = rotate_3d(x/m, y/m, z/m)
                 if rz <= 0: visible = False
                 pts_2d.append((center + rx * r_px, center - ry * r_px))
+                rz_vals.append(rz)
 
             if visible:
                 (x1, y1), (x2, y2) = pts_2d
+
+                # Position depth: normalized distance from sphere center (0=center, 1=limb).
+                # Orientation modulates the taper: cos_theta reduces effective depth so that
+                # threads aimed toward the viewer thin less than threads running sideways.
+                rz_avg = (rz_vals[0] + rz_vals[1]) / 2
+                d_pos = math.sqrt(max(0.0, 1.0 - rz_avg**2))
+                effective_d = d_pos * (1.0 - cos_theta)
+                if effective_d <= 0.5:
+                    w = THREAD_WIDTH
+                else:
+                    frac = (effective_d - 0.5) / 0.5
+                    w = THREAD_WIDTH + (THREAD_WIDTH_EDGE - THREAD_WIDTH) * frac
 
                 # Draw puncture first so it sits "behind" the thread
                 if SHOW_PUNCTURES:
@@ -121,7 +150,7 @@ def get_baseball_svg(yaw: float, pitch: float, roll: float) -> str:
                 # Then draw thread segment on top
                 svg.append(
                     f'<line x1="{x1:.2f}" y1="{y1:.2f}" x2="{x2:.2f}" y2="{y2:.2f}" '
-                    f'stroke="#D32F2F" stroke-width="{THREAD_WIDTH}" stroke-linecap="round"/>'
+                    f'stroke="#D32F2F" stroke-width="{w:.2f}" stroke-linecap="round"/>'
                 )
 
     svg.append('</svg>')
@@ -130,7 +159,7 @@ def get_baseball_svg(yaw: float, pitch: float, roll: float) -> str:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Generate an ultra-realistic 2D baseball SVG with stitched seams."
+        description="Generate a 2D baseball SVG with stitched seams."
     )
     parser.add_argument(
         "--yaw",
@@ -151,6 +180,12 @@ def parse_args() -> argparse.Namespace:
         help="Roll angle in degrees (rotation around the view axis).",
     )
     parser.add_argument(
+        "--show-seam",
+        action="store_true",
+        default=SHOW_SEAM,
+        help="Draw the gray seam underlay.",
+    )
+    parser.add_argument(
         "-o",
         "--output",
         type=str,
@@ -162,7 +197,7 @@ def parse_args() -> argparse.Namespace:
 
 if __name__ == "__main__":
     args = parse_args()
-    svg = get_baseball_svg(args.yaw, args.pitch, args.roll)
+    svg = get_baseball_svg(args.yaw, args.pitch, args.roll, show_seam=args.show_seam)
     with open(args.output, "w") as f:
         f.write(svg)
     print(

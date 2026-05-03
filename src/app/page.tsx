@@ -1,8 +1,8 @@
-import { SignInButton, SignUpButton } from "@clerk/nextjs"
+import { SignUpButton } from "@clerk/nextjs"
 import { auth } from "@clerk/nextjs/server"
 import Link from "next/link"
 import { Suspense } from "react"
-import { SpinningBall } from "@/components/spinning-ball"
+import { SpinningStitchBall } from "@/components/spinning-stitch-ball"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { prisma } from "@/lib/prisma"
@@ -14,17 +14,18 @@ export default async function HomePage() {
   return (
     <div className="flex flex-col gap-12">
       <section className="relative flex flex-col overflow-hidden">
-        <SpinningBall
+        <SpinningStitchBall
           size={160}
           pitch={30}
           yaw={155}
           spinRpm={10}
           spinAxis="yaw"
           direction="ltr"
-          className="pointer-events-none absolute top-0 opacity-35 dark:opacity-20"
+          speed={1}
+          className="absolute top-0 left-0 opacity-35 dark:opacity-20 z-10"
         />
         {userId ? (
-          <div className="relative z-10">
+          <div className="relative">
             <h1 className="mb-4">Your leagues</h1>
             <Suspense fallback={<LeagueGridSkeleton />}>
               <LeagueList userId={userId} />

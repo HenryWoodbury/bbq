@@ -262,8 +262,8 @@
   to   { transform: translateX(-200px); }
 }
 
-.ball-travel-ltr { animation: ball-travel-ltr 18s linear infinite; }
-.ball-travel-rtl { animation: ball-travel-rtl 18s linear infinite; }
+.ball-travel-ltr { animation: ball-travel-ltr var(--ball-travel-duration, 18s) linear infinite; }
+.ball-travel-rtl { animation: ball-travel-rtl var(--ball-travel-duration, 18s) linear infinite; }
 
 @media (prefers-reduced-motion: reduce) {
   .ball-travel-ltr,

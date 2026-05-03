@@ -40,7 +40,7 @@ Arguments after the script name are passed directly to the Python script, so you
 ```bash
 ./scripts/run.sh stitch_ball.py \
   --yaw 15 --pitch 140 --roll 25 \
-  -o baseball_ultra_real_custom.svg
+  -o stitch-y15-p140-r25.svg
 ```
 
 - **Example: seam ball with different view**:
