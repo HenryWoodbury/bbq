@@ -53,14 +53,14 @@ function computeSeamPolylines(
     const uy = ny / mag
     const uz = nz / mag
 
-    // Canonical pre-rotation (yaw=45°, pitch=90°) so yaw=0, pitch=0 is the symmetric horseshoe view
+    // Pre-rotation: 45° around Z so horseshoe seam faces viewer; x→right (1st base), z→up, y→depth (toward pitcher)
     const xp = (ux + uy) * INV_SQRT2
-    const yp = -uz
+    const yp = uz
     const zp = (-ux + uy) * INV_SQRT2
     const y1 = yp * cosPitch - zp * sinPitch
     const z1 = yp * sinPitch + zp * cosPitch
-    const x2 = xp * cosYaw + z1 * sinYaw
-    const z2 = -xp * sinYaw + z1 * cosYaw
+    const x2 = xp * cosYaw - z1 * sinYaw
+    const z2 = xp * sinYaw + z1 * cosYaw
     const x3 = x2 * cosRoll - y1 * sinRoll
     const y3 = x2 * sinRoll + y1 * cosRoll
 

@@ -6,6 +6,18 @@ that are always meaningful relative to the ball regardless of yaw/pitch/roll.
 
 Rendering uses painter's algorithm: back grid lines first (covered by ball fill),
 then ball stitching, then front grid lines on top.
+
+Coordinate System:
+Y	Mound to Plate (Positive is towards center field)
+X	Left to Right (Positive is towards 1st base)
+Z	Vertically: Up is Positive, Down is Negative
+
+The origin is at the back point of home plate (0, 0, 0), the y value starts at
+about 55 to 60 feet and moves in the negative y direction.
+
+Yaw -- Positive is counter-clockwise when looking down from above (front of ball moves toward 1st base)
+Pitch -- Positive is backspin; negative is topspin (front of the ball moves up and back)
+Roll -- When looking at the pitcher, positive roll is counter-clockwise (gyro spin is counter-clockwise)
 """
 import math
 import random
@@ -38,8 +50,11 @@ PUNCTURE_SIZE = 4
 GRID_HALF = RADIUS * 4 / 3   # = 4/3 * radius → full side = 8/3 * radius ≈ 4/3 * diameter
 GRID_DIVS = 4                 # 4 equal divisions per axis → 5 planes, center plane at 0
 
-AXIS_COLORS = {'x': '#D32F2F', 'y': '#2E7D32', 'z': '#1565C0'}
-
+#  - Red = X → pitch axis (tilts up/down)
+#  - Green = Y → roll axis (spins like a knob, points into the screen at 0,0,0)
+#  - Blue = Z → yaw axis (spins left/right, vertical)
+# AXIS_COLORS = {'x': '#D32F2F', 'y': '#2E7D32', 'z': '#1565C0'}
+AXIS_COLORS = {'x': '#A1A1AA', 'y': '#A1A1AA', 'z': '#A1A1AA'}
 
 def _grid_segments() -> list:
     """Return all 75 grid line segments as (p1, p2, axis, seg_type) tuples.
@@ -76,10 +91,13 @@ def get_baseball_grid_svg(
     roll: float,
     show_seam: bool = SHOW_SEAM,
     no_grid: bool = False,
+    axes_only: bool = False,
+    show_labels: bool = True,
 ) -> str:
     r_px = RADIUS * SCALE
-    # Canvas sized to contain grid corners at any rotation (max 3D radius = GRID_HALF * √3)
-    grid_radius_px = GRID_HALF * math.sqrt(3) * SCALE
+    axis_half = GRID_HALF * 1.5  # axes extend 50% beyond grid in each direction
+    extent = axis_half if axes_only else GRID_HALF
+    grid_radius_px = extent * math.sqrt(3) * SCALE
     padding = 80
     canvas_size = (grid_radius_px + padding) * 2
     center = canvas_size / 2
@@ -89,7 +107,7 @@ def get_baseball_grid_svg(
         # Face-on pre-rotation: x→right, z→up, y→depth. Grid appears as perfect square.
         xp, yp, zp = x, z, y
         y1, z1 = yp * math.cos(p_rad) - zp * math.sin(p_rad), yp * math.sin(p_rad) + zp * math.cos(p_rad)
-        x2, z2 = xp * math.cos(y_rad) + z1 * math.sin(y_rad), -xp * math.sin(y_rad) + z1 * math.cos(y_rad)
+        x2, z2 = xp * math.cos(y_rad) - z1 * math.sin(y_rad), xp * math.sin(y_rad) + z1 * math.cos(y_rad)
         x3, y3 = x2 * math.cos(r_rad) - y1 * math.sin(r_rad), x2 * math.sin(r_rad) + y1 * math.cos(r_rad)
         return x3, y3, z2
 
@@ -101,6 +119,19 @@ def get_baseball_grid_svg(
 
     def proj(rx, ry):
         return center + rx * SCALE, center - ry * SCALE
+
+    def axis_seg_svg(p1, p2, axis_name):
+        rx1, ry1, rz1 = rotate_3d(*p1)
+        rx2, ry2, rz2 = rotate_3d(*p2)
+        sx1, sy1 = proj(rx1, ry1)
+        sx2, sy2 = proj(rx2, ry2)
+        color = AXIS_COLORS[axis_name]
+        avg_z = (rz1 + rz2) / 2
+        line = (
+            f'<line x1="{sx1:.2f}" y1="{sy1:.2f}" x2="{sx2:.2f}" y2="{sy2:.2f}" '
+            f'stroke="{color}" stroke-width="5" opacity="0.9"/>'
+        )
+        return avg_z, line
 
     def seg_svg(p1, p2, axis, seg_type, back):
         rx1, ry1, _ = rotate_3d(*p1)
@@ -127,8 +158,27 @@ def get_baseball_grid_svg(
         f'xmlns="http://www.w3.org/2000/svg">'
     ]
 
-    # Partition and sort grid segments by average Z after rotation
-    if not no_grid:
+    # Build back/front layers (axis segments or grid segments depending on mode)
+    back_items, front_items = [], []
+
+    if axes_only:
+        R = RADIUS
+        L = axis_half
+        # Each axis split at sphere surface: only the two outside-sphere segments are drawn.
+        # Painter's algorithm: back segments rendered before ball fill (ball occludes them
+        # where they project inside the silhouette), front segments rendered after.
+        axis_outside = [
+            ((-L, 0, 0), (-R, 0, 0), 'x'),
+            (( R, 0, 0), ( L, 0, 0), 'x'),
+            ((0, -L, 0), (0, -R, 0), 'y'),
+            ((0,  R, 0), (0,  L, 0), 'y'),
+            ((0, 0, -L), (0, 0, -R), 'z'),
+            ((0, 0,  R), (0, 0,  L), 'z'),
+        ]
+        for p1, p2, ax in axis_outside:
+            avg_z, line = axis_seg_svg(p1, p2, ax)
+            (back_items if avg_z < 0 else front_items).append(line)
+    elif not no_grid:
         back_segs, front_segs = [], []
         for p1, p2, axis, seg_type in _grid_segments():
             _, _, rz1 = rotate_3d(*p1)
@@ -136,13 +186,13 @@ def get_baseball_grid_svg(
             avg_z = (rz1 + rz2) / 2
             entry = (avg_z, p1, p2, axis, seg_type)
             (back_segs if avg_z < 0 else front_segs).append(entry)
-        back_segs.sort(key=lambda e: e[0])   # most-negative Z first
-        front_segs.sort(key=lambda e: e[0])  # least-positive Z first
+        back_segs.sort(key=lambda e: e[0])
+        front_segs.sort(key=lambda e: e[0])
+        back_items = [seg_svg(p1, p2, ax, st, True) for _, p1, p2, ax, st in back_segs]
+        front_items = [seg_svg(p1, p2, ax, st, False) for _, p1, p2, ax, st in front_segs]
 
-    # Step 1: Back grid lines (ball fill will cover these)
-    if not no_grid:
-        for _, p1, p2, axis, seg_type in back_segs:
-            svg.append(seg_svg(p1, p2, axis, seg_type, back=True))
+    # Step 1: Back layer (ball fill will cover projections that fall inside the silhouette)
+    svg.extend(back_items)
 
     # Step 2: Ball fill (opaque — covers back grid lines)
     svg.append(f'<circle cx="{center:.2f}" cy="{center:.2f}" r="{r_px}" fill="#FDFDF5"/>')
@@ -245,10 +295,46 @@ def get_baseball_grid_svg(
         f'fill="none" stroke="#ccc" stroke-width="0.5"/>'
     )
 
-    # Step 6: Front grid lines on top of ball
-    if not no_grid:
-        for _, p1, p2, axis, seg_type in front_segs:
-            svg.append(seg_svg(p1, p2, axis, seg_type, back=False))
+    # Step 6: Front layer on top of ball
+    svg.extend(front_items)
+
+    # Step 7: y-axis arrowhead and axis labels at positive tips
+    if show_labels and not no_grid:
+        line_tip = axis_half if axes_only else GRID_HALF
+
+        # Arrowhead on -y axis tip: ball travels from pitcher toward home plate (-Y direction)
+        rx_t, ry_t, _ = rotate_3d(0, -line_tip, 0)
+        rx_b, ry_b, _ = rotate_3d(0, -line_tip * 0.88, 0)
+        tip_sx, tip_sy = proj(rx_t, ry_t)
+        back_sx, back_sy = proj(rx_b, ry_b)
+        adx, ady = tip_sx - back_sx, tip_sy - back_sy
+        alen = math.sqrt(adx * adx + ady * ady)
+        if alen > 1e-6:
+            adx, ady = adx / alen, ady / alen
+            apx, apy = -ady, adx          # perpendicular (screen space)
+            arrow_len, arrow_half_w = 20, 8
+            base_x = tip_sx - adx * arrow_len
+            base_y = tip_sy - ady * arrow_len
+            pts = (
+                f"{tip_sx:.2f},{tip_sy:.2f} "
+                f"{base_x + apx * arrow_half_w:.2f},{base_y + apy * arrow_half_w:.2f} "
+                f"{base_x - apx * arrow_half_w:.2f},{base_y - apy * arrow_half_w:.2f}"
+            )
+            svg.append(f'<polygon points="{pts}" fill="{AXIS_COLORS["y"]}" opacity="0.9"/>')
+
+        # Labels: y pushed further to clear the arrowhead
+        label_dists = {'x': line_tip * 1.15, 'y': line_tip * 1.24, 'z': line_tip * 1.15}
+        for tip, name in (((label_dists['x'], 0, 0), 'x'), ((0, label_dists['y'], 0), 'y'), ((0, 0, label_dists['z']), 'z')):
+            rx, ry, _ = rotate_3d(*tip)
+            sx, sy = proj(rx, ry)
+            color = AXIS_COLORS[name]
+            svg.append(
+                f'<text x="{sx:.2f}" y="{sy:.2f}" '
+                f'font-family="Palatino, \'Palatino Linotype\', \'Book Antiqua\', Georgia, serif" '
+                f'font-style="italic" font-size="52" '
+                f'fill="{color}" text-anchor="middle" dominant-baseline="middle" '
+                f'opacity="0.9">{name}</text>'
+            )
 
     svg.append('</svg>')
     return "\n".join(svg)
@@ -263,6 +349,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--roll", type=float, default=ROLL, help="Roll angle in degrees.")
     parser.add_argument("--show-seam", action="store_true", default=SHOW_SEAM)
     parser.add_argument("--no-grid", action="store_true", default=False, help="Render ball only.")
+    parser.add_argument("--axes-only", action="store_true", default=False,
+                        help="Render ball with color axes only (occluded through sphere, extended 50%%).")
+    parser.add_argument("--no-labels", action="store_true", default=False,
+                        help="Suppress x/y/z axis labels.")
     parser.add_argument("-o", "--output", type=str, default="grid_ball.svg")
     return parser.parse_args()
 
@@ -273,6 +363,8 @@ if __name__ == "__main__":
         args.yaw, args.pitch, args.roll,
         show_seam=args.show_seam,
         no_grid=args.no_grid,
+        axes_only=args.axes_only,
+        show_labels=not args.no_labels,
     )
     with open(args.output, "w") as f:
         f.write(svg)

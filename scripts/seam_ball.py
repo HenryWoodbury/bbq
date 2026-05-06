@@ -34,7 +34,7 @@ def get_baseball_svg(yaw: float, pitch: float, roll: float, is_icon: bool = Fals
         zp = (-x + y) * _INV_SQRT2
         # Pitch -> Yaw -> Roll
         y1, z1 = yp*math.cos(p_rad) - zp*math.sin(p_rad), yp*math.sin(p_rad) + zp*math.cos(p_rad)
-        x2, z2 = xp*math.cos(y_rad) + z1*math.sin(y_rad), -xp*math.sin(y_rad) + z1*math.cos(y_rad)
+        x2, z2 = xp*math.cos(y_rad) - z1*math.sin(y_rad), xp*math.sin(y_rad) + z1*math.cos(y_rad)
         x3, y3 = x2*math.cos(r_rad) - y1*math.sin(r_rad), x2*math.sin(r_rad) + y1*math.cos(r_rad)
         return x3, y3, z2
 
