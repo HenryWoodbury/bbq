@@ -47,17 +47,26 @@ function rotate3d(
   cosRoll: number,
   sinRoll: number,
 ): [number, number, number] {
-  // Pre-rotation: 45° around Z so horseshoe seam faces viewer; x→right (1st base), z→up, y→depth (toward pitcher)
-  const xp = (x + y) * INV_SQRT2
-  const yp = z
-  const zp = (-x + y) * INV_SQRT2
-  const y1 = yp * cosPitch - zp * sinPitch
-  const z1 = yp * sinPitch + zp * cosPitch
-  const x2 = xp * cosYaw - z1 * sinYaw
-  const z2 = xp * sinYaw + z1 * cosYaw
-  const x3 = x2 * cosRoll - y1 * sinRoll
-  const y3 = x2 * sinRoll + y1 * cosRoll
-  return [x3, y3, z2]
+  // Mirrors `rotate_ball` in scripts/grid_ball.py. World frame: x→1st base,
+  // y→mound, z→up. Camera is the batter's PoV: screen_right = +x,
+  // screen_up = +z, depth_toward_viewer = -y.
+  //
+  // Stitch design → ball body frame: 45° around body Z so the leather panel
+  // center faces the viewer at the default orientation.
+  const xr = (x + y) * INV_SQRT2
+  const yr = (-x + y) * INV_SQRT2
+  // Intrinsic Yaw → Pitch → Roll (aerospace ZYX) applied right-to-left as
+  // R_z · R_x · R_y · p_body.
+  //   Roll around world Y (flight path): +Z → -X
+  const xa = xr * cosRoll - z * sinRoll
+  const za = xr * sinRoll + z * cosRoll
+  //   Pitch around world X: +Z → +Y (positive = backspin)
+  const yb = yr * cosPitch + za * sinPitch
+  const zb = -yr * sinPitch + za * cosPitch
+  //   Yaw around world Z: -Y → +X (positive = front of ball toward 1st base)
+  const xc = xa * cosYaw - yb * sinYaw
+  const yc = xa * sinYaw + yb * cosYaw
+  return [xc, zb, -yc]
 }
 
 function computeStitchLines(
@@ -200,9 +209,9 @@ export function SpinningStitchBall({
   roll = 0,
   rpm = 10,
   sloMoFactor = 1,
-  spinAxis = "yaw",
+  spinAxis = "pitch",
   direction,
-  speed = 1,
+  speed = 0,
   paused = false,
   ballFill,
   ballStroke,

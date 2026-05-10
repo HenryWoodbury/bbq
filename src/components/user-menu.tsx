@@ -1,9 +1,16 @@
 "use client"
 
-import type { ReactNode } from "react"
 import { useClerk } from "@clerk/nextjs"
-import { FolderPenIcon, LogOutIcon, MonitorIcon, MoonIcon, SunIcon, UserIcon } from "lucide-react"
-import { useTheme, type Theme } from "@/components/theme-provider"
+import {
+  FolderPenIcon,
+  LogOutIcon,
+  MonitorIcon,
+  MoonIcon,
+  SunIcon,
+  UserIcon,
+} from "lucide-react"
+import type { ReactNode } from "react"
+import { type Theme, useTheme } from "@/components/theme-provider"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,11 +46,15 @@ export function UserMenu() {
           className="max-w-60"
         >
           <UserIcon />
-          <span className="min-w-0 truncate">You</span>
+          <span className="min-w-0 truncate">Acount</span>
         </MenuButton>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="overflow-hidden p-0">
-        <MenuFilterGroup options={THEME_OPTIONS} value={theme} onChange={setTheme} />
+        <MenuFilterGroup
+          options={THEME_OPTIONS}
+          value={theme}
+          onChange={setTheme}
+        />
         <div className="p-1">
           <DropdownMenuItem onClick={() => openUserProfile()}>
             <FolderPenIcon />

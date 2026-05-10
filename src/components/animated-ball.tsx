@@ -21,9 +21,6 @@ export function AnimatedBall({ size = 160, className }: AnimatedBallProps) {
     >
       <SpinningStitchBall
         size={size}
-        spinAxis="yaw"
-        direction="ltr"
-        speed={1}
         paused={paused}
         className={className}
       />

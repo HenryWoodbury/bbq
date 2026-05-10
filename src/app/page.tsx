@@ -16,7 +16,7 @@ export default async function HomePage() {
       <section className="relative flex flex-col overflow-hidden">
         <AnimatedBall
           size={160}
-          className="absolute top-0 left-0 opacity-65 dark:opacity-65 z-10"
+          className="absolute top-0 right-0 opacity-65 dark:opacity-65 z-10"
         />
         {userId ? (
           <div className="relative">
