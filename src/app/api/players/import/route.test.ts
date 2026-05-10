@@ -21,7 +21,7 @@ const VALID_CSV = [
   "15640,Aaron Judge,1992-04-26,Aaron,Judge,OF,NYY,MLB,Y,592450,15640,,,,,,,,R,R",
 ].join("\n")
 
-function makeFormRequest(csv: string | null, mode = "replace") {
+function makeFormRequest(csv: string | null, mode = "replace", season = 2025) {
   const formData = new FormData()
   if (csv !== null) {
     formData.append(
@@ -31,6 +31,7 @@ function makeFormRequest(csv: string | null, mode = "replace") {
     )
   }
   formData.append("mode", mode)
+  formData.append("season", String(season))
   return new NextRequest("http://localhost/api/players/import", {
     method: "POST",
     body: formData,

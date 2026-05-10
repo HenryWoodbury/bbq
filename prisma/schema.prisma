@@ -335,6 +335,7 @@ enum ExportScope {
   Players  @map("players")
   Teams    @map("teams")
   Leagues  @map("leagues")
+  Parks    @map("parks")
   Platform @map("platform")
 }
 
@@ -419,4 +420,51 @@ model LeagueFormat {
   leagues League[]
 
   @@map("league_formats")
+}
+
+// ─── Parks ────────────────────────────────────────────────────────────────────
+
+model Park {
+  id        String       @id @default(uuid())
+  venueId   Int          @unique @map("venue_id")
+  venueName String       @map("venue_name")
+  teamName  String?      @map("team_name")
+  factors   ParkFactor[]
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+  deletedAt DateTime?    @map("deleted_at")
+
+  @@map("parks")
+}
+
+model ParkFactor {
+  id      String @id @default(uuid())
+  parkId  String @map("park_id")
+  park    Park   @relation(fields: [parkId], references: [id])
+  season  Int
+  /// "R", "L", or "" (both sides)
+  batSide String @map("bat_side")
+  /// Rolling window in years: 1, 3, or 5
+  rolling Int
+  /// JSONB: { "index_wOBA": 100, "index_HR": 108, ... }
+  factors   Json
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@unique([parkId, season, batSide, rolling])
+  @@index([season, batSide, rolling])
+  @@map("park_factors")
+}
+
+model ParkFactorSync {
+  id        String   @id @default(cuid())
+  season    Int
+  batSide   String   @map("bat_side")
+  rolling   Int
+  total     Int
+  upserted  Int
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("park_factor_syncs")
 }

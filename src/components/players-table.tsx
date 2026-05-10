@@ -18,6 +18,7 @@ import { IconButton } from "@/components/ui/icon-button"
 import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import { PROJECTION_OPTIONS, SPLIT_FILTER_OPTIONS } from "@/lib/stat-labels"
+import { csvEscape, triggerCsvDownload } from "@/lib/csv"
 import { AL_TEAM_CODES, NL_TEAM_CODES } from "@/lib/team-codes"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -578,6 +579,51 @@ export function PlayersTable({
     })
   }
 
+  function triggerClientExport() {
+    let csv: string
+    let filename: string
+    if (show === "profiles") {
+      const headers = ["Name", "Team", "Level", "Bats", "Throws", "Positions", "OttID", "FgID", "Active"]
+      const lines = [headers.join(",")]
+      for (const row of displayedProfiles) {
+        lines.push(
+          [
+            csvEscape(row.fgSpecialChar ?? row.playerName),
+            csvEscape(row.team),
+            csvEscape(row.mlbLevel),
+            csvEscape(row.bats),
+            csvEscape(row.throws),
+            csvEscape(row.ottoneuPositions.join("/")),
+            csvEscape(row.ottoneuId),
+            csvEscape(row.fangraphsId),
+            row.active ? "Y" : "N",
+          ].join(","),
+        )
+      }
+      csv = lines.join("\n")
+      filename = "players-profiles-filtered.csv"
+    } else {
+      const colKeys = show === "pitchers" ? PITCHING_COLS : BATTING_COLS
+      const headers = ["Name", "Team", "Level", "OttID", "FgID", ...colKeys]
+      const lines = [headers.join(",")]
+      for (const row of displayedStats) {
+        lines.push(
+          [
+            csvEscape(row.playerName),
+            csvEscape(row.team),
+            csvEscape(row.mlbLevel),
+            csvEscape(row.ottoneuId),
+            csvEscape(row.fangraphsId),
+            ...colKeys.map((k) => csvEscape(row.stats[k] as string | number | null | undefined)),
+          ].join(","),
+        )
+      }
+      csv = lines.join("\n")
+      filename = `players-${show}-${statsFilter.season}-${statsFilter.projection}-filtered.csv`.toLowerCase()
+    }
+    triggerCsvDownload(csv, filename)
+  }
+
   // ── Stats column definitions ───────────────────────────────────────────────
 
   // Use server-driven initialShow to determine columns — show may be ahead of statRows during navigation
@@ -901,35 +947,36 @@ export function PlayersTable({
             )}
           </>
         )}
-        {playerExports.length > 0 && (
-          <div className="ml-auto">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="secondary" size="sm">
-                  <DownloadIcon className="h-4 w-4" />
-                  Export
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {playerExports.map((name) => (
-                  <DropdownMenuItem
-                    key={name}
-                    onSelect={() =>
-                      triggerExport(
-                        name.toLowerCase().includes("pitcher")
-                          ? "PITCHER"
-                          : "BATTER",
-                        "csv",
-                      )
-                    }
-                  >
-                    {name}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        )}
+        <div className="ml-auto">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="secondary" size="sm">
+                <DownloadIcon className="h-4 w-4" />
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {playerExports.map((name) => (
+                <DropdownMenuItem
+                  key={name}
+                  onSelect={() =>
+                    triggerExport(
+                      name.toLowerCase().includes("pitcher")
+                        ? "PITCHER"
+                        : "BATTER",
+                      "csv",
+                    )
+                  }
+                >
+                  {name}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuItem onSelect={triggerClientExport}>
+                As Filtered
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {/* Table */}

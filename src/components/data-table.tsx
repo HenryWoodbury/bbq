@@ -36,6 +36,7 @@ interface DataTableProps<T> {
   defaultSorting?: SortingState
   pagination?: boolean
   getCellStyle?: (row: T, columnId: string) => CSSProperties | undefined
+  getHeaderStyle?: (columnId: string) => CSSProperties | undefined
 }
 
 export function DataTable<T>({
@@ -45,6 +46,7 @@ export function DataTable<T>({
   defaultSorting = [],
   pagination = true,
   getCellStyle,
+  getHeaderStyle,
 }: DataTableProps<T>) {
   const [sorting, setSorting] = useState<SortingState>(defaultSorting)
   const [pageIndex, setPageIndex] = useState(0)
@@ -110,6 +112,7 @@ export function DataTable<T>({
                         "table-head-cell",
                         canSort && "cursor-pointer hover:text-foreground",
                       )}
+                      style={getHeaderStyle?.(header.column.id)}
                       onClick={
                         canSort
                           ? header.column.getToggleSortingHandler()

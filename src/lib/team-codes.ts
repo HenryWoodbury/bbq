@@ -10,6 +10,43 @@ export const NL_TEAM_CODES = [
   "LAD", "SDP", "SFG", "MIA", "WAS",
 ]
 
+// Maps Baseball Savant name_display_club values to canonical SFBB abbreviations.
+// Includes historical variants (e.g. pre-2022 Cleveland, pre-move Oakland).
+export const SAVANT_TEAM_TO_ABBREV: Record<string, string> = {
+  "Arizona Diamondbacks": "ARI",
+  "Atlanta Braves": "ATL",
+  "Baltimore Orioles": "BAL",
+  "Boston Red Sox": "BOS",
+  "Chicago Cubs": "CHC",
+  "Chicago White Sox": "CHW",
+  "Cincinnati Reds": "CIN",
+  "Cleveland Guardians": "CLE",
+  "Cleveland Indians": "CLE",
+  "Colorado Rockies": "COL",
+  "Detroit Tigers": "DET",
+  "Houston Astros": "HOU",
+  "Kansas City Royals": "KCR",
+  "Los Angeles Angels": "LAA",
+  "Los Angeles Dodgers": "LAD",
+  "Miami Marlins": "MIA",
+  "Milwaukee Brewers": "MIL",
+  "Minnesota Twins": "MIN",
+  "New York Mets": "NYM",
+  "New York Yankees": "NYY",
+  "Athletics": "ATH",
+  "Oakland Athletics": "ATH",
+  "Philadelphia Phillies": "PHI",
+  "Pittsburgh Pirates": "PIT",
+  "San Diego Padres": "SDP",
+  "San Francisco Giants": "SFG",
+  "Seattle Mariners": "SEA",
+  "St. Louis Cardinals": "STL",
+  "Tampa Bay Rays": "TBR",
+  "Texas Rangers": "TEX",
+  "Toronto Blue Jays": "TOR",
+  "Washington Nationals": "WAS",
+}
+
 // Maps non-SFBB abbreviations to canonical SFBB equivalents.
 // Extend here if new mismatches are discovered.
 export const FOREIGN_TEAM_MAP: Record<string, string> = {

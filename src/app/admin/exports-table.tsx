@@ -148,6 +148,7 @@ function ExportForm({
                 <option value="Players">Players</option>
                 <option value="Teams">Teams</option>
                 <option value="Leagues">Leagues</option>
+                <option value="Parks">Parks</option>
                 <option value="Platform">Platform</option>
               </Select>
             </Field>
@@ -314,6 +315,7 @@ export function ExportsTable({ data }: { data: ExportRow[] }) {
           >
             <option value="ALL">All</option>
             <option value="Players">Players</option>
+            <option value="Parks">Parks</option>
             <option value="Teams">Teams</option>
             <option value="Leagues">Leagues</option>
             <option value="Platform">Platform</option>

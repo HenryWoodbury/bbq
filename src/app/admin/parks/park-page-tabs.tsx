@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import type { ReactNode } from "react"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-export type Tab = "parks" | "park-factors" | "profiles"
+export type Tab = "park-factors" | "profiles"
 
 export function ParkPageTabs({
   currentTab,
@@ -18,7 +18,7 @@ export function ParkPageTabs({
 
   function handleTabChange(value: string) {
     const p = new URLSearchParams(searchParams)
-    if (value === "parks") {
+    if (value === "park-factors") {
       p.delete("tab")
     } else {
       p.set("tab", value)
@@ -29,7 +29,6 @@ export function ParkPageTabs({
   return (
     <Tabs size="sm" value={currentTab} onValueChange={handleTabChange}>
       <TabsList>
-        <TabsTrigger value="parks">Parks</TabsTrigger>
         <TabsTrigger value="park-factors">Park Factors</TabsTrigger>
         <TabsTrigger value="profiles">Profiles</TabsTrigger>
       </TabsList>

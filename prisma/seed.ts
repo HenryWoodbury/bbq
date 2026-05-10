@@ -863,6 +863,16 @@ async function seedDataExports() {
         "wOBA vs RHB",
       ],
     },
+    ...["Batcast Batting Left", "Batcast Batting Right"].map((name) => ({
+      name,
+      scope: "Parks" as const,
+      type: "Standard" as const,
+      fields: [
+        "Abbr", "Team", "Venue", "Year", "Park Factor",
+        "wOBAcon", "xwOBAcon", "BACON", "xBACON", "HardHit",
+        "R", "OBP", "H", "1B", "2B", "3B", "HR", "BB", "SO", "PA",
+      ],
+    })),
   ]
 
   for (const e of exports) {
