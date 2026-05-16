@@ -775,7 +775,12 @@ export function PlayersTable({
           className="w-full max-w-sm"
           size="sm"
         />
-        {searchAction}
+        {searchAction && (
+          <>
+            <div className="border-l border-border h-6" />
+            {searchAction}
+          </>
+        )}
       </div>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <FilterGroup

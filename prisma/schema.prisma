@@ -424,6 +424,38 @@ model LeagueFormat {
 
 // ─── Parks ────────────────────────────────────────────────────────────────────
 
+model OklchColor {
+  id        Int      @id @default(autoincrement())
+  lightness Decimal  @db.Decimal(6, 4)
+  chroma    Decimal  @db.Decimal(6, 4)
+  hue       Decimal  @db.Decimal(8, 4)
+  alpha     Decimal  @db.Decimal(5, 4) @default(1)
+
+  heatMapsAsMin HeatMap[] @relation("HeatMapMinColor")
+  heatMapsAsMax HeatMap[] @relation("HeatMapMaxColor")
+
+  @@map("oklch_colors")
+}
+
+model HeatMap {
+  id         Int        @id @default(autoincrement())
+  name       String     @unique
+  min        Int
+  max        Int
+  avg        Int
+  increments Int
+  /// When true, avg is treated as a white pivot (L=1, C=0); min hue used for first half, max hue for second half.
+  isPivot    Boolean    @default(false) @map("is_pivot")
+  minColorId Int        @map("min_color_id")
+  maxColorId Int        @map("max_color_id")
+  minColor   OklchColor @relation("HeatMapMinColor", fields: [minColorId], references: [id])
+  maxColor   OklchColor @relation("HeatMapMaxColor", fields: [maxColorId], references: [id])
+  createdAt  DateTime   @default(now()) @map("created_at")
+  updatedAt  DateTime   @updatedAt @map("updated_at")
+
+  @@map("heat_maps")
+}
+
 model Park {
   id        String       @id @default(uuid())
   venueId   Int          @unique @map("venue_id")

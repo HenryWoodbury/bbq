@@ -474,6 +474,7 @@ async function main() {
   // Templates must exist before the demo league references them
   await seedLeagueFormats()
   await seedDataExports()
+  await seedHeatMaps()
 
   // ── Demo League (note: uses placeholder Clerk org ID for dev) ─────────────
   const fgptsTemplate = await prisma.leagueFormat.findUniqueOrThrow({
@@ -519,6 +520,28 @@ async function main() {
       },
     })
   }
+}
+
+async function seedHeatMaps() {
+  await prisma.heatMap.upsert({
+    where: { name: "Default" },
+    update: {
+      isPivot: true,
+      minColor: { update: { lightness: 0.458, chroma: 0.183, hue: 264.38 } },
+      maxColor: { update: { lightness: 0.505, chroma: 0.213, hue: 27.518 } },
+    },
+    create: {
+      name: "Default",
+      min: 90,
+      max: 110,
+      avg: 100,
+      increments: 20,
+      isPivot: true,
+      minColor: { create: { lightness: 0.458, chroma: 0.183, hue: 264.38, alpha: 1 } },
+      maxColor: { create: { lightness: 0.505, chroma: 0.213, hue: 27.518, alpha: 1 } },
+    },
+  })
+  process.stdout.write("Seeded heat maps\n")
 }
 
 main()

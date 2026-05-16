@@ -17,35 +17,65 @@ const VALID_ROLLING = [1, 2, 3] as const
 type BatSide = (typeof VALID_BAT_SIDES)[number]
 type Rolling = (typeof VALID_ROLLING)[number]
 
+type ParsedParams = { season: number; batSide: BatSide; rolling: Rolling }
+
+function parseParams(body: {
+  season?: unknown
+  batSide?: unknown
+  rolling?: unknown
+}): ParsedParams | NextResponse {
+  const season = Number(body.season)
+  if (Number.isNaN(season) || season < 2000 || season > 2100) {
+    return NextResponse.json({ error: "Invalid season" }, { status: 400 })
+  }
+  if (!(VALID_BAT_SIDES as readonly unknown[]).includes(body.batSide)) {
+    return NextResponse.json({ error: "Invalid batSide" }, { status: 400 })
+  }
+  const rollingRaw = Number(body.rolling)
+  if (!(VALID_ROLLING as readonly unknown[]).includes(rollingRaw)) {
+    return NextResponse.json({ error: "Invalid rolling" }, { status: 400 })
+  }
+  return { season, batSide: body.batSide as BatSide, rolling: rollingRaw as Rolling }
+}
+
+export async function GET() {
+  const denied = await assertAdmin()
+  if (denied) return denied
+
+  const syncs = await prisma.parkFactorSync.findMany({
+    orderBy: { createdAt: "desc" },
+  })
+
+  return NextResponse.json(syncs)
+}
+
+export async function DELETE(request: NextRequest) {
+  const denied = await assertAdmin()
+  if (denied) return denied
+
+  const body = (await request.json().catch(() => ({}))) as Parameters<typeof parseParams>[0]
+  const params = parseParams(body)
+  if (params instanceof NextResponse) return params
+  const { season, batSide, rolling } = params
+
+  await prisma.$transaction([
+    prisma.parkFactor.deleteMany({ where: { season, batSide, rolling } }),
+    prisma.parkFactorSync.deleteMany({ where: { season, batSide, rolling } }),
+  ])
+
+  return NextResponse.json({ ok: true })
+}
+
 export async function POST(request: NextRequest) {
   const denied = await assertAdmin()
   if (denied) return denied
 
-  const body = (await request.json().catch(() => ({}))) as {
-    season?: unknown
-    batSide?: unknown
-    rolling?: unknown
-  }
+  const body = (await request.json().catch(() => ({}))) as Parameters<typeof parseParams>[0]
+  const params = parseParams(body)
+  if (params instanceof NextResponse) return params
+  const { season, batSide, rolling } = params
 
-  const season =
-    typeof body.season === "number" ? body.season : Number(body.season)
-  if (Number.isNaN(season) || season < 2000 || season > 2100) {
-    return NextResponse.json({ error: "Invalid season" }, { status: 400 })
-  }
-
-  const batSide = body.batSide
-  if (!(VALID_BAT_SIDES as readonly unknown[]).includes(batSide)) {
-    return NextResponse.json({ error: "Invalid batSide" }, { status: 400 })
-  }
-
-  const rollingRaw =
-    typeof body.rolling === "number" ? body.rolling : Number(body.rolling)
-  if (!(VALID_ROLLING as readonly unknown[]).includes(rollingRaw)) {
-    return NextResponse.json({ error: "Invalid rolling" }, { status: 400 })
-  }
-  const rolling = rollingRaw as Rolling
-
-  const url = `${SAVANT_BASE}?type=year&year=${season}&batSide=${batSide as BatSide}&rolling=${rolling}&parks=mlb`
+  const url = `${SAVANT_BASE}?type=year&year=${season}&batSide=${batSide}&rolling=${rolling}&parks=mlb`
 
   let html: string
   try {
@@ -129,14 +159,14 @@ export async function POST(request: NextRequest) {
             parkId_season_batSide_rolling: {
               parkId: park.id,
               season,
-              batSide: batSide as BatSide,
+              batSide,
               rolling,
             },
           },
           create: {
             parkId: park.id,
             season,
-            batSide: batSide as BatSide,
+            batSide,
             rolling,
             factors,
           },
@@ -148,7 +178,7 @@ export async function POST(request: NextRequest) {
       await tx.parkFactorSync.create({
         data: {
           season,
-          batSide: batSide as BatSide,
+          batSide,
           rolling,
           total: rows.length,
           upserted,

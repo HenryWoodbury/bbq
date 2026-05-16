@@ -8,16 +8,8 @@ import { assertAdmin } from "@/lib/auth-helpers"
 import { prisma } from "@/lib/prisma"
 import { toISODate } from "@/lib/date"
 import { deduplicatePitcherSplits, PROJECTION_MAP } from "@/lib/stat-maps"
+import { csvEscape } from "@/lib/csv"
 import { AL_TEAM_CODES, NL_TEAM_CODES } from "@/lib/team-codes"
-
-// ── CSV helpers ───────────────────────────────────────────────────────────────
-
-function csvEscape(v: string | number | null | undefined): string {
-  const s = v == null ? "" : String(v)
-  return s.includes(",") || s.includes('"') || s.includes("\n")
-    ? `"${s.replace(/"/g, '""')}"`
-    : s
-}
 
 function toCsvRow(fields: (string | number | null | undefined)[]): string {
   return fields.map(csvEscape).join(",")

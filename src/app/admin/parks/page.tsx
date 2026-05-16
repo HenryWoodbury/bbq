@@ -1,10 +1,21 @@
 import { Suspense } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { requireAdmin } from "@/lib/auth-helpers"
+import { type HeatMapData, type OklchColorData } from "@/lib/heat-map"
 import { prisma } from "@/lib/prisma"
 import type { ParkFactorRow } from "@/lib/park-factors"
+import type { OklchColor } from "@/generated/prisma/client"
 import { ParkFactorsSection } from "./park-factors-section"
 import { ParkPageTabs, type Tab } from "./park-page-tabs"
+
+function toOklchColorData(c: OklchColor): OklchColorData {
+  return {
+    lightness: Number(c.lightness),
+    chroma: Number(c.chroma),
+    hue: Number(c.hue),
+    alpha: Number(c.alpha),
+  }
+}
 
 export const metadata = { title: "Manage Parks — BBQ" }
 
@@ -35,11 +46,15 @@ export default async function AdminParksPage({
 }
 
 async function ParkFactorsTabContent() {
-  const raw = await prisma.parkFactor.findMany({
-    orderBy: [{ season: "desc" }, { park: { venueName: "asc" } }],
-    take: 500,
-    include: { park: { select: { venueName: true, teamName: true } } },
-  })
+  const [raw, heatMapsRaw] = await Promise.all([
+    prisma.parkFactor.findMany({
+      orderBy: [{ season: "desc" }, { park: { venueName: "asc" } }],
+      include: { park: { select: { venueName: true, teamName: true } } },
+    }),
+    prisma.heatMap.findMany({
+      include: { minColor: true, maxColor: true },
+    }),
+  ])
 
   const recentRows: ParkFactorRow[] = raw.map((r) => ({
     venueName: r.park.venueName,
@@ -50,7 +65,18 @@ async function ParkFactorsTabContent() {
     factors: r.factors as Record<string, number>,
   }))
 
-  return <ParkFactorsSection recentRows={recentRows} />
+  const heatMaps: HeatMapData[] = heatMapsRaw.map((hm) => ({
+    name: hm.name,
+    min: hm.min,
+    max: hm.max,
+    avg: hm.avg,
+    increments: hm.increments,
+    isPivot: hm.isPivot,
+    minColor: toOklchColorData(hm.minColor),
+    maxColor: toOklchColorData(hm.maxColor),
+  }))
+
+  return <ParkFactorsSection recentRows={recentRows} heatMaps={heatMaps} />
 }
 
 function SectionSkeleton() {

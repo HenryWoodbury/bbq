@@ -46,7 +46,7 @@ export function UserMenu() {
           className="max-w-60"
         >
           <UserIcon />
-          <span className="min-w-0 truncate">Acount</span>
+          <span className="min-w-0 truncate">Account</span>
         </MenuButton>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="overflow-hidden p-0">

@@ -35,6 +35,7 @@ export const FACTOR_COLS: Array<{ key: string; header: string; size: number }> =
 ]
 
 export const FACTOR_COL_IDS = new Set(FACTOR_COLS.map((c) => c.key))
+export const HEAT_MAP_COL_IDS = new Set(FACTOR_COLS.filter((c) => c.key !== "pa").map((c) => c.key))
 
 const CSV_COL_HEADER: Record<string, string> = {
   index_woba: "Park Factor",
@@ -59,12 +60,18 @@ export function applyFallback(
   seasonSideRows: ParkFactorRow[],
   targetRolling: number,
 ): ParkFactorRow[] {
-  const primary = seasonSideRows.filter((r) => r.rolling === targetRolling)
+  const byRolling = new Map<number, ParkFactorRow[]>()
+  for (const row of seasonSideRows) {
+    const bucket = byRolling.get(row.rolling)
+    if (bucket) bucket.push(row)
+    else byRolling.set(row.rolling, [row])
+  }
+  const primary = byRolling.get(targetRolling) ?? []
   const covered = new Set(primary.map((r) => r.venueName))
   const fallback: ParkFactorRow[] = []
   for (let fb = targetRolling - 1; fb >= 1; fb--) {
-    for (const row of seasonSideRows) {
-      if (row.rolling === fb && !covered.has(row.venueName)) {
+    for (const row of byRolling.get(fb) ?? []) {
+      if (!covered.has(row.venueName)) {
         fallback.push(row)
         covered.add(row.venueName)
       }
