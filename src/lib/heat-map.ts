@@ -8,6 +8,7 @@ export type OklchColorData = {
 }
 
 export type HeatMapData = {
+  id: number
   name: string
   min: number
   max: number
@@ -34,7 +35,7 @@ function lerpColor(a: OklchColorData, b: OklchColorData, t: number): OklchColorD
   }
 }
 
-function toOklch(c: OklchColorData): string {
+export function toOklch(c: OklchColorData): string {
   return `oklch(${(c.lightness * 100).toFixed(2)}% ${c.chroma.toFixed(4)} ${c.hue.toFixed(3)} / ${c.alpha})`
 }
 

@@ -35,6 +35,7 @@ interface DataTableProps<T> {
   defaultPageSize?: PageSizeOption
   defaultSorting?: SortingState
   pagination?: boolean
+  showSortIcons?: boolean
   getCellStyle?: (row: T, columnId: string) => CSSProperties | undefined
   getHeaderStyle?: (columnId: string) => CSSProperties | undefined
 }
@@ -45,6 +46,7 @@ export function DataTable<T>({
   defaultPageSize = 20,
   defaultSorting = [],
   pagination = true,
+  showSortIcons = false,
   getCellStyle,
   getHeaderStyle,
 }: DataTableProps<T>) {
@@ -111,6 +113,7 @@ export function DataTable<T>({
                       className={cn(
                         "table-head-cell",
                         canSort && "cursor-pointer hover:text-foreground",
+                        !showSortIcons && sorted && "font-bold text-foreground",
                       )}
                       style={getHeaderStyle?.(header.column.id)}
                       onClick={
@@ -124,7 +127,7 @@ export function DataTable<T>({
                           header.column.columnDef.header,
                           header.getContext(),
                         )}
-                        {canSort &&
+                        {canSort && showSortIcons &&
                           (sorted === "asc" ? (
                             <ArrowUpIcon className="h-3 w-3" />
                           ) : sorted === "desc" ? (

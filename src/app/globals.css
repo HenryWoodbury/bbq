@@ -7,6 +7,33 @@
 @theme {
   --color-zinc-150: oklch(94.39% 0.004 286.32);
   --color-zinc-750: oklch(0.32 0.013 285.805);
+
+  /* rain — gray-blue palette */
+  --color-rain-50: oklch(97.30% 0.007 268.548);
+  --color-rain-100: oklch(94.29% 0.0141 268.49);
+  --color-rain-200: oklch(87.73% 0.0284 263.421);
+  --color-rain-300: oklch(76.77% 0.0559 263.156);
+  --color-rain-400: oklch(64.12% 0.0875 260.849);
+  --color-rain-500: oklch(54.05% 0.1038 261.415);
+  --color-rain-600: oklch(49.59% 0.1094 262.94);
+  --color-rain-700: oklch(39.70% 0.086 264.255);
+  --color-rain-800: oklch(36.02% 0.0702 263.991);
+  --color-rain-900: oklch(33.16% 0.0545 265.154);
+  --color-rain-950: oklch(25.52% 0.0415 267.536);
+
+  /* brick — red palette */
+  --color-brick-50: oklch(97.05% 0.0129 17.38);
+  --color-brick-100: oklch(93.70% 0.0286 17.674);
+  --color-brick-200: oklch(88.71% 0.0545 16.827);
+  --color-brick-300: oklch(81.05% 0.096 18.566);
+  --color-brick-400: oklch(71.21% 0.154 20.768);
+  --color-brick-500: oklch(63.40% 0.1956 24.01);
+  --color-brick-600: oklch(57.10% 0.2052 26.231);
+  --color-brick-700: oklch(50.63% 0.1842 26.381);
+  --color-brick-800: oklch(43.99% 0.1537 25.537);
+  --color-brick-900: oklch(39.39% 0.1264 24.589);
+  --color-brick-950: oklch(25.59% 0.0837 24.484);
+
   --text-body: 0.925rem;
   --text-sm: 0.825rem;
   --text-xs: 0.725rem;
@@ -78,7 +105,9 @@
   --background: oklch(0.985 0 0);
   --foreground: oklch(0.145 0 0);
   --subtle: var(--color-zinc-150);
-  --subtle-foreground: oklch(0.48 0.015 285.8); /* slightly darker than muted-foreground (zinc-500) */
+  --subtle-foreground: oklch(
+    0.48 0.015 285.8
+  ); /* slightly darker than muted-foreground (zinc-500) */
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
@@ -136,7 +165,9 @@
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --subtle: var(--color-zinc-750);
-  --subtle-foreground: oklch(0.63 0.013 285.9); /* slightly darker than muted-foreground (zinc-400) */
+  --subtle-foreground: oklch(
+    0.63 0.013 285.9
+  ); /* slightly darker than muted-foreground (zinc-400) */
   --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
@@ -253,21 +284,35 @@
 }
 
 @keyframes ball-travel-ltr {
-  from { transform: translateX(-200px); }
-  to   { transform: translateX(calc(100vw + 200px)); }
+  from {
+    transform: translateX(-200px);
+  }
+  to {
+    transform: translateX(calc(100vw + 200px));
+  }
 }
 
 @keyframes ball-travel-rtl {
-  from { transform: translateX(calc(100vw + 200px)); }
-  to   { transform: translateX(-200px); }
+  from {
+    transform: translateX(calc(100vw + 200px));
+  }
+  to {
+    transform: translateX(-200px);
+  }
 }
 
-.ball-travel-ltr { animation: ball-travel-ltr var(--ball-travel-duration, 18s) linear infinite; }
-.ball-travel-rtl { animation: ball-travel-rtl var(--ball-travel-duration, 18s) linear infinite; }
+.ball-travel-ltr {
+  animation: ball-travel-ltr var(--ball-travel-duration, 18s) linear infinite;
+}
+.ball-travel-rtl {
+  animation: ball-travel-rtl var(--ball-travel-duration, 18s) linear infinite;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .ball-travel-ltr,
-  .ball-travel-rtl { animation: none; }
+  .ball-travel-rtl {
+    animation: none;
+  }
 }
 
 @layer components {

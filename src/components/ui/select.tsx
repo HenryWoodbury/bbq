@@ -8,9 +8,9 @@ const selectVariants = cva(
   {
     variants: {
       size: {
-        sm: "rounded-sm py-1 pl-3 pr-8",
-        md: "rounded-md py-1.5 pl-3 pr-8",
-        lg: "rounded-lg py-2 pl-3 pr-8",
+        sm: "rounded-sm py-1 pl-3 pr-8 min-h-8",
+        md: "rounded-md py-1.5 pl-3 pr-8 min-h-9",
+        lg: "rounded-lg py-2 pl-3 pr-8 min-h-10",
       },
     },
     defaultVariants: {

@@ -66,6 +66,7 @@ async function ParkFactorsTabContent() {
   }))
 
   const heatMaps: HeatMapData[] = heatMapsRaw.map((hm) => ({
+    id: hm.id,
     name: hm.name,
     min: hm.min,
     max: hm.max,

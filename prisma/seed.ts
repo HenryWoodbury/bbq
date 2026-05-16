@@ -527,8 +527,8 @@ async function seedHeatMaps() {
     where: { name: "Default" },
     update: {
       isPivot: true,
-      minColor: { update: { lightness: 0.458, chroma: 0.183, hue: 264.38 } },
-      maxColor: { update: { lightness: 0.505, chroma: 0.213, hue: 27.518 } },
+      minColor: { update: { lightness: 0.4959, chroma: 0.1094, hue: 262.940 } },
+      maxColor: { update: { lightness: 0.5063, chroma: 0.1842, hue: 26.381 } },
     },
     create: {
       name: "Default",
@@ -537,8 +537,8 @@ async function seedHeatMaps() {
       avg: 100,
       increments: 20,
       isPivot: true,
-      minColor: { create: { lightness: 0.458, chroma: 0.183, hue: 264.38, alpha: 1 } },
-      maxColor: { create: { lightness: 0.505, chroma: 0.213, hue: 27.518, alpha: 1 } },
+      minColor: { create: { lightness: 0.4959, chroma: 0.1094, hue: 262.940, alpha: 1 } },
+      maxColor: { create: { lightness: 0.5063, chroma: 0.1842, hue: 26.381, alpha: 1 } },
     },
   })
   process.stdout.write("Seeded heat maps\n")

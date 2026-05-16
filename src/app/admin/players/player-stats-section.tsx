@@ -6,9 +6,9 @@ import type { StatUploadRow } from "./page"
 
 /*
   Regarding direct scraping of data: Fangraphs only accepts CSV downloads:
-  Outside of one click data exports for FanGraphs Members, we do not support exporting 
+  "Outside of one click data exports for FanGraphs Members, we do not support exporting 
   data in any other way. We do not support web scraping, API endpoints, importing data 
-  automatically to Excel or Google Sheets, web queries, etc….
+  automatically to Excel or Google Sheets, web queries, etc…"
   https://blogs.fangraphs.com/contact/
 */
 

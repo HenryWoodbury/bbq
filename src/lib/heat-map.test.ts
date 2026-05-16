@@ -31,11 +31,12 @@ const LIGHT_TEXT = "oklch(98.5% 0.002 247.84)"
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
-const BLUE: OklchColorData = { lightness: 0.458, chroma: 0.183, hue: 264.38, alpha: 1 }
-const RED: OklchColorData = { lightness: 0.505, chroma: 0.213, hue: 27.518, alpha: 1 }
+const BLUE: OklchColorData = { lightness: 0.4959, chroma: 0.1094, hue: 262.940, alpha: 1 }
+const RED: OklchColorData = { lightness: 0.5063, chroma: 0.1842, hue: 26.381, alpha: 1 }
 
 // Default: blue→(white pivot)→red, 90–110, avg 100, 20 increments (stepSize=1, 10 steps per side)
 const DEFAULT: HeatMapData = {
+  id: 1,
   name: "Default",
   min: 90,
   max: 110,
@@ -51,6 +52,7 @@ const GREEN: OklchColorData = { lightness: 0.55, chroma: 0.18, hue: 140.0, alpha
 const ORANGE: OklchColorData = { lightness: 0.75, chroma: 0.16, hue: 85.0, alpha: 1 }
 
 const CUSTOM: HeatMapData = {
+  id: 2,
   name: "Custom",
   min: 75,
   max: 125,
@@ -160,23 +162,23 @@ describe("getHeatMapStyle — default pivot config (blue→white→red, 90–110
       expect(getHeatMapStyle(100, DEFAULT).color).toBe(DARK_TEXT)
     })
 
-    it("value 93 (L≈0.621, above threshold) gets dark text", () => {
-      // L = 0.458 + 0.3 * (1 - 0.458) = 0.621
+    it("value 93 (L≈0.647, above threshold) gets dark text", () => {
+      // L = 0.4959 + 0.3 * (1 - 0.4959) = 0.647
       expect(getHeatMapStyle(93, DEFAULT).color).toBe(DARK_TEXT)
     })
 
-    it("value 92 (L≈0.566, below threshold) gets light text", () => {
-      // L = 0.458 + 0.2 * (1 - 0.458) = 0.566
+    it("value 92 (L≈0.597, below threshold) gets light text", () => {
+      // L = 0.4959 + 0.2 * (1 - 0.4959) = 0.597
       expect(getHeatMapStyle(92, DEFAULT).color).toBe(LIGHT_TEXT)
     })
 
-    it("value 108 (L≈0.604, above threshold) gets dark text", () => {
-      // L = 1 + 0.8 * (0.505 - 1) = 0.604
+    it("value 108 (L≈0.605, above threshold) gets dark text", () => {
+      // L = 1 + 0.8 * (0.5063 - 1) = 0.605
       expect(getHeatMapStyle(108, DEFAULT).color).toBe(DARK_TEXT)
     })
 
-    it("value 109 (L≈0.555, below threshold) gets light text", () => {
-      // L = 1 + 0.9 * (0.505 - 1) = 0.555
+    it("value 109 (L≈0.556, below threshold) gets light text", () => {
+      // L = 1 + 0.9 * (0.5063 - 1) = 0.556
       expect(getHeatMapStyle(109, DEFAULT).color).toBe(LIGHT_TEXT)
     })
   })
@@ -254,11 +256,11 @@ describe("getHeatMapStyle — continuous mode (isPivot=false)", () => {
   })
 
   it("midpoint (100) hue is interpolated — neither blue nor red hue", () => {
-    // Shortest-arc from 264.38→27.518 passes through ~325.95 at t=0.5
+    // Shortest-arc from 262.940→26.381 passes through ~324.66 at t=0.5
     const { h } = components(100, CONTINUOUS)
     expect(h).not.toBeCloseTo(BLUE.hue, 0)
     expect(h).not.toBeCloseTo(RED.hue, 0)
-    expect(h).toBeCloseTo(325.95, 0)
+    expect(h).toBeCloseTo(324.66, 0)
   })
 
   it("midpoint (100) is not white — avg is not a pivot", () => {

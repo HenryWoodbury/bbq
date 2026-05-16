@@ -17,8 +17,8 @@ import {
 import { IconButton } from "@/components/ui/icon-button"
 import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
-import { PROJECTION_OPTIONS, SPLIT_FILTER_OPTIONS } from "@/lib/stat-labels"
 import { csvEscape, triggerCsvDownload } from "@/lib/csv"
+import { PROJECTION_OPTIONS, SPLIT_FILTER_OPTIONS } from "@/lib/stat-labels"
 import { AL_TEAM_CODES, NL_TEAM_CODES } from "@/lib/team-codes"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -583,7 +583,17 @@ export function PlayersTable({
     let csv: string
     let filename: string
     if (show === "profiles") {
-      const headers = ["Name", "Team", "Level", "Bats", "Throws", "Positions", "OttID", "FgID", "Active"]
+      const headers = [
+        "Name",
+        "Team",
+        "Level",
+        "Bats",
+        "Throws",
+        "Positions",
+        "OttID",
+        "FgID",
+        "Active",
+      ]
       const lines = [headers.join(",")]
       for (const row of displayedProfiles) {
         lines.push(
@@ -614,12 +624,15 @@ export function PlayersTable({
             csvEscape(row.mlbLevel),
             csvEscape(row.ottoneuId),
             csvEscape(row.fangraphsId),
-            ...colKeys.map((k) => csvEscape(row.stats[k] as string | number | null | undefined)),
+            ...colKeys.map((k) =>
+              csvEscape(row.stats[k] as string | number | null | undefined),
+            ),
           ].join(","),
         )
       }
       csv = lines.join("\n")
-      filename = `players-${show}-${statsFilter.season}-${statsFilter.projection}-filtered.csv`.toLowerCase()
+      filename =
+        `players-${show}-${statsFilter.season}-${statsFilter.projection}-filtered.csv`.toLowerCase()
     }
     triggerCsvDownload(csv, filename)
   }
@@ -912,7 +925,10 @@ export function PlayersTable({
                     size="sm"
                     value={statsFilter.projection}
                     onChange={(e) =>
-                      pushStatsFilter({ spr: e.target.value, ssp: show === "pitchers" ? "None" : defaultSplit })
+                      pushStatsFilter({
+                        spr: e.target.value,
+                        ssp: show === "pitchers" ? "None" : defaultSplit,
+                      })
                     }
                     disabled={availableProjections.length === 0}
                   >
