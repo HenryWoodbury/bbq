@@ -1,3 +1,5 @@
+"use client"
+
 import { useEffect, useState } from "react"
 import { hexToOklch, hexToRgb, oklchToHex, oklchToRgb, rgbToOklch } from "@/lib/color"
 import { type OklchColorData, toOklch } from "@/lib/heat-map"

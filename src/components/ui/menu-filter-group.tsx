@@ -55,6 +55,7 @@ export function MenuFilterGroup<T extends string>({
           key={opt.value}
           type="button"
           aria-label={opt.label}
+          aria-pressed={value === opt.value}
           onClick={() => onChange(opt.value)}
           className={cn(
             base,

@@ -27,7 +27,12 @@ export interface AlertProps
     VariantProps<typeof alertVariants> {}
 
 function Alert({ className, variant, size, role, ...props }: AlertProps) {
-  const defaultRole = variant === "error" || variant === "warning" ? "alert" : undefined
+  const defaultRole =
+    variant === "error" || variant === "warning"
+      ? "alert"
+      : variant === "success" || variant === "info"
+        ? "status"
+        : undefined
   return (
     <div
       role={role ?? defaultRole}
