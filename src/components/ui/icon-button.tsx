@@ -22,6 +22,7 @@ export interface IconButtonProps
   extends ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof iconButtonVariants> {
   ref?: Ref<HTMLButtonElement>
+  "aria-label": string
 }
 
 function IconButton({ className, size, ref, ...props }: IconButtonProps) {

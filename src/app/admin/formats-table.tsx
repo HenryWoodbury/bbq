@@ -16,7 +16,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer"
-import { Field } from "@/components/ui/field"
+import { Field, FormError } from "@/components/ui/field"
 import { IconButton } from "@/components/ui/icon-button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -192,9 +192,7 @@ function FormatForm({
     <DrawerContent width="w-150">
       <DrawerHeader onClose={onClose}>
         <DrawerTitle>
-          {mode === "create"
-            ? "New League Template"
-            : `Edit Template — ${initial.name}`}
+          {mode === "create" ? "Add Format" : `Edit Format — ${initial.name}`}
         </DrawerTitle>
       </DrawerHeader>
       <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
@@ -347,7 +345,7 @@ function FormatForm({
             <Label htmlFor="isActive">Active</Label>
           </div>
 
-          {error && <p className="text-xs text-destructive">{error}</p>}
+          {error && <FormError>{error}</FormError>}
         </DrawerBody>
         <DrawerFooter className="flex justify-end">
           <Button type="submit" disabled={saving}>
@@ -522,7 +520,7 @@ export function FormatsTable({ data }: { data: FormatRow[] }) {
               onClick={() => setCreateOpen(true)}
             >
               <PlusIcon size={14} />
-              New Format
+              Add Format
             </Button>
           </DrawerTrigger>
           {createOpen && (

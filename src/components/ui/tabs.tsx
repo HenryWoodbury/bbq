@@ -1,7 +1,7 @@
 "use client"
 
 import { Tabs as TabsPrimitive } from "radix-ui"
-import { createContext, use } from "react"
+import { createContext, type ComponentProps, use } from "react"
 import { cn } from "@/lib/utils"
 
 type TabsSize = "sm" | "md" | "lg"
@@ -11,7 +11,7 @@ const TabsSizeContext = createContext<TabsSize>("md")
 function Tabs({
   size = "md",
   ...props
-}: React.ComponentProps<typeof TabsPrimitive.Root> & { size?: TabsSize }) {
+}: ComponentProps<typeof TabsPrimitive.Root> & { size?: TabsSize }) {
   return (
     <TabsSizeContext value={size}>
       <TabsPrimitive.Root {...props} />
@@ -22,7 +22,7 @@ function Tabs({
 function TabsList({
   className,
   ...props
-}: React.ComponentProps<typeof TabsPrimitive.List>) {
+}: ComponentProps<typeof TabsPrimitive.List>) {
   const size = use(TabsSizeContext)
   return (
     <TabsPrimitive.List
@@ -41,7 +41,7 @@ function TabsList({
 function TabsTrigger({
   className,
   ...props
-}: React.ComponentProps<typeof TabsPrimitive.Trigger>) {
+}: ComponentProps<typeof TabsPrimitive.Trigger>) {
   const size = use(TabsSizeContext)
   return (
     <TabsPrimitive.Trigger
@@ -60,7 +60,7 @@ function TabsTrigger({
 function TabsContent({
   className,
   ...props
-}: React.ComponentProps<typeof TabsPrimitive.Content>) {
+}: ComponentProps<typeof TabsPrimitive.Content>) {
   return (
     <TabsPrimitive.Content
       className={cn("mt-6 outline-none", className)}

@@ -8,6 +8,7 @@ import { DataTable } from "@/components/data-table"
 import { DropZoneOverlay } from "@/components/drop-zone-overlay"
 import { FilterGroup } from "@/components/filter-group"
 import { Button } from "@/components/ui/button"
+import { FormError } from "@/components/ui/field"
 import { FileLabel } from "@/components/ui/file-label"
 import { IconButton } from "@/components/ui/icon-button"
 import { Input } from "@/components/ui/input"
@@ -410,9 +411,7 @@ export function UploadStats({
                       </>
                     )}
                     {row.error && (
-                      <span className="w-full text-destructive text-xs">
-                        {row.error}
-                      </span>
+                      <FormError className="w-full">{row.error}</FormError>
                     )}
                   </div>
                   <div className="pl-3 pr-4 py-2 flex justify-end">

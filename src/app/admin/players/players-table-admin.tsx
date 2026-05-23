@@ -12,6 +12,7 @@ import {
   type StatsFilter,
 } from "@/components/players-table"
 import { Button } from "@/components/ui/button"
+import { FormError } from "@/components/ui/field"
 import {
   Drawer,
   DrawerBody,
@@ -291,7 +292,7 @@ function EditOverrideDrawer({
                 }
           }
         />
-        {error && <p className="mt-3 text-xs text-destructive">{error}</p>}
+        {error && <FormError className="mt-3">{error}</FormError>}
       </DrawerBody>
 
       <DrawerFooter className="flex items-center justify-between gap-2">
@@ -531,7 +532,7 @@ function AddManualDrawer({ onClose }: { onClose: () => void }) {
               onChange={set}
               autoFocusDisplayName
             />
-            {error && <p className="mt-3 text-xs text-destructive">{error}</p>}
+            {error && <FormError className="mt-3">{error}</FormError>}
           </>
         )}
       </DrawerBody>

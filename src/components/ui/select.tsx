@@ -23,11 +23,12 @@ export interface SelectProps
   extends Omit<SelectHTMLAttributes<HTMLSelectElement>, "size">,
     VariantProps<typeof selectVariants> {
   ref?: Ref<HTMLSelectElement>
+  wrapperClassName?: string
 }
 
-function Select({ className, size, ref, ...props }: SelectProps) {
+function Select({ className, size, ref, wrapperClassName, ...props }: SelectProps) {
   return (
-    <span className="inline-grid">
+    <span className={cn("inline-grid", wrapperClassName)}>
       <select
         ref={ref}
         className={cn(selectVariants({ size }), className)}

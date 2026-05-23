@@ -33,14 +33,8 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html lang="en" suppressHydrationWarning>
-        <body
-          className={cn(
-            lato.variable,
-            geistMono.variable,
-            "min-h-screen w-full overflow-x-hidden bg-background antialiased",
-          )}
-        >
+      <html lang="en" suppressHydrationWarning className={cn(lato.variable, geistMono.variable)}>
+        <body className="min-h-screen w-full overflow-x-hidden bg-background antialiased">
           <ThemeProvider>
             <Header />
             <main className="w-full px-4 py-6 sm:px-6 lg:px-8">{children}</main>

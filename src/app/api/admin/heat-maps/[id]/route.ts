@@ -18,6 +18,7 @@ const patchSchema = z.object({
   increments: z.number(),
   isPivot: z.boolean(),
   minColor: oklchColorSchema,
+  avgColor: oklchColorSchema,
   maxColor: oklchColorSchema,
 })
 
@@ -38,7 +39,7 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
 
-  const { name, min, max, avg, increments, isPivot, minColor, maxColor } = parsed.data
+  const { name, min, max, avg, increments, isPivot, minColor, avgColor, maxColor } = parsed.data
 
   try {
     await prisma.heatMap.update({
@@ -51,6 +52,7 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
         increments,
         isPivot,
         minColor: { update: minColor },
+        avgColor: { update: avgColor },
         maxColor: { update: maxColor },
       },
     })

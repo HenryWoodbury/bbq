@@ -15,7 +15,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer"
-import { Field } from "@/components/ui/field"
+import { Field, FormError } from "@/components/ui/field"
 import { IconButton } from "@/components/ui/icon-button"
 import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
@@ -120,9 +120,7 @@ function ExportForm({
     <DrawerContent width="w-150">
       <DrawerHeader onClose={onClose}>
         <DrawerTitle>
-          {mode === "create"
-            ? "New Data Export"
-            : `Edit Export — ${initial.name}`}
+          {mode === "create" ? "Add Export" : `Edit Export — ${initial.name}`}
         </DrawerTitle>
       </DrawerHeader>
       <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
@@ -178,7 +176,7 @@ function ExportForm({
             />
           </Field>
 
-          {error && <p className="text-xs text-destructive">{error}</p>}
+          {error && <FormError>{error}</FormError>}
         </DrawerBody>
         <DrawerFooter className="flex justify-end">
           <Button type="submit" disabled={saving}>
@@ -347,7 +345,7 @@ export function ExportsTable({ data }: { data: ExportRow[] }) {
                 onClick={() => setCreateOpen(true)}
               >
                 <PlusIcon size={14} />
-                New Export
+                Add Export
               </Button>
             </DrawerTrigger>
             {createOpen && (

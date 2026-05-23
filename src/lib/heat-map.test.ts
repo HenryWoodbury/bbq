@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest"
-import { getHeatMapStyle, type HeatMapData, type OklchColorData } from "./heat-map"
+import {
+  getHeatMapStyle,
+  type HeatMapData,
+  type OklchColorData,
+} from "./heat-map"
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -12,14 +16,23 @@ function parseBg(style: ReturnType<typeof getHeatMapStyle>): {
   const bg = style.backgroundColor ?? ""
   const m = bg.match(/oklch\(([\d.]+)%\s+([\d.]+)\s+([\d.]+)\s*\/\s*([\d.]+)\)/)
   if (!m) throw new Error(`Cannot parse oklch from: ${bg}`)
-  return { l: parseFloat(m[1]) / 100, c: parseFloat(m[2]), h: parseFloat(m[3]), a: parseFloat(m[4]) }
+  return {
+    l: parseFloat(m[1]) / 100,
+    c: parseFloat(m[2]),
+    h: parseFloat(m[3]),
+    a: parseFloat(m[4]),
+  }
 }
 
 function components(value: number, config: HeatMapData) {
   return parseBg(getHeatMapStyle(value, config))
 }
 
-function expectColor(value: number, config: HeatMapData, expected: OklchColorData) {
+function expectColor(
+  value: number,
+  config: HeatMapData,
+  expected: OklchColorData,
+) {
   const { l, c, h } = components(value, config)
   expect(l).toBeCloseTo(expected.lightness, 3)
   expect(c).toBeCloseTo(expected.chroma, 3)
@@ -31,8 +44,20 @@ const LIGHT_TEXT = "oklch(98.5% 0.002 247.84)"
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
-const BLUE: OklchColorData = { lightness: 0.4959, chroma: 0.1094, hue: 262.940, alpha: 1 }
-const RED: OklchColorData = { lightness: 0.5063, chroma: 0.1842, hue: 26.381, alpha: 1 }
+const BLUE: OklchColorData = {
+  lightness: 0.4959,
+  chroma: 0.1094,
+  hue: 262.94,
+  alpha: 1,
+}
+const RED: OklchColorData = {
+  lightness: 0.5063,
+  chroma: 0.1842,
+  hue: 26.381,
+  alpha: 1,
+}
+
+const WHITE: OklchColorData = { lightness: 1, chroma: 0, hue: 0, alpha: 1 }
 
 // Default: blue→(white pivot)→red, 90–110, avg 100, 20 increments (stepSize=1, 10 steps per side)
 const DEFAULT: HeatMapData = {
@@ -44,12 +69,23 @@ const DEFAULT: HeatMapData = {
   increments: 20,
   isPivot: true,
   minColor: BLUE,
+  avgColor: WHITE,
   maxColor: RED,
 }
 
 // Custom: green→(white pivot)→orange, 75–125, avg 100, 10 increments (stepSize=5, 5 steps per side)
-const GREEN: OklchColorData = { lightness: 0.55, chroma: 0.18, hue: 140.0, alpha: 1 }
-const ORANGE: OklchColorData = { lightness: 0.75, chroma: 0.16, hue: 85.0, alpha: 1 }
+const GREEN: OklchColorData = {
+  lightness: 0.55,
+  chroma: 0.18,
+  hue: 140.0,
+  alpha: 1,
+}
+const ORANGE: OklchColorData = {
+  lightness: 0.75,
+  chroma: 0.16,
+  hue: 85.0,
+  alpha: 1,
+}
 
 const CUSTOM: HeatMapData = {
   id: 2,
@@ -60,6 +96,7 @@ const CUSTOM: HeatMapData = {
   increments: 10,
   isPivot: true,
   minColor: GREEN,
+  avgColor: WHITE,
   maxColor: ORANGE,
 }
 

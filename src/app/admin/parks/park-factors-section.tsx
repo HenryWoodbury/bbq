@@ -4,17 +4,23 @@ import type { ColumnDef } from "@tanstack/react-table"
 import {
   ArrowUpDownIcon,
   DownloadIcon,
+  MoonIcon,
   PencilIcon,
+  PlusIcon,
+  SunIcon,
   Trash2Icon,
+  Undo2Icon,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import type React from "react"
-import { useState } from "react"
+import { type ReactNode, useState } from "react"
 import { DataTable } from "@/components/data-table"
 import { FilterGroup } from "@/components/filter-group"
+import { useTheme } from "@/components/theme-provider"
 import { Alert } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { ColorInput, type ColorSpace } from "@/components/ui/color-input"
 import {
   Drawer,
   DrawerBody,
@@ -30,12 +36,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { IconButton } from "@/components/ui/icon-button"
 import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import { showToast } from "@/components/ui/sonner"
 import { triggerCsvDownload } from "@/lib/csv"
 import {
+  BBQ_DEFAULT,
   getHeatMapStyle,
+  getStepColor,
   type HeatMapData,
   type OklchColorData,
   toOklch,
@@ -110,6 +119,19 @@ const ROLLING_OPTIONS = [
   { value: "3", label: "3yr" },
   { value: "2", label: "2yr" },
   { value: "1", label: "1yr" },
+]
+
+const LIMIT_FIELDS: {
+  field: "max" | "min" | "avg" | "increments"
+  label: string
+  className: string
+  min?: number
+  displayOffset?: number
+}[] = [
+  { field: "max", label: "Max", className: "w-20" },
+  { field: "min", label: "Min", className: "w-20" },
+  { field: "avg", label: "Avg", className: "w-20" },
+  { field: "increments", label: "Count", className: "w-16", min: 2, displayOffset: 1 },
 ]
 
 const COLUMNS: ColumnDef<DisplayRow, unknown>[] = [
@@ -191,7 +213,7 @@ export function ParkFactorsSection({
   heatMaps: HeatMapData[]
 }) {
   const router = useRouter()
-
+  const { isDark } = useTheme()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [syncState, setSyncState] = useState<SyncState>({ status: "idle" })
   const [syncSeason, setSyncSeason] = useState(CURRENT_YEAR)
@@ -212,11 +234,24 @@ export function ParkFactorsSection({
   )
   const [filterBatSide, setFilterBatSide] = useState("")
   const [filterRolling, setFilterRolling] = useState("3")
-  const [heatMapOption, setHeatMapOption] = useState("none")
+  const [heatMapOption, setHeatMapOption] = useState(
+    heatMaps.length === 1 ? heatMaps[0].name : "none",
+  )
   const [editForm, setEditForm] = useState<HeatMapData | null>(null)
   const [saveState, setSaveState] = useState<SaveState>({ status: "idle" })
+  const [previewEnabled, setPreviewEnabled] = useState(true)
+  const [colorSpace, setColorSpace] = useState<ColorSpace>("oklch")
 
   const activeHeatMap = heatMaps.find((hm) => hm.name === heatMapOption) ?? null
+  const displayHeatMap = previewEnabled && editForm ? editForm : activeHeatMap
+
+  const syncButton = (
+    <DrawerTrigger asChild>
+      <Button variant="secondary" size="sm" onClick={openDrawer}>
+        Sync with Savant
+      </Button>
+    </DrawerTrigger>
+  )
 
   function getCellStyle(
     row: DisplayRow,
@@ -224,10 +259,13 @@ export function ParkFactorsSection({
   ): React.CSSProperties | undefined {
     if (columnId === "rank") return CENTERED
     if (!FACTOR_COL_IDS.has(columnId)) return undefined
-    if (!activeHeatMap || !HEAT_MAP_COL_IDS.has(columnId)) return CENTERED
+    if (!displayHeatMap || !HEAT_MAP_COL_IDS.has(columnId)) return CENTERED
     const value = row.factors[columnId]
     if (value === undefined) return CENTERED
-    return { ...CENTERED, ...getHeatMapStyle(value, activeHeatMap) }
+    return {
+      ...CENTERED,
+      ...getHeatMapStyle(value, displayHeatMap, { isDark }),
+    }
   }
 
   const targetRolling = Number(filterRolling)
@@ -351,16 +389,6 @@ export function ParkFactorsSection({
     }
   }
 
-  function setColorField(
-    side: "minColor" | "maxColor",
-    field: keyof OklchColorData,
-    value: number,
-  ) {
-    setEditForm((prev) =>
-      prev ? { ...prev, [side]: { ...prev[side], [field]: value } } : prev,
-    )
-  }
-
   async function handleSave() {
     if (!editForm) return
     setSaveState({ status: "loading" })
@@ -437,23 +465,42 @@ export function ParkFactorsSection({
                 <div className="border-l border-border h-6" />
 
                 <div className="flex items-center gap-2">
-                  <span className="text-body font-normal text-muted-foreground">
-                    Heat Map
-                  </span>
-                  <Select
-                    size="sm"
-                    value={heatMapOption}
-                    onChange={(e) => setHeatMapOption(e.target.value)}
-                  >
-                    <option value="none">None</option>
-                    {heatMaps.map((hm) => (
-                      <option key={hm.name} value={hm.name}>
-                        {hm.name}
-                      </option>
-                    ))}
-                  </Select>
+                  {heatMaps.length === 1 ? (
+                    <>
+                      <Checkbox
+                        size="sm"
+                        checked={heatMapOption !== "none"}
+                        onChange={(e) =>
+                          setHeatMapOption(
+                            e.target.checked ? heatMaps[0].name : "none",
+                          )
+                        }
+                      />
+                      <span className="text-body font-normal text-muted-foreground">
+                        Heat Map
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-body font-normal text-muted-foreground">
+                        Heat Map
+                      </span>
+                      <Select
+                        size="sm"
+                        value={heatMapOption}
+                        onChange={(e) => setHeatMapOption(e.target.value)}
+                      >
+                        <option value="none">None</option>
+                        {heatMaps.map((hm) => (
+                          <option key={hm.name} value={hm.name}>
+                            {hm.name}
+                          </option>
+                        ))}
+                      </Select>
+                    </>
+                  )}
                   <Button
-                    variant="secondary"
+                    variant="ghost"
                     size="sm"
                     mode="icon"
                     onClick={() => {
@@ -462,9 +509,11 @@ export function ParkFactorsSection({
                         setEditForm({
                           ...target,
                           minColor: { ...target.minColor },
+                          avgColor: { ...target.avgColor },
                           maxColor: { ...target.maxColor },
                         })
                         setSaveState({ status: "idle" })
+                        setColorSpace("oklch")
                       }
                     }}
                   >
@@ -475,22 +524,12 @@ export function ParkFactorsSection({
 
                 <div className="border-l border-border h-6" />
 
-                <DrawerTrigger asChild>
-                  <Button variant="secondary" size="sm" onClick={openDrawer}>
-                    Sync with Savant
-                  </Button>
-                </DrawerTrigger>
+                {syncButton}
               </div>
             )}
 
             <div className="flex items-center gap-3 ml-auto">
-              {recentRows.length === 0 && (
-                <DrawerTrigger asChild>
-                  <Button variant="secondary" size="sm" onClick={openDrawer}>
-                    Sync with Savant
-                  </Button>
-                </DrawerTrigger>
-              )}
+              {recentRows.length === 0 && syncButton}
               {recentRows.length > 0 && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -711,118 +750,276 @@ export function ParkFactorsSection({
           <DrawerHeader onClose={() => setEditForm(null)}>
             <DrawerTitle>Edit Heat Map</DrawerTitle>
           </DrawerHeader>
-          <DrawerBody className="flex flex-col gap-6">
+          <DrawerBody className="flex flex-col gap-5">
             {editForm && (
               <>
-                <div className="flex flex-col gap-3">
-                  <label className="flex flex-col gap-1 text-sm">
-                    <span className="text-muted-foreground">Name</span>
-                    <Input
-                      size="sm"
-                      maxLength={24}
-                      className="w-60"
-                      value={editForm.name}
-                      onChange={(e) =>
-                        setEditForm((prev) =>
-                          prev ? { ...prev, name: e.target.value } : prev,
-                        )
-                      }
-                    />
-                  </label>
-
-                  <div className="flex flex-wrap gap-3">
-                    {(
-                      [
-                        ["min", "Min"],
-                        ["max", "Max"],
-                        ["avg", "Avg"],
-                        ["increments", "Increments"],
-                      ] as [keyof HeatMapData, string][]
-                    ).map(([field, label]) => (
-                      <label
-                        key={field}
-                        className="flex flex-col gap-1 text-sm"
-                      >
-                        <span className="text-muted-foreground">{label}</span>
-                        <Input
-                          size="sm"
-                          type="number"
-                          className="w-[90px]"
-                          value={editForm[field] as number}
-                          onChange={(e) =>
-                            setEditForm((prev) =>
-                              prev
-                                ? { ...prev, [field]: Number(e.target.value) }
-                                : prev,
-                            )
-                          }
-                        />
-                      </label>
-                    ))}
-                  </div>
-
-                  <label className="flex items-center gap-2 text-sm cursor-pointer">
-                    <Checkbox
-                      checked={editForm.isPivot}
-                      onChange={(e) =>
-                        setEditForm((prev) =>
-                          prev ? { ...prev, isPivot: e.target.checked } : prev,
-                        )
-                      }
-                    />
-                    <span>Pivot at avg</span>
-                  </label>
+                {/* Name + Copy stub */}
+                <div className="flex items-center justify-between">
+                  {editForm.name === "Default" ? (
+                    <h2 className="text-xl font-semibold">{editForm.name}</h2>
+                  ) : (
+                    <label className="flex flex-col gap-1 text-sm">
+                      <span className="text-muted-foreground">Name</span>
+                      <Input
+                        size="sm"
+                        maxLength={24}
+                        className="w-48"
+                        value={editForm.name}
+                        onChange={(e) =>
+                          setEditForm((prev) =>
+                            prev ? { ...prev, name: e.target.value } : prev,
+                          )
+                        }
+                      />
+                    </label>
+                  )}
+                  <Button variant="secondary" size="sm" disabled>
+                    <PlusIcon className="h-3.5 w-3.5" />
+                    Copy
+                  </Button>
                 </div>
 
-                {(
-                  [
-                    ["minColor", "Min Color"],
-                    ["maxColor", "Max Color"],
-                  ] as ["minColor" | "maxColor", string][]
-                ).map(([side, label]) => (
-                  <div key={side} className="flex flex-col gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">{label}</span>
-                      <div
-                        className="h-5 w-5 rounded border border-border"
-                        style={{
-                          backgroundColor: toOklch(editForm[side]),
-                        }}
+                <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">
+                      Color Space
+                    </span>
+                    <Select
+                      size="sm"
+                      value={colorSpace}
+                      onChange={(e) =>
+                        setColorSpace(e.target.value as ColorSpace)
+                      }
+                    >
+                      <option value="oklch">OKLCH</option>
+                      <option value="rgb">RGB</option>
+                      <option value="hex">Hex</option>
+                    </Select>
+                  </div>
+                  <div className="flex items-center gap-2 opacity-40 pointer-events-none select-none">
+                    <FilterGroup
+                      label="Mode"
+                      options={[
+                        {
+                          value: "light",
+                          label: <SunIcon className="h-3.5 w-3.5" />,
+                        },
+                        {
+                          value: "dark",
+                          label: <MoonIcon className="h-3.5 w-3.5" />,
+                        },
+                      ]}
+                      value="light"
+                      onChange={() => {}}
+                      size="sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <h3>Limits</h3>
+                  <div className="flex flex-wrap gap-3">
+                    {LIMIT_FIELDS.map(({ field, label, className, min, displayOffset = 0 }) => {
+                      const defaultVal = BBQ_DEFAULT[field as keyof typeof BBQ_DEFAULT] as number
+                      const dirty = editForm.name === "Default" && editForm[field] !== defaultVal
+                      return (
+                        <FieldWithUndo
+                          key={field}
+                          dirty={dirty}
+                          onUndo={() =>
+                            setEditForm((prev) =>
+                              prev ? { ...prev, [field]: defaultVal } : prev,
+                            )
+                          }
+                        >
+                          <label className="flex flex-col gap-1 text-sm">
+                            <span className="text-muted-foreground">{label}</span>
+                            <Input
+                              size="sm"
+                              type="number"
+                              min={min}
+                              className={className}
+                              value={(editForm[field] as number) + displayOffset}
+                              onChange={(e) => {
+                                let stored = Number(e.target.value) - displayOffset
+                                if (field === "increments") stored = Math.max(1, stored)
+                                setEditForm((prev) =>
+                                  prev ? { ...prev, [field]: stored } : prev,
+                                )
+                              }}
+                            />
+                          </label>
+                        </FieldWithUndo>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <h3>Colors</h3>
+                  <div className="flex gap-3">
+                    {/* Gradient strip column — top spacer aligns boxes with input fields */}
+                    <div className="flex flex-col shrink-0 w-14">
+                      <div style={{ height: LABEL_HEIGHT }} />
+                      <GradientColorBox
+                        value={editForm.max}
+                        config={editForm}
+                        label="Max"
+                      />
+                      <GradientSection config={editForm} side="above" />
+                      <GradientColorBox
+                        value={editForm.avg}
+                        config={editForm}
+                        label="Avg"
+                      />
+                      <GradientSection config={editForm} side="below" />
+                      <GradientColorBox
+                        value={editForm.min}
+                        config={editForm}
+                        label="Min"
                       />
                     </div>
-                    <div className="flex flex-wrap gap-3">
-                      {(
-                        [
-                          ["lightness", "Lightness", 0, 1, 0.001],
-                          ["chroma", "Chroma", 0, 0.4, 0.001],
-                          ["hue", "Hue", 0, 360, 0.001],
-                          ["alpha", "Alpha", 0, 1, 0.001],
-                        ] as [keyof OklchColorData, string, number, number, number][]
-                      ).map(([field, fieldLabel, min, max, step]) => (
-                        <label
-                          key={field}
-                          className="flex flex-col gap-1 text-sm"
+
+                    {/* Color inputs column — SPACER_HEIGHT gaps keep inputs in sync with boxes */}
+                    <div className="flex flex-col">
+                      <FieldWithUndo
+                        dirty={
+                          editForm.name === "Default" &&
+                          isColorDirty(editForm.maxColor, BBQ_DEFAULT.maxColor)
+                        }
+                        onUndo={() =>
+                          setEditForm((prev) =>
+                            prev
+                              ? {
+                                  ...prev,
+                                  maxColor: { ...BBQ_DEFAULT.maxColor },
+                                }
+                              : prev,
+                          )
+                        }
+                      >
+                        <ColorInput
+                          colorSpace={colorSpace}
+                          value={editForm.maxColor}
+                          onChange={(v) =>
+                            setEditForm((prev) =>
+                              prev ? { ...prev, maxColor: v } : prev,
+                            )
+                          }
+                          size="sm"
+                        />
+                      </FieldWithUndo>
+
+                      <div style={{ height: SPACER_HEIGHT }} />
+
+                      <div className="flex items-end">
+                        {/* Avg color picker — collapses when Pivot is off */}
+                        <div
+                          className={`pr-3 transition-[max-width,opacity] duration-400 ${editForm.isPivot ? "overflow-visible" : "overflow-hidden"}`}
+                          style={{
+                            maxWidth: editForm.isPivot ? 500 : 0,
+                            opacity: editForm.isPivot ? 1 : 0,
+                          }}
                         >
-                          <span className="text-muted-foreground">
-                            {fieldLabel}
-                          </span>
-                          <Input
+                          <ColorInput
+                            colorSpace={colorSpace}
+                            value={editForm.avgColor}
+                            onChange={(v) =>
+                              setEditForm((prev) =>
+                                prev ? { ...prev, avgColor: v } : prev,
+                              )
+                            }
                             size="sm"
-                            type="number"
-                            min={min}
-                            max={max}
-                            step={step}
-                            className="w-[100px]"
-                            value={editForm[side][field] as number}
+                          />
+                        </div>
+
+                        <label
+                          className={`flex items-center gap-1.5 text-sm mb-1.5 ${editForm.increments === 1 ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+                        >
+                          <Checkbox
+                            size="sm"
+                            checked={editForm.isPivot}
+                            disabled={editForm.increments === 1}
                             onChange={(e) =>
-                              setColorField(side, field, Number(e.target.value))
+                              setEditForm((prev) =>
+                                prev
+                                  ? { ...prev, isPivot: e.target.checked }
+                                  : prev,
+                              )
                             }
                           />
+                          Pivot
                         </label>
-                      ))}
+
+                        {editForm.name === "Default" &&
+                          (isColorDirty(
+                            editForm.avgColor,
+                            BBQ_DEFAULT.avgColor,
+                          ) ||
+                            editForm.isPivot !== BBQ_DEFAULT.isPivot) && (
+                            <IconButton
+                              size="sm"
+                              onClick={() =>
+                                setEditForm((prev) =>
+                                  prev
+                                    ? {
+                                        ...prev,
+                                        avgColor: { ...BBQ_DEFAULT.avgColor },
+                                        isPivot: BBQ_DEFAULT.isPivot,
+                                      }
+                                    : prev,
+                                )
+                              }
+                              aria-label="Reset to default"
+                              className="mb-1 ml-1 shrink-0"
+                            >
+                              <Undo2Icon className="h-3.5 w-3.5" />
+                            </IconButton>
+                          )}
+                      </div>
+
+                      <div style={{ height: SPACER_HEIGHT }} />
+
+                      <FieldWithUndo
+                        dirty={
+                          editForm.name === "Default" &&
+                          isColorDirty(editForm.minColor, BBQ_DEFAULT.minColor)
+                        }
+                        onUndo={() =>
+                          setEditForm((prev) =>
+                            prev
+                              ? {
+                                  ...prev,
+                                  minColor: { ...BBQ_DEFAULT.minColor },
+                                }
+                              : prev,
+                          )
+                        }
+                      >
+                        <ColorInput
+                          colorSpace={colorSpace}
+                          value={editForm.minColor}
+                          onChange={(v) =>
+                            setEditForm((prev) =>
+                              prev ? { ...prev, minColor: v } : prev,
+                            )
+                          }
+                          size="sm"
+                        />
+                      </FieldWithUndo>
                     </div>
                   </div>
-                ))}
+                </div>
+
+                {/* Preview */}
+                <label className="flex cursor-pointer items-center gap-2 text-sm">
+                  <Checkbox
+                    size="sm"
+                    checked={previewEnabled}
+                    onChange={(e) => setPreviewEnabled(e.target.checked)}
+                  />
+                  Preview
+                </label>
 
                 {saveState.status === "error" && (
                   <Alert variant="error">{saveState.message}</Alert>
@@ -830,24 +1027,193 @@ export function ParkFactorsSection({
               </>
             )}
           </DrawerBody>
-          <DrawerFooter className="flex justify-end gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setEditForm(null)}
-            >
-              Cancel
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleSave}
-              disabled={saveState.status === "loading"}
-            >
-              {saveState.status === "loading" ? "Saving…" : "Save"}
-            </Button>
+          <DrawerFooter>
+            <div className="flex w-full items-center justify-between">
+              {editForm?.name === "Default" && isAnyDirty(editForm) ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() =>
+                    setEditForm((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            min: BBQ_DEFAULT.min,
+                            max: BBQ_DEFAULT.max,
+                            avg: BBQ_DEFAULT.avg,
+                            increments: BBQ_DEFAULT.increments,
+                            isPivot: BBQ_DEFAULT.isPivot,
+                            minColor: { ...BBQ_DEFAULT.minColor },
+                            avgColor: { ...BBQ_DEFAULT.avgColor },
+                            maxColor: { ...BBQ_DEFAULT.maxColor },
+                          }
+                        : prev,
+                    )
+                  }
+                >
+                  <Undo2Icon className="h-3.5 w-3.5" />
+                  Clear Overrides
+                </Button>
+              ) : (
+                <div />
+              )}
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setEditForm(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleSave}
+                  disabled={saveState.status === "loading"}
+                >
+                  {saveState.status === "loading" ? "Saving…" : "Save"}
+                </Button>
+              </div>
+            </div>
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
     </>
+  )
+}
+
+// ── Helper components ─────────────────────────────────────────────────────────
+
+function FieldWithUndo({
+  dirty,
+  onUndo,
+  children,
+}: {
+  dirty: boolean
+  onUndo: () => void
+  children: ReactNode
+}) {
+  return (
+    <div className="flex items-end gap-1">
+      {children}
+      {dirty && (
+        <IconButton
+          size="sm"
+          onClick={onUndo}
+          aria-label="Reset to default"
+          className="mb-1 shrink-0"
+        >
+          <Undo2Icon className="h-3.5 w-3.5" />
+        </IconButton>
+      )}
+    </div>
+  )
+}
+
+// ── Gradient components ───────────────────────────────────────────────────────
+
+// text-xs line-height (16px) + gap-1 (4px) = 20px — matches InputFieldGroup label row
+const LABEL_HEIGHT = 20
+const STRIP_TOTAL = 54
+// Spacer between color inputs so each input's h-8 field aligns with the corresponding color box
+const SPACER_HEIGHT = STRIP_TOTAL - LABEL_HEIGHT
+const MIN_SLICE = 4
+const MAX_SLICES = Math.floor(STRIP_TOTAL / MIN_SLICE)
+
+function computeSlices(count: number): { indices: number[]; height: number } {
+  if (count <= 0) return { indices: [], height: 0 }
+  const rawHeight = STRIP_TOTAL / count
+  if (rawHeight >= MIN_SLICE) {
+    return {
+      indices: Array.from({ length: count }, (_, i) => i),
+      height: rawHeight,
+    }
+  }
+  const step = (count - 1) / (MAX_SLICES - 1)
+  const indices = Array.from({ length: MAX_SLICES }, (_, i) =>
+    Math.round(i * step),
+  )
+  return { indices, height: STRIP_TOTAL / MAX_SLICES }
+}
+
+function GradientColorBox({
+  value,
+  config,
+  label,
+}: {
+  value: number
+  config: HeatMapData
+  label: string
+}) {
+  const { backgroundColor, color } = getHeatMapStyle(value, config)
+  return (
+    <div
+      className="flex items-center justify-center shrink-0 w-14 h-8 text-xs font-medium select-none"
+      style={{ backgroundColor, color }}
+    >
+      {label}
+    </div>
+  )
+}
+
+function GradientSection({
+  config,
+  side,
+}: {
+  config: HeatMapData
+  side: "above" | "below"
+}) {
+  const { min, max, avg, increments } = config
+  const stepSize = (max - min) / increments
+  const stepsToAvg = Math.round((avg - min) / stepSize)
+  const stepsFromAvg = increments - stepsToAvg
+  const maxStep = increments
+
+  const count =
+    side === "above"
+      ? Math.max(0, stepsFromAvg - 1)
+      : Math.max(0, stepsToAvg - 1)
+  const { indices, height } = computeSlices(count)
+
+  return (
+    <div className="w-14">
+      {indices.map((relIdx) => {
+        const step =
+          side === "above" ? maxStep - 1 - relIdx : stepsToAvg - 1 - relIdx
+        return (
+          <div
+            key={step}
+            style={{
+              height,
+              backgroundColor: toOklch(getStepColor(step, config)),
+            }}
+          />
+        )
+      })}
+    </div>
+  )
+}
+
+// ── Dirty helpers ─────────────────────────────────────────────────────────────
+
+function isColorDirty(a: OklchColorData, b: OklchColorData): boolean {
+  return (
+    a.lightness !== b.lightness ||
+    a.chroma !== b.chroma ||
+    a.hue !== b.hue ||
+    a.alpha !== b.alpha
+  )
+}
+
+function isAnyDirty(form: HeatMapData): boolean {
+  if (form.name !== "Default") return false
+  return (
+    form.min !== BBQ_DEFAULT.min ||
+    form.max !== BBQ_DEFAULT.max ||
+    form.avg !== BBQ_DEFAULT.avg ||
+    form.increments !== BBQ_DEFAULT.increments ||
+    form.isPivot !== BBQ_DEFAULT.isPivot ||
+    isColorDirty(form.minColor, BBQ_DEFAULT.minColor) ||
+    isColorDirty(form.avgColor, BBQ_DEFAULT.avgColor) ||
+    isColorDirty(form.maxColor, BBQ_DEFAULT.maxColor)
   )
 }

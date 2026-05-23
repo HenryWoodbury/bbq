@@ -45,7 +45,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
 
 // ── ToastContent ──────────────────────────────────────────────────────────────
 
-type ToastVariant = "default" | "info" | "warning" | "error"
+type ToastVariant = "default" | "success" | "info" | "warning" | "error"
 
 type ToastAction = {
   label: string
@@ -56,12 +56,14 @@ type ToastAction = {
 
 const VARIANT_STYLES: Record<ToastVariant, string> = {
   default: "bg-popover border-border text-foreground",
+  success: "bg-success border-success-border text-success-foreground",
   info:    "bg-info border-info-border text-info-foreground",
   warning: "bg-warning border-warning-border text-warning-foreground",
   error:   "bg-error border-error-border text-error-foreground",
 }
 
 const VARIANT_ICONS: Partial<Record<ToastVariant, ReactNode>> = {
+  success: <CircleCheckIcon className="size-4 shrink-0" />,
   info:    <InfoIcon className="size-4 shrink-0" />,
   warning: <TriangleAlertIcon className="size-4 shrink-0" />,
   error:   <OctagonXIcon className="size-4 shrink-0" />,
@@ -146,6 +148,9 @@ function showToast({
     { onDismiss, onAutoClose },
   )
 }
+
+showToast.success = (title: string, description?: string) =>
+  showToast({ title, description, variant: "success" })
 
 showToast.info = (title: string, description?: string) =>
   showToast({ title, description, variant: "info" })

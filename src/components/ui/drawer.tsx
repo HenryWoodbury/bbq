@@ -60,8 +60,8 @@ function DrawerContent({
           "fixed bottom-0 top-14 z-40 flex flex-col bg-card shadow-lg",
           "data-[state=open]:animate-in data-[state=closed]:animate-out duration-300",
           side === "right"
-            ? "right-0 border-l border-border-zinc-200 data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right"
-            : "left-0 border-r border-border-zinc-200 data-[state=open]:slide-in-from-left data-[state=closed]:slide-out-to-left",
+            ? "right-0 border-l border-border data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right"
+            : "left-0 border-r border-border data-[state=open]:slide-in-from-left data-[state=closed]:slide-out-to-left",
           width,
           className,
         )}
@@ -87,7 +87,7 @@ function DrawerHeader({
   return (
     <div
       className={cn(
-        "flex shrink-0 items-center justify-between border-b border-border-zinc-200 py-3 sm:px-6 lg:px-8",
+        "flex shrink-0 items-center justify-between border-b border-border py-3 sm:px-6 lg:px-8",
         className,
       )}
       {...props}

@@ -17,7 +17,7 @@ interface SelectMenuProps {
   value: string
   onChange: (value: string) => void
   options: SelectMenuOption[]
-  size?: "sm" | "md"
+  size?: "sm" | "md" | "lg"
   variant?: "ghost" | "secondary"
   placeholder?: string
   className?: string
@@ -35,7 +35,7 @@ function SelectMenu({
   const current = options.find((o) => o.value === value)
 
   return (
-    <DropdownMenu>
+    <DropdownMenu size={size}>
       <DropdownMenuTrigger asChild>
         <MenuButton variant={variant} size={size} className={className}>
           {current?.label ?? placeholder}

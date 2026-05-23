@@ -1,10 +1,10 @@
 import { Suspense } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
-import { requireAdmin } from "@/lib/auth-helpers"
-import { type HeatMapData, type OklchColorData } from "@/lib/heat-map"
-import { prisma } from "@/lib/prisma"
-import type { ParkFactorRow } from "@/lib/park-factors"
 import type { OklchColor } from "@/generated/prisma/client"
+import { requireAdmin } from "@/lib/auth-helpers"
+import type { HeatMapData, OklchColorData } from "@/lib/heat-map"
+import type { ParkFactorRow } from "@/lib/park-factors"
+import { prisma } from "@/lib/prisma"
 import { ParkFactorsSection } from "./park-factors-section"
 import { ParkPageTabs, type Tab } from "./park-page-tabs"
 
@@ -28,7 +28,9 @@ export default async function AdminParksPage({
   const params = await searchParams
 
   const TABS: Tab[] = ["park-factors", "profiles"]
-  const tab: Tab = TABS.includes(params.tab as Tab) ? (params.tab as Tab) : "park-factors"
+  const tab: Tab = TABS.includes(params.tab as Tab)
+    ? (params.tab as Tab)
+    : "park-factors"
 
   return (
     <div className="page-layout">
@@ -52,7 +54,7 @@ async function ParkFactorsTabContent() {
       include: { park: { select: { venueName: true, teamName: true } } },
     }),
     prisma.heatMap.findMany({
-      include: { minColor: true, maxColor: true },
+      include: { minColor: true, avgColor: true, maxColor: true },
     }),
   ])
 
@@ -74,6 +76,7 @@ async function ParkFactorsTabContent() {
     increments: hm.increments,
     isPivot: hm.isPivot,
     minColor: toOklchColorData(hm.minColor),
+    avgColor: toOklchColorData(hm.avgColor),
     maxColor: toOklchColorData(hm.maxColor),
   }))
 

@@ -1,9 +1,10 @@
+import type { ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 interface FilterGroupProps {
   label?: string
-  options: { value: string; label: string }[]
+  options: { value: string; label: ReactNode }[]
   value: string
   onChange: (v: string) => void
   size?: "sm" | "md" | "lg"

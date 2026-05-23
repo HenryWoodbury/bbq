@@ -51,6 +51,7 @@ export function UserMenu() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="overflow-hidden p-0">
         <MenuFilterGroup
+          label="Theme"
           options={THEME_OPTIONS}
           value={theme}
           onChange={setTheme}

@@ -9,6 +9,7 @@ interface FileLabelProps {
   size?: "sm" | "md" | "lg"
   accept?: string
   multiple?: boolean
+  disabled?: boolean
   onChange?: ChangeEventHandler<HTMLInputElement>
   children?: ReactNode
   className?: string
@@ -19,6 +20,7 @@ function FileLabel({
   size = "md",
   accept,
   multiple,
+  disabled,
   onChange,
   children,
   className,
@@ -30,6 +32,7 @@ function FileLabel({
   return (
     <button
       type="button"
+      disabled={disabled}
       className={cn(
         buttonVariants({ variant: "secondary", size }),
         "w-fit",
@@ -42,6 +45,7 @@ function FileLabel({
         type="file"
         accept={accept}
         multiple={multiple}
+        disabled={disabled}
         className="sr-only"
         onChange={onChange}
       />

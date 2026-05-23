@@ -10,6 +10,7 @@ const STORAGE_KEY = "bbq-theme"
 const ThemeContext = createContext<{
   theme: Theme
   setTheme: (t: Theme) => void
+  isDark: boolean
 } | null>(null)
 
 function applyTheme(theme: Theme) {
@@ -28,33 +29,44 @@ function applyTheme(theme: Theme) {
   }
 }
 
+function resolveIsDark(theme: Theme): boolean {
+  if (theme === "dark") return true
+  if (theme === "light") return false
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>("system")
+  const [isDark, setIsDark] = useState(false)
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY) as Theme | null
     const initial = stored ?? "system"
     setThemeState(initial)
+    setIsDark(resolveIsDark(initial))
     applyTheme(initial)
   }, [])
 
-  // Watch system preference changes when in system mode
   useEffect(() => {
     if (theme !== "system") return
     const mq = window.matchMedia("(prefers-color-scheme: dark)")
-    const handler = () => applyTheme("system")
+    const handler = () => {
+      applyTheme("system")
+      setIsDark(mq.matches)
+    }
     mq.addEventListener("change", handler)
     return () => mq.removeEventListener("change", handler)
   }, [theme])
 
   function setTheme(t: Theme) {
     setThemeState(t)
+    setIsDark(resolveIsDark(t))
     localStorage.setItem(STORAGE_KEY, t)
     applyTheme(t)
   }
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme }}>
+    <ThemeContext.Provider value={{ theme, setTheme, isDark }}>
       {children}
     </ThemeContext.Provider>
   )

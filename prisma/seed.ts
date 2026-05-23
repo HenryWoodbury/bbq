@@ -528,6 +528,7 @@ async function seedHeatMaps() {
     update: {
       isPivot: true,
       minColor: { update: { lightness: 0.4959, chroma: 0.1094, hue: 262.940 } },
+      avgColor: { update: { lightness: 1, chroma: 0, hue: 0, alpha: 1 } },
       maxColor: { update: { lightness: 0.5063, chroma: 0.1842, hue: 26.381 } },
     },
     create: {
@@ -538,6 +539,7 @@ async function seedHeatMaps() {
       increments: 20,
       isPivot: true,
       minColor: { create: { lightness: 0.4959, chroma: 0.1094, hue: 262.940, alpha: 1 } },
+      avgColor: { create: { lightness: 1, chroma: 0, hue: 0, alpha: 1 } },
       maxColor: { create: { lightness: 0.5063, chroma: 0.1842, hue: 26.381, alpha: 1 } },
     },
   })
