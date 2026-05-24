@@ -516,7 +516,6 @@ export function FormatsTable({ data }: { data: FormatRow[] }) {
             <Button
               size="sm"
               variant="secondary"
-              className="flex items-center gap-1.5"
               onClick={() => setCreateOpen(true)}
             >
               <PlusIcon size={14} />

@@ -41,6 +41,8 @@ import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import { showToast } from "@/components/ui/sonner"
 import { triggerCsvDownload } from "@/lib/csv"
+import { HexColorPicker } from "react-colorful"
+import { hexToOklch, oklchToHex } from "@/lib/color"
 import {
   BBQ_DEFAULT,
   getHeatMapStyle,
@@ -241,6 +243,7 @@ export function ParkFactorsSection({
   const [saveState, setSaveState] = useState<SaveState>({ status: "idle" })
   const [previewEnabled, setPreviewEnabled] = useState(true)
   const [colorSpace, setColorSpace] = useState<ColorSpace>("oklch")
+  const [activePicker, setActivePicker] = useState<"min" | "max" | "avg" | null>(null)
 
   const activeHeatMap = heatMaps.find((hm) => hm.name === heatMapOption) ?? null
   const displayHeatMap = previewEnabled && editForm ? editForm : activeHeatMap
@@ -428,10 +431,8 @@ export function ParkFactorsSection({
             {recentRows.length > 0 && (
               <div className="flex flex-wrap items-center gap-4 flex-1">
                 {availableSeasons.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-body font-normal text-muted-foreground">
-                      Season
-                    </span>
+                  <label className="flex items-center gap-2 text-body font-normal text-muted-foreground">
+                    Season
                     <Select
                       size="sm"
                       value={filterSeason}
@@ -443,7 +444,7 @@ export function ParkFactorsSection({
                         </option>
                       ))}
                     </Select>
-                  </div>
+                  </label>
                 )}
 
                 <FilterGroup
@@ -466,7 +467,7 @@ export function ParkFactorsSection({
 
                 <div className="flex items-center gap-2">
                   {heatMaps.length === 1 ? (
-                    <>
+                    <label className="flex items-center gap-2 cursor-pointer text-body font-normal text-muted-foreground">
                       <Checkbox
                         size="sm"
                         checked={heatMapOption !== "none"}
@@ -476,15 +477,11 @@ export function ParkFactorsSection({
                           )
                         }
                       />
-                      <span className="text-body font-normal text-muted-foreground">
-                        Heat Map
-                      </span>
-                    </>
+                      Heat Map
+                    </label>
                   ) : (
-                    <>
-                      <span className="text-body font-normal text-muted-foreground">
-                        Heat Map
-                      </span>
+                    <label className="flex items-center gap-2 text-body font-normal text-muted-foreground">
+                      Heat Map
                       <Select
                         size="sm"
                         value={heatMapOption}
@@ -497,7 +494,7 @@ export function ParkFactorsSection({
                           </option>
                         ))}
                       </Select>
-                    </>
+                    </label>
                   )}
                   <Button
                     variant="ghost"
@@ -780,10 +777,8 @@ export function ParkFactorsSection({
                 </div>
 
                 <div className="flex items-center gap-6">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">
-                      Color Space
-                    </span>
+                  <label className="flex items-center gap-2 text-body font-normal text-muted-foreground">
+                    Color Space
                     <Select
                       size="sm"
                       value={colorSpace}
@@ -795,7 +790,7 @@ export function ParkFactorsSection({
                       <option value="rgb">RGB</option>
                       <option value="hex">Hex</option>
                     </Select>
-                  </div>
+                  </label>
                   <div className="flex items-center gap-2 opacity-40 pointer-events-none select-none">
                     <FilterGroup
                       label="Mode"
@@ -865,18 +860,37 @@ export function ParkFactorsSection({
                         value={editForm.max}
                         config={editForm}
                         label="Max"
+                        isOpen={activePicker === "max"}
+                        onOpenChange={(open) => setActivePicker(open ? "max" : null)}
+                        pickerColor={editForm.maxColor}
+                        onPickerChange={(c) =>
+                          setEditForm((prev) => prev ? { ...prev, maxColor: c } : prev)
+                        }
                       />
                       <GradientSection config={editForm} side="above" />
                       <GradientColorBox
                         value={editForm.avg}
                         config={editForm}
                         label="Avg"
+                        transparent={editForm.increments === 1}
+                        isOpen={activePicker === "avg"}
+                        onOpenChange={(open) => setActivePicker(open ? "avg" : null)}
+                        pickerColor={editForm.increments === 1 ? undefined : editForm.avgColor}
+                        onPickerChange={(c) =>
+                          setEditForm((prev) => prev ? { ...prev, avgColor: c } : prev)
+                        }
                       />
                       <GradientSection config={editForm} side="below" />
                       <GradientColorBox
                         value={editForm.min}
                         config={editForm}
                         label="Min"
+                        isOpen={activePicker === "min"}
+                        onOpenChange={(open) => setActivePicker(open ? "min" : null)}
+                        pickerColor={editForm.minColor}
+                        onPickerChange={(c) =>
+                          setEditForm((prev) => prev ? { ...prev, minColor: c } : prev)
+                        }
                       />
                     </div>
 
@@ -912,8 +926,7 @@ export function ParkFactorsSection({
 
                       <div style={{ height: SPACER_HEIGHT }} />
 
-                      <div className="flex items-end">
-                        {/* Avg color picker — collapses when Pivot is off */}
+                      <div className={`flex items-end${editForm.increments === 1 ? " opacity-50 pointer-events-none" : ""}`}>
                         <div
                           className={`pr-3 transition-[max-width,opacity] duration-400 ${editForm.isPivot ? "overflow-visible" : "overflow-hidden"}`}
                           style={{
@@ -934,12 +947,13 @@ export function ParkFactorsSection({
                         </div>
 
                         <label
-                          className={`flex items-center gap-1.5 text-sm mb-1.5 ${editForm.increments === 1 ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+                          className="flex items-center gap-1.5 text-body font-normal text-muted-foreground mb-1.5 cursor-pointer"
                         >
                           <Checkbox
                             size="sm"
                             checked={editForm.isPivot}
                             disabled={editForm.increments === 1}
+                            className={editForm.increments === 1 ? "disabled:opacity-100" : undefined}
                             onChange={(e) =>
                               setEditForm((prev) =>
                                 prev
@@ -1012,7 +1026,7 @@ export function ParkFactorsSection({
                 </div>
 
                 {/* Preview */}
-                <label className="flex cursor-pointer items-center gap-2 text-sm">
+                <label className="flex cursor-pointer items-center gap-2 text-body font-normal text-muted-foreground">
                   <Checkbox
                     size="sm"
                     checked={previewEnabled}
@@ -1031,7 +1045,7 @@ export function ParkFactorsSection({
             <div className="flex w-full items-center justify-between">
               {editForm?.name === "Default" && isAnyDirty(editForm) ? (
                 <Button
-                  variant="ghost"
+                  variant="subtle"
                   size="sm"
                   onClick={() =>
                     setEditForm((prev) =>
@@ -1113,7 +1127,8 @@ function FieldWithUndo({
 
 // text-xs line-height (16px) + gap-1 (4px) = 20px — matches InputFieldGroup label row
 const LABEL_HEIGHT = 20
-const STRIP_TOTAL = 54
+const STRIP_TOTAL = 64
+const BLOCK_HEIGHT = STRIP_TOTAL / 2
 // Spacer between color inputs so each input's h-8 field aligns with the corresponding color box
 const SPACER_HEIGHT = STRIP_TOTAL - LABEL_HEIGHT
 const MIN_SLICE = 4
@@ -1122,35 +1137,72 @@ const MAX_SLICES = Math.floor(STRIP_TOTAL / MIN_SLICE)
 function computeSlices(count: number): { indices: number[]; height: number } {
   if (count <= 0) return { indices: [], height: 0 }
   const rawHeight = STRIP_TOTAL / count
+  const height = Math.min(rawHeight, BLOCK_HEIGHT)
   if (rawHeight >= MIN_SLICE) {
     return {
       indices: Array.from({ length: count }, (_, i) => i),
-      height: rawHeight,
+      height,
     }
   }
   const step = (count - 1) / (MAX_SLICES - 1)
   const indices = Array.from({ length: MAX_SLICES }, (_, i) =>
     Math.round(i * step),
   )
-  return { indices, height: STRIP_TOTAL / MAX_SLICES }
+  return { indices, height: Math.min(STRIP_TOTAL / MAX_SLICES, BLOCK_HEIGHT) }
 }
 
 function GradientColorBox({
   value,
   config,
   label,
+  transparent,
+  isOpen,
+  onOpenChange,
+  pickerColor,
+  onPickerChange,
 }: {
   value: number
   config: HeatMapData
   label: string
+  transparent?: boolean
+  isOpen?: boolean
+  onOpenChange?: (open: boolean) => void
+  pickerColor?: OklchColorData
+  onPickerChange?: (c: OklchColorData) => void
 }) {
-  const { backgroundColor, color } = getHeatMapStyle(value, config)
-  return (
+  const interactive = pickerColor !== undefined && onOpenChange !== undefined
+
+  const box = (
     <div
-      className="flex items-center justify-center shrink-0 w-14 h-8 text-xs font-medium select-none"
-      style={{ backgroundColor, color }}
+      className={`flex items-center justify-center shrink-0 w-14 h-8 text-xs font-medium select-none${interactive ? " cursor-pointer" : ""}${isOpen ? " ring-2 ring-foreground/20 ring-inset" : ""}`}
+      style={transparent ? {} : getHeatMapStyle(value, config)}
     >
-      {label}
+      {transparent ? null : label}
+    </div>
+  )
+
+  if (!interactive) return box
+
+  const hexValue = oklchToHex(pickerColor)
+
+  function handleChange(hex: string) {
+    const next = hexToOklch(hex)
+    if (next && onPickerChange && pickerColor) onPickerChange({ ...next, alpha: pickerColor.alpha })
+  }
+
+  return (
+    <div className="relative">
+      <button type="button" onClick={() => onOpenChange(!isOpen)} className="block">
+        {box}
+      </button>
+      {isOpen && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => onOpenChange(false)} />
+          <div className="absolute left-[calc(100%+8px)] top-1/2 -translate-y-1/2 z-50 shadow-lg rounded-lg overflow-hidden">
+            <HexColorPicker color={hexValue} onChange={handleChange} />
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -1175,7 +1227,7 @@ function GradientSection({
   const { indices, height } = computeSlices(count)
 
   return (
-    <div className="w-14">
+    <div className="w-14" style={{ height: STRIP_TOTAL }}>
       {indices.map((relIdx) => {
         const step =
           side === "above" ? maxStep - 1 - relIdx : stepsToAvg - 1 - relIdx

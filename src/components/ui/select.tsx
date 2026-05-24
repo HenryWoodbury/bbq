@@ -4,7 +4,7 @@ import type { Ref, SelectHTMLAttributes } from "react"
 import { cn } from "@/lib/utils"
 
 const selectVariants = cva(
-  "col-start-1 row-start-1 appearance-none border border-border bg-card text-body leading-[calc(4/3)] focus:outline-none not-disabled:focus:ring-2 not-disabled:focus:ring-ring disabled:opacity-disabled disabled:cursor-not-allowed",
+  "col-start-1 row-start-1 appearance-none border border-border bg-card text-foreground text-body leading-[calc(4/3)] focus:outline-none not-disabled:focus:ring-2 not-disabled:focus:ring-ring disabled:opacity-disabled disabled:cursor-not-allowed",
   {
     variants: {
       size: {

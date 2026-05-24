@@ -22,7 +22,7 @@ type ColorInputSize = NonNullable<ColorInputProps["size"]>
 const OKLCH_FIELD_DEFS = [
   { key: "lightness", label: "L", type: "number", min: 0, max: 1, step: 0.001 },
   { key: "chroma", label: "C", type: "number", min: 0, max: 0.4, step: 0.001 },
-  { key: "hue", label: "H", type: "number", min: 0, max: 360, step: 0.001 },
+  { key: "hue", label: "H", type: "number", min: 0, max: 360, step: 0.01 },
   { key: "alpha", label: "A", type: "number", min: 0, max: 100, step: 1 },
 ] as const satisfies readonly Omit<FieldDef, "width">[]
 
@@ -63,7 +63,7 @@ function oklchToDrafts(color: OklchColorData): Record<string, string> {
   return {
     lightness: String(parseFloat(color.lightness.toFixed(3))),
     chroma: String(parseFloat(color.chroma.toFixed(3))),
-    hue: String(parseFloat(color.hue.toFixed(3))),
+    hue: String(parseFloat(color.hue.toFixed(2))),
     alpha: String(Math.round(color.alpha * 100)),
   }
 }
@@ -209,7 +209,8 @@ function ColorInput({ label, value, onChange, size = "sm", colorSpace = "oklch" 
               value={drafts.alpha ?? String(Math.round(value.alpha * 100))}
               onChange={(e) => handleHexAlphaChange(e.target.value)}
               onBlur={handleHexAlphaBlur}
-              className="h-8 rounded-sm border border-border bg-transparent px-2 text-body focus:outline-none focus:ring-2 focus:ring-ring w-14"
+              style={{ width: OKLCH_WIDTHS[size].alpha }}
+              className="h-8 rounded-sm border border-border bg-transparent px-2 text-body focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </label>
         </div>

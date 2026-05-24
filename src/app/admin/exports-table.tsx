@@ -303,10 +303,8 @@ export function ExportsTable({ data }: { data: ExportRow[] }) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-1.5">
-          <span className="text-body font-normal text-muted-foreground">
-            Scope:
-          </span>
+        <label className="flex items-center gap-1.5 text-body font-normal text-muted-foreground">
+          Scope
           <Select
             value={scopeFilter}
             onChange={(e) => setScopeFilter(e.target.value)}
@@ -318,12 +316,10 @@ export function ExportsTable({ data }: { data: ExportRow[] }) {
             <option value="Leagues">Leagues</option>
             <option value="Platform">Platform</option>
           </Select>
-        </div>
+        </label>
 
-        <div className="flex items-center gap-1.5">
-          <span className="text-body font-normal text-muted-foreground">
-            Type:
-          </span>
+        <label className="flex items-center gap-1.5 text-body font-normal text-muted-foreground">
+          Type
           <Select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
@@ -333,7 +329,7 @@ export function ExportsTable({ data }: { data: ExportRow[] }) {
             <option value="Splits">Splits</option>
             <option value="Profiles">Profiles</option>
           </Select>
-        </div>
+        </label>
 
         <div className="ml-auto">
           <Drawer open={createOpen} onClose={() => setCreateOpen(false)}>
@@ -341,7 +337,6 @@ export function ExportsTable({ data }: { data: ExportRow[] }) {
               <Button
                 size="sm"
                 variant="secondary"
-                className="flex items-center gap-1.5"
                 onClick={() => setCreateOpen(true)}
               >
                 <PlusIcon size={14} />
