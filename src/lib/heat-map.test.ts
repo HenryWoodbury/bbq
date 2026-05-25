@@ -71,6 +71,9 @@ const DEFAULT: HeatMapData = {
   minColor: BLUE,
   avgColor: WHITE,
   maxColor: RED,
+  minDarkColor: { lightness: 0.3307, chroma: 0.1094, hue: 262.94, alpha: 1 },
+  avgDarkColor: { lightness: 0.667, chroma: 0, hue: 0, alpha: 1 },
+  maxDarkColor: { lightness: 0.3377, chroma: 0.1842, hue: 26.381, alpha: 1 },
 }
 
 // Custom: green→(white pivot)→orange, 75–125, avg 100, 10 increments (stepSize=5, 5 steps per side)
@@ -98,6 +101,9 @@ const CUSTOM: HeatMapData = {
   minColor: GREEN,
   avgColor: WHITE,
   maxColor: ORANGE,
+  minDarkColor: { lightness: 0.367, chroma: 0.12, hue: 140.0, alpha: 1 },
+  avgDarkColor: { lightness: 0.667, chroma: 0, hue: 0, alpha: 1 },
+  maxDarkColor: { lightness: 0.5003, chroma: 0.107, hue: 85.0, alpha: 1 },
 }
 
 // Same as DEFAULT but continuous (no pivot)

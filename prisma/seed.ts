@@ -523,6 +523,10 @@ async function main() {
 }
 
 async function seedHeatMaps() {
+  const DARK_MIN = { lightness: 0.3307, chroma: 0.1094, hue: 262.940, alpha: 1 }
+  const DARK_AVG = { lightness: 0.6670, chroma: 0, hue: 0, alpha: 1 }
+  const DARK_MAX = { lightness: 0.3377, chroma: 0.1842, hue: 26.381, alpha: 1 }
+
   await prisma.heatMap.upsert({
     where: { name: "Default" },
     update: {
@@ -530,6 +534,9 @@ async function seedHeatMaps() {
       minColor: { update: { lightness: 0.4959, chroma: 0.1094, hue: 262.940 } },
       avgColor: { update: { lightness: 1, chroma: 0, hue: 0, alpha: 1 } },
       maxColor: { update: { lightness: 0.5063, chroma: 0.1842, hue: 26.381 } },
+      minDarkColor: { upsert: { create: DARK_MIN, update: DARK_MIN } },
+      avgDarkColor: { upsert: { create: DARK_AVG, update: DARK_AVG } },
+      maxDarkColor: { upsert: { create: DARK_MAX, update: DARK_MAX } },
     },
     create: {
       name: "Default",
@@ -541,6 +548,9 @@ async function seedHeatMaps() {
       minColor: { create: { lightness: 0.4959, chroma: 0.1094, hue: 262.940, alpha: 1 } },
       avgColor: { create: { lightness: 1, chroma: 0, hue: 0, alpha: 1 } },
       maxColor: { create: { lightness: 0.5063, chroma: 0.1842, hue: 26.381, alpha: 1 } },
+      minDarkColor: { create: DARK_MIN },
+      avgDarkColor: { create: DARK_AVG },
+      maxDarkColor: { create: DARK_MAX },
     },
   })
   process.stdout.write("Seeded heat maps\n")

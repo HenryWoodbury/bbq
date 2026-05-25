@@ -13,10 +13,10 @@ import {
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import type React from "react"
-import { type ReactNode, useState } from "react"
+import { type ReactNode, useRef, useState } from "react"
 import { DataTable } from "@/components/data-table"
 import { FilterGroup } from "@/components/filter-group"
-import { useTheme } from "@/components/theme-provider"
+import { type Theme, useTheme } from "@/components/theme-provider"
 import { Alert } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -45,6 +45,7 @@ import { HexColorPicker } from "react-colorful"
 import { hexToOklch, oklchToHex } from "@/lib/color"
 import {
   BBQ_DEFAULT,
+  getConfigForTheme,
   getHeatMapStyle,
   getStepColor,
   type HeatMapData,
@@ -215,7 +216,8 @@ export function ParkFactorsSection({
   heatMaps: HeatMapData[]
 }) {
   const router = useRouter()
-  const { isDark } = useTheme()
+  const { isDark, setTheme, theme } = useTheme()
+  const preEditThemeRef = useRef<Theme>(theme)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [syncState, setSyncState] = useState<SyncState>({ status: "idle" })
   const [syncSeason, setSyncSeason] = useState(CURRENT_YEAR)
@@ -240,6 +242,7 @@ export function ParkFactorsSection({
     heatMaps.length === 1 ? heatMaps[0].name : "none",
   )
   const [editForm, setEditForm] = useState<HeatMapData | null>(null)
+  const [editMode, setEditMode] = useState<"light" | "dark">("light")
   const [saveState, setSaveState] = useState<SaveState>({ status: "idle" })
   const [previewEnabled, setPreviewEnabled] = useState(true)
   const [colorSpace, setColorSpace] = useState<ColorSpace>("oklch")
@@ -247,6 +250,24 @@ export function ParkFactorsSection({
 
   const activeHeatMap = heatMaps.find((hm) => hm.name === heatMapOption) ?? null
   const displayHeatMap = previewEnabled && editForm ? editForm : activeHeatMap
+  const adjustedDisplayHeatMap = displayHeatMap ? getConfigForTheme(displayHeatMap, isDark) : null
+
+  const minKey = editMode === "dark" ? "minDarkColor" : "minColor"
+  const avgKey = editMode === "dark" ? "avgDarkColor" : "avgColor"
+  const maxKey = editMode === "dark" ? "maxDarkColor" : "maxColor"
+
+  const panelConfig = editForm ? getConfigForTheme(editForm, editMode === "dark") : null
+
+  function handleEditModeChange(mode: "light" | "dark") {
+    setEditMode(mode)
+    if (previewEnabled) setTheme(mode)
+  }
+
+  function handleEditFormClose() {
+    setEditForm(null)
+    setActivePicker(null)
+    if (previewEnabled) setTheme(preEditThemeRef.current)
+  }
 
   const syncButton = (
     <DrawerTrigger asChild>
@@ -262,12 +283,12 @@ export function ParkFactorsSection({
   ): React.CSSProperties | undefined {
     if (columnId === "rank") return CENTERED
     if (!FACTOR_COL_IDS.has(columnId)) return undefined
-    if (!displayHeatMap || !HEAT_MAP_COL_IDS.has(columnId)) return CENTERED
+    if (!adjustedDisplayHeatMap || !HEAT_MAP_COL_IDS.has(columnId)) return CENTERED
     const value = row.factors[columnId]
     if (value === undefined) return CENTERED
     return {
       ...CENTERED,
-      ...getHeatMapStyle(value, displayHeatMap, { isDark }),
+      ...getHeatMapStyle(value, adjustedDisplayHeatMap),
     }
   }
 
@@ -503,11 +524,16 @@ export function ParkFactorsSection({
                     onClick={() => {
                       const target = activeHeatMap ?? heatMaps[0]
                       if (target) {
+                        preEditThemeRef.current = theme
+                        setEditMode(isDark ? "dark" : "light")
                         setEditForm({
                           ...target,
                           minColor: { ...target.minColor },
                           avgColor: { ...target.avgColor },
                           maxColor: { ...target.maxColor },
+                          minDarkColor: { ...target.minDarkColor },
+                          avgDarkColor: { ...target.avgDarkColor },
+                          maxDarkColor: { ...target.maxDarkColor },
                         })
                         setSaveState({ status: "idle" })
                         setColorSpace("oklch")
@@ -742,9 +768,9 @@ export function ParkFactorsSection({
       </Drawer>
 
       {/* Edit heat map drawer */}
-      <Drawer open={editForm !== null} onClose={() => setEditForm(null)}>
+      <Drawer open={editForm !== null} onClose={handleEditFormClose}>
         <DrawerContent>
-          <DrawerHeader onClose={() => setEditForm(null)}>
+          <DrawerHeader onClose={handleEditFormClose}>
             <DrawerTitle>Edit Heat Map</DrawerTitle>
           </DrawerHeader>
           <DrawerBody className="flex flex-col gap-5">
@@ -791,7 +817,7 @@ export function ParkFactorsSection({
                       <option value="hex">Hex</option>
                     </Select>
                   </label>
-                  <div className="flex items-center gap-2 opacity-40 pointer-events-none select-none">
+                  <div className="flex items-center gap-2">
                     <FilterGroup
                       label="Mode"
                       options={[
@@ -804,8 +830,8 @@ export function ParkFactorsSection({
                           label: <MoonIcon className="h-3.5 w-3.5" />,
                         },
                       ]}
-                      value="light"
-                      onChange={() => {}}
+                      value={editMode}
+                      onChange={(v) => handleEditModeChange(v as "light" | "dark")}
                       size="sm"
                     />
                   </div>
@@ -858,38 +884,38 @@ export function ParkFactorsSection({
                       <div style={{ height: LABEL_HEIGHT }} />
                       <GradientColorBox
                         value={editForm.max}
-                        config={editForm}
+                        config={panelConfig ?? editForm}
                         label="Max"
                         isOpen={activePicker === "max"}
                         onOpenChange={(open) => setActivePicker(open ? "max" : null)}
-                        pickerColor={editForm.maxColor}
+                        pickerColor={editForm[maxKey]}
                         onPickerChange={(c) =>
-                          setEditForm((prev) => prev ? { ...prev, maxColor: c } : prev)
+                          setEditForm((prev) => prev ? { ...prev, [maxKey]: c } : prev)
                         }
                       />
-                      <GradientSection config={editForm} side="above" />
+                      <GradientSection config={panelConfig ?? editForm} side="above" />
                       <GradientColorBox
                         value={editForm.avg}
-                        config={editForm}
+                        config={panelConfig ?? editForm}
                         label="Avg"
                         transparent={editForm.increments === 1}
                         isOpen={activePicker === "avg"}
                         onOpenChange={(open) => setActivePicker(open ? "avg" : null)}
-                        pickerColor={editForm.increments === 1 ? undefined : editForm.avgColor}
+                        pickerColor={editForm.increments === 1 ? undefined : editForm[avgKey]}
                         onPickerChange={(c) =>
-                          setEditForm((prev) => prev ? { ...prev, avgColor: c } : prev)
+                          setEditForm((prev) => prev ? { ...prev, [avgKey]: c } : prev)
                         }
                       />
-                      <GradientSection config={editForm} side="below" />
+                      <GradientSection config={panelConfig ?? editForm} side="below" />
                       <GradientColorBox
                         value={editForm.min}
-                        config={editForm}
+                        config={panelConfig ?? editForm}
                         label="Min"
                         isOpen={activePicker === "min"}
                         onOpenChange={(open) => setActivePicker(open ? "min" : null)}
-                        pickerColor={editForm.minColor}
+                        pickerColor={editForm[minKey]}
                         onPickerChange={(c) =>
-                          setEditForm((prev) => prev ? { ...prev, minColor: c } : prev)
+                          setEditForm((prev) => prev ? { ...prev, [minKey]: c } : prev)
                         }
                       />
                     </div>
@@ -899,25 +925,22 @@ export function ParkFactorsSection({
                       <FieldWithUndo
                         dirty={
                           editForm.name === "Default" &&
-                          isColorDirty(editForm.maxColor, BBQ_DEFAULT.maxColor)
+                          isColorDirty(editForm[maxKey], BBQ_DEFAULT[maxKey])
                         }
                         onUndo={() =>
                           setEditForm((prev) =>
                             prev
-                              ? {
-                                  ...prev,
-                                  maxColor: { ...BBQ_DEFAULT.maxColor },
-                                }
+                              ? { ...prev, [maxKey]: { ...BBQ_DEFAULT[maxKey] } }
                               : prev,
                           )
                         }
                       >
                         <ColorInput
                           colorSpace={colorSpace}
-                          value={editForm.maxColor}
+                          value={editForm[maxKey]}
                           onChange={(v) =>
                             setEditForm((prev) =>
-                              prev ? { ...prev, maxColor: v } : prev,
+                              prev ? { ...prev, [maxKey]: v } : prev,
                             )
                           }
                           size="sm"
@@ -936,10 +959,10 @@ export function ParkFactorsSection({
                         >
                           <ColorInput
                             colorSpace={colorSpace}
-                            value={editForm.avgColor}
+                            value={editForm[avgKey]}
                             onChange={(v) =>
                               setEditForm((prev) =>
-                                prev ? { ...prev, avgColor: v } : prev,
+                                prev ? { ...prev, [avgKey]: v } : prev,
                               )
                             }
                             size="sm"
@@ -966,10 +989,7 @@ export function ParkFactorsSection({
                         </label>
 
                         {editForm.name === "Default" &&
-                          (isColorDirty(
-                            editForm.avgColor,
-                            BBQ_DEFAULT.avgColor,
-                          ) ||
+                          (isColorDirty(editForm[avgKey], BBQ_DEFAULT[avgKey]) ||
                             editForm.isPivot !== BBQ_DEFAULT.isPivot) && (
                             <IconButton
                               size="sm"
@@ -978,7 +998,7 @@ export function ParkFactorsSection({
                                   prev
                                     ? {
                                         ...prev,
-                                        avgColor: { ...BBQ_DEFAULT.avgColor },
+                                        [avgKey]: { ...BBQ_DEFAULT[avgKey] },
                                         isPivot: BBQ_DEFAULT.isPivot,
                                       }
                                     : prev,
@@ -997,25 +1017,22 @@ export function ParkFactorsSection({
                       <FieldWithUndo
                         dirty={
                           editForm.name === "Default" &&
-                          isColorDirty(editForm.minColor, BBQ_DEFAULT.minColor)
+                          isColorDirty(editForm[minKey], BBQ_DEFAULT[minKey])
                         }
                         onUndo={() =>
                           setEditForm((prev) =>
                             prev
-                              ? {
-                                  ...prev,
-                                  minColor: { ...BBQ_DEFAULT.minColor },
-                                }
+                              ? { ...prev, [minKey]: { ...BBQ_DEFAULT[minKey] } }
                               : prev,
                           )
                         }
                       >
                         <ColorInput
                           colorSpace={colorSpace}
-                          value={editForm.minColor}
+                          value={editForm[minKey]}
                           onChange={(v) =>
                             setEditForm((prev) =>
-                              prev ? { ...prev, minColor: v } : prev,
+                              prev ? { ...prev, [minKey]: v } : prev,
                             )
                           }
                           size="sm"
@@ -1060,6 +1077,9 @@ export function ParkFactorsSection({
                             minColor: { ...BBQ_DEFAULT.minColor },
                             avgColor: { ...BBQ_DEFAULT.avgColor },
                             maxColor: { ...BBQ_DEFAULT.maxColor },
+                            minDarkColor: { ...BBQ_DEFAULT.minDarkColor },
+                            avgDarkColor: { ...BBQ_DEFAULT.avgDarkColor },
+                            maxDarkColor: { ...BBQ_DEFAULT.maxDarkColor },
                           }
                         : prev,
                     )
@@ -1067,6 +1087,8 @@ export function ParkFactorsSection({
                 >
                   <Undo2Icon className="h-3.5 w-3.5" />
                   Clear Overrides
+                  {hasLightColorOverrides(editForm) && <SunIcon className="h-3.5 w-3.5" />}
+                  {hasDarkColorOverrides(editForm) && <MoonIcon className="h-3.5 w-3.5" />}
                 </Button>
               ) : (
                 <div />
@@ -1075,7 +1097,7 @@ export function ParkFactorsSection({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setEditForm(null)}
+                  onClick={handleEditFormClose}
                 >
                   Cancel
                 </Button>
@@ -1256,6 +1278,22 @@ function isColorDirty(a: OklchColorData, b: OklchColorData): boolean {
   )
 }
 
+function hasLightColorOverrides(form: HeatMapData): boolean {
+  return (
+    isColorDirty(form.minColor, BBQ_DEFAULT.minColor) ||
+    isColorDirty(form.avgColor, BBQ_DEFAULT.avgColor) ||
+    isColorDirty(form.maxColor, BBQ_DEFAULT.maxColor)
+  )
+}
+
+function hasDarkColorOverrides(form: HeatMapData): boolean {
+  return (
+    isColorDirty(form.minDarkColor, BBQ_DEFAULT.minDarkColor) ||
+    isColorDirty(form.avgDarkColor, BBQ_DEFAULT.avgDarkColor) ||
+    isColorDirty(form.maxDarkColor, BBQ_DEFAULT.maxDarkColor)
+  )
+}
+
 function isAnyDirty(form: HeatMapData): boolean {
   if (form.name !== "Default") return false
   return (
@@ -1264,8 +1302,7 @@ function isAnyDirty(form: HeatMapData): boolean {
     form.avg !== BBQ_DEFAULT.avg ||
     form.increments !== BBQ_DEFAULT.increments ||
     form.isPivot !== BBQ_DEFAULT.isPivot ||
-    isColorDirty(form.minColor, BBQ_DEFAULT.minColor) ||
-    isColorDirty(form.avgColor, BBQ_DEFAULT.avgColor) ||
-    isColorDirty(form.maxColor, BBQ_DEFAULT.maxColor)
+    hasLightColorOverrides(form) ||
+    hasDarkColorOverrides(form)
   )
 }

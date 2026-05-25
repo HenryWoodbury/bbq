@@ -54,7 +54,7 @@ async function ParkFactorsTabContent() {
       include: { park: { select: { venueName: true, teamName: true } } },
     }),
     prisma.heatMap.findMany({
-      include: { minColor: true, avgColor: true, maxColor: true },
+      include: { minColor: true, avgColor: true, maxColor: true, minDarkColor: true, avgDarkColor: true, maxDarkColor: true },
     }),
   ])
 
@@ -78,6 +78,9 @@ async function ParkFactorsTabContent() {
     minColor: toOklchColorData(hm.minColor),
     avgColor: toOklchColorData(hm.avgColor),
     maxColor: toOklchColorData(hm.maxColor),
+    minDarkColor: toOklchColorData(hm.minDarkColor),
+    avgDarkColor: toOklchColorData(hm.avgDarkColor),
+    maxDarkColor: toOklchColorData(hm.maxDarkColor),
   }))
 
   return <ParkFactorsSection recentRows={recentRows} heatMaps={heatMaps} />

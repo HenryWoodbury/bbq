@@ -18,6 +18,9 @@ export type HeatMapData = {
   minColor: OklchColorData
   avgColor: OklchColorData
   maxColor: OklchColorData
+  minDarkColor: OklchColorData
+  avgDarkColor: OklchColorData
+  maxDarkColor: OklchColorData
 }
 
 export const BBQ_DEFAULT = {
@@ -29,6 +32,9 @@ export const BBQ_DEFAULT = {
   minColor: { lightness: 0.4959, chroma: 0.1094, hue: 262.94, alpha: 1 },
   avgColor: { lightness: 1, chroma: 0, hue: 0, alpha: 1 },
   maxColor: { lightness: 0.5063, chroma: 0.1842, hue: 26.381, alpha: 1 },
+  minDarkColor: { lightness: 0.3307, chroma: 0.1094, hue: 262.94, alpha: 1 },
+  avgDarkColor: { lightness: 0.6670, chroma: 0, hue: 0, alpha: 1 },
+  maxDarkColor: { lightness: 0.3377, chroma: 0.1842, hue: 26.381, alpha: 1 },
 } as const
 
 function lerpHue(a: number, b: number, t: number): number {
@@ -81,27 +87,30 @@ export function getStepColor(step: number, config: HeatMapData): OklchColorData 
   return lerpColor(minColor, maxColor, clampedStep / increments)
 }
 
+export function getConfigForTheme(config: HeatMapData, isDark: boolean): HeatMapData {
+  if (!isDark) return config
+  return { ...config, minColor: config.minDarkColor, avgColor: config.avgDarkColor, maxColor: config.maxDarkColor }
+}
+
 export function getHeatMapStyle(
   value: number,
   config: HeatMapData,
   { isDark = false }: HeatMapStyleOptions = {},
 ): Pick<CSSProperties, "backgroundColor" | "color"> {
-  const { min, max, increments } = config
+  const workingConfig = getConfigForTheme(config, isDark)
+
+  const { min, max, increments } = workingConfig
   const stepSize = (max - min) / increments
 
   let color: OklchColorData
 
   if (value < min) {
-    color = config.minColor
+    color = workingConfig.minColor
   } else if (value > max) {
-    color = config.maxColor
+    color = workingConfig.maxColor
   } else {
     const step = Math.min(Math.round((value - min) / stepSize), increments)
-    color = getStepColor(step, config)
-  }
-
-  if (isDark) {
-    color = { ...color, lightness: color.lightness * 0.6 }
+    color = getStepColor(step, workingConfig)
   }
 
   const textColor =
