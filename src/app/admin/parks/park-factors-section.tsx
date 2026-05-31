@@ -19,6 +19,7 @@ import { FilterGroup } from "@/components/filter-group"
 import { type Theme, useTheme } from "@/components/theme-provider"
 import { Alert } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { EditInPlace, type EditInPlaceHandle } from "@/components/ui/edit-in-place"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ColorInput, type ColorSpace } from "@/components/ui/color-input"
 import {
@@ -129,6 +130,8 @@ const LIMIT_FIELDS: {
   label: string
   className: string
   min?: number
+  max?: number
+  step?: number
   displayOffset?: number
 }[] = [
   { field: "max", label: "Max", className: "w-20" },
@@ -172,11 +175,14 @@ const COLUMNS: ColumnDef<DisplayRow, unknown>[] = [
       accessorFn: (row) => row.factors[key],
       cell: ({ getValue }) => {
         const v = getValue() as number | undefined
-        return v !== undefined ? v.toFixed(0) : "—"
+        if (v === undefined) return "—"
+        return key === "pa" ? PA_FMT.format(v) : v.toFixed(0)
       },
     }),
   ),
 ]
+
+const PA_FMT = new Intl.NumberFormat("en-US")
 
 const CENTERED: React.CSSProperties = { textAlign: "center" }
 
@@ -218,6 +224,8 @@ export function ParkFactorsSection({
   const router = useRouter()
   const { isDark, setTheme, theme } = useTheme()
   const preEditThemeRef = useRef<Theme>(theme)
+  const preCopyFormRef = useRef<HeatMapData | null>(null)
+  const editInPlaceRef = useRef<EditInPlaceHandle>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [syncState, setSyncState] = useState<SyncState>({ status: "idle" })
   const [syncSeason, setSyncSeason] = useState(CURRENT_YEAR)
@@ -239,9 +247,10 @@ export function ParkFactorsSection({
   const [filterBatSide, setFilterBatSide] = useState("")
   const [filterRolling, setFilterRolling] = useState("3")
   const [heatMapOption, setHeatMapOption] = useState(
-    heatMaps.length === 1 ? heatMaps[0].name : "none",
+    heatMaps[0]?.name ?? "none",
   )
   const [editForm, setEditForm] = useState<HeatMapData | null>(null)
+  const initialEditFormRef = useRef<HeatMapData | null>(null)
   const [editMode, setEditMode] = useState<"light" | "dark">("light")
   const [saveState, setSaveState] = useState<SaveState>({ status: "idle" })
   const [previewEnabled, setPreviewEnabled] = useState(true)
@@ -255,8 +264,16 @@ export function ParkFactorsSection({
   const minKey = editMode === "dark" ? "minDarkColor" : "minColor"
   const avgKey = editMode === "dark" ? "avgDarkColor" : "avgColor"
   const maxKey = editMode === "dark" ? "maxDarkColor" : "maxColor"
+  const curveKey = editMode === "dark" ? "curveDark" : "curve"
 
   const panelConfig = editForm ? getConfigForTheme(editForm, editMode === "dark") : null
+
+  const editBaseline: HeatMapData | null =
+    !editForm || editForm.id === -1
+      ? null
+      : editForm.name === "Default"
+        ? { ...BBQ_DEFAULT, id: editForm.id, name: "Default" }
+        : initialEditFormRef.current
 
   function handleEditModeChange(mode: "light" | "dark") {
     setEditMode(mode)
@@ -266,6 +283,8 @@ export function ParkFactorsSection({
   function handleEditFormClose() {
     setEditForm(null)
     setActivePicker(null)
+    preCopyFormRef.current = null
+    initialEditFormRef.current = null
     if (previewEnabled) setTheme(preEditThemeRef.current)
   }
 
@@ -416,16 +435,24 @@ export function ParkFactorsSection({
   async function handleSave() {
     if (!editForm) return
     setSaveState({ status: "loading" })
+    const liveName = editInPlaceRef.current?.getCurrentValue()
+    editInPlaceRef.current?.commit()
+    const formToSave = liveName !== undefined ? { ...editForm, name: liveName } : editForm
+    const isNew = formToSave.id === -1
     try {
-      const res = await fetch(`/api/admin/heat-maps/${editForm.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editForm),
-      })
+      const res = await fetch(
+        isNew ? "/api/admin/heat-maps" : `/api/admin/heat-maps/${formToSave.id}`,
+        {
+          method: isNew ? "POST" : "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formToSave),
+        },
+      )
       if (res.ok) {
         setSaveState({ status: "idle" })
-        setHeatMapOption(editForm.name)
+        setHeatMapOption(formToSave.name)
         setEditForm(null)
+        preCopyFormRef.current = null
         router.refresh()
       } else {
         const data = (await res.json()) as { error?: string }
@@ -501,14 +528,24 @@ export function ParkFactorsSection({
                       Heat Map
                     </label>
                   ) : (
-                    <label className="flex items-center gap-2 text-body font-normal text-muted-foreground">
+                    <label className="flex items-center gap-2 cursor-pointer text-body font-normal text-muted-foreground">
+                      <Checkbox
+                        size="sm"
+                        checked={heatMapOption !== "none"}
+                        onChange={(e) =>
+                          setHeatMapOption(
+                            e.target.checked
+                              ? (heatMapOption !== "none" ? heatMapOption : (heatMaps[0]?.name ?? "none"))
+                              : "none",
+                          )
+                        }
+                      />
                       Heat Map
                       <Select
                         size="sm"
-                        value={heatMapOption}
+                        value={heatMapOption !== "none" ? heatMapOption : (heatMaps[0]?.name ?? "")}
                         onChange={(e) => setHeatMapOption(e.target.value)}
                       >
-                        <option value="none">None</option>
                         {heatMaps.map((hm) => (
                           <option key={hm.name} value={hm.name}>
                             {hm.name}
@@ -526,7 +563,7 @@ export function ParkFactorsSection({
                       if (target) {
                         preEditThemeRef.current = theme
                         setEditMode(isDark ? "dark" : "light")
-                        setEditForm({
+                        const formState = {
                           ...target,
                           minColor: { ...target.minColor },
                           avgColor: { ...target.avgColor },
@@ -534,7 +571,9 @@ export function ParkFactorsSection({
                           minDarkColor: { ...target.minDarkColor },
                           avgDarkColor: { ...target.avgDarkColor },
                           maxDarkColor: { ...target.maxDarkColor },
-                        })
+                        }
+                        initialEditFormRef.current = formState
+                        setEditForm(formState)
                         setSaveState({ status: "idle" })
                         setColorSpace("oklch")
                       }
@@ -776,30 +815,69 @@ export function ParkFactorsSection({
           <DrawerBody className="flex flex-col gap-5">
             {editForm && (
               <>
-                {/* Name + Copy stub */}
+                {/* Name + Copy/Revert */}
                 <div className="flex items-center justify-between">
                   {editForm.name === "Default" ? (
                     <h2 className="text-xl font-semibold">{editForm.name}</h2>
                   ) : (
-                    <label className="flex flex-col gap-1 text-sm">
-                      <span className="text-muted-foreground">Name</span>
-                      <Input
-                        size="sm"
-                        maxLength={24}
-                        className="w-48"
+                    <div className="flex items-center gap-2">
+                      <EditInPlace
+                        ref={editInPlaceRef}
                         value={editForm.name}
-                        onChange={(e) =>
-                          setEditForm((prev) =>
-                            prev ? { ...prev, name: e.target.value } : prev,
-                          )
+                        maxLength={24}
+                        className="text-xl font-semibold"
+                        onChange={(name) =>
+                          setEditForm((prev) => (prev ? { ...prev, name } : prev))
                         }
                       />
-                    </label>
+                      {editBaseline && editForm.name !== editBaseline.name && (
+                        <IconButton
+                          size="sm"
+                          onClick={() =>
+                            setEditForm((prev) =>
+                              prev && editBaseline
+                                ? { ...prev, name: editBaseline.name }
+                                : prev,
+                            )
+                          }
+                          aria-label="Reset name"
+                          className="shrink-0"
+                        >
+                          <Undo2Icon className="h-3.5 w-3.5" />
+                        </IconButton>
+                      )}
+                    </div>
                   )}
-                  <Button variant="secondary" size="sm" disabled>
-                    <PlusIcon className="h-3.5 w-3.5" />
-                    Copy
-                  </Button>
+                  {editForm.id === -1 ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        if (preCopyFormRef.current) {
+                          setEditForm(preCopyFormRef.current)
+                          preCopyFormRef.current = null
+                        }
+                      }}
+                    >
+                      <Undo2Icon className="h-3.5 w-3.5" />
+                      Revert
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() =>
+                        setEditForm((prev) => {
+                          if (!prev) return prev
+                          preCopyFormRef.current = prev
+                          return { ...prev, id: -1, name: `${prev.name} Copy` }
+                        })
+                      }
+                    >
+                      <PlusIcon className="h-3.5 w-3.5" />
+                      Copy
+                    </Button>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-6">
@@ -840,16 +918,16 @@ export function ParkFactorsSection({
                 <div className="flex flex-col gap-2">
                   <h3>Limits</h3>
                   <div className="flex flex-wrap gap-3">
-                    {LIMIT_FIELDS.map(({ field, label, className, min, displayOffset = 0 }) => {
-                      const defaultVal = BBQ_DEFAULT[field as keyof typeof BBQ_DEFAULT] as number
-                      const dirty = editForm.name === "Default" && editForm[field] !== defaultVal
+                    {LIMIT_FIELDS.map(({ field, label, className, min, max, step, displayOffset = 0 }) => {
+                      const baselineVal = editBaseline ? editBaseline[field] as number : null
+                      const dirty = baselineVal !== null && editForm[field] !== baselineVal
                       return (
                         <FieldWithUndo
                           key={field}
                           dirty={dirty}
                           onUndo={() =>
                             setEditForm((prev) =>
-                              prev ? { ...prev, [field]: defaultVal } : prev,
+                              prev && baselineVal !== null ? { ...prev, [field]: baselineVal } : prev,
                             )
                           }
                         >
@@ -859,6 +937,8 @@ export function ParkFactorsSection({
                               size="sm"
                               type="number"
                               min={min}
+                              max={max}
+                              step={step ?? 1}
                               className={className}
                               value={(editForm[field] as number) + displayOffset}
                               onChange={(e) => {
@@ -924,13 +1004,13 @@ export function ParkFactorsSection({
                     <div className="flex flex-col">
                       <FieldWithUndo
                         dirty={
-                          editForm.name === "Default" &&
-                          isColorDirty(editForm[maxKey], BBQ_DEFAULT[maxKey])
+                          editBaseline !== null &&
+                          isColorDirty(editForm[maxKey], editBaseline[maxKey])
                         }
                         onUndo={() =>
                           setEditForm((prev) =>
-                            prev
-                              ? { ...prev, [maxKey]: { ...BBQ_DEFAULT[maxKey] } }
+                            prev && editBaseline
+                              ? { ...prev, [maxKey]: { ...editBaseline[maxKey] } }
                               : prev,
                           )
                         }
@@ -988,18 +1068,18 @@ export function ParkFactorsSection({
                           Pivot
                         </label>
 
-                        {editForm.name === "Default" &&
-                          (isColorDirty(editForm[avgKey], BBQ_DEFAULT[avgKey]) ||
-                            editForm.isPivot !== BBQ_DEFAULT.isPivot) && (
+                        {editBaseline !== null &&
+                          (isColorDirty(editForm[avgKey], editBaseline[avgKey]) ||
+                            editForm.isPivot !== editBaseline.isPivot) && (
                             <IconButton
                               size="sm"
                               onClick={() =>
                                 setEditForm((prev) =>
-                                  prev
+                                  prev && editBaseline
                                     ? {
                                         ...prev,
-                                        [avgKey]: { ...BBQ_DEFAULT[avgKey] },
-                                        isPivot: BBQ_DEFAULT.isPivot,
+                                        [avgKey]: { ...editBaseline[avgKey] },
+                                        isPivot: editBaseline.isPivot,
                                       }
                                     : prev,
                                 )
@@ -1016,13 +1096,13 @@ export function ParkFactorsSection({
 
                       <FieldWithUndo
                         dirty={
-                          editForm.name === "Default" &&
-                          isColorDirty(editForm[minKey], BBQ_DEFAULT[minKey])
+                          editBaseline !== null &&
+                          isColorDirty(editForm[minKey], editBaseline[minKey])
                         }
                         onUndo={() =>
                           setEditForm((prev) =>
-                            prev
-                              ? { ...prev, [minKey]: { ...BBQ_DEFAULT[minKey] } }
+                            prev && editBaseline
+                              ? { ...prev, [minKey]: { ...editBaseline[minKey] } }
                               : prev,
                           )
                         }
@@ -1040,6 +1120,33 @@ export function ParkFactorsSection({
                       </FieldWithUndo>
                     </div>
                   </div>
+                  <FieldWithUndo
+                    dirty={editBaseline !== null && editForm[curveKey] !== editBaseline[curveKey]}
+                    onUndo={() =>
+                      setEditForm((prev) =>
+                        prev && editBaseline ? { ...prev, [curveKey]: editBaseline[curveKey] } : prev,
+                      )
+                    }
+                  >
+                    <label className="flex flex-col gap-1 text-sm">
+                      <span className="text-muted-foreground">Curve</span>
+                      <Input
+                        size="sm"
+                        type="number"
+                        min={0.1}
+                        max={10}
+                        step={0.1}
+                        className="w-16"
+                        value={editForm[curveKey]}
+                        onChange={(e) => {
+                          const stored = Math.max(0.1, Math.min(10, Number(e.target.value)))
+                          setEditForm((prev) =>
+                            prev ? { ...prev, [curveKey]: stored } : prev,
+                          )
+                        }}
+                      />
+                    </label>
+                  </FieldWithUndo>
                 </div>
 
                 {/* Preview */}
@@ -1060,35 +1167,38 @@ export function ParkFactorsSection({
           </DrawerBody>
           <DrawerFooter>
             <div className="flex w-full items-center justify-between">
-              {editForm?.name === "Default" && isAnyDirty(editForm) ? (
+              {editForm && editBaseline && isAnyDirty(editForm, editBaseline) ? (
                 <Button
                   variant="subtle"
                   size="sm"
                   onClick={() =>
                     setEditForm((prev) =>
-                      prev
+                      prev && editBaseline
                         ? {
                             ...prev,
-                            min: BBQ_DEFAULT.min,
-                            max: BBQ_DEFAULT.max,
-                            avg: BBQ_DEFAULT.avg,
-                            increments: BBQ_DEFAULT.increments,
-                            isPivot: BBQ_DEFAULT.isPivot,
-                            minColor: { ...BBQ_DEFAULT.minColor },
-                            avgColor: { ...BBQ_DEFAULT.avgColor },
-                            maxColor: { ...BBQ_DEFAULT.maxColor },
-                            minDarkColor: { ...BBQ_DEFAULT.minDarkColor },
-                            avgDarkColor: { ...BBQ_DEFAULT.avgDarkColor },
-                            maxDarkColor: { ...BBQ_DEFAULT.maxDarkColor },
+                            name: editBaseline.name,
+                            min: editBaseline.min,
+                            max: editBaseline.max,
+                            avg: editBaseline.avg,
+                            increments: editBaseline.increments,
+                            isPivot: editBaseline.isPivot,
+                            curve: editBaseline.curve,
+                            curveDark: editBaseline.curveDark,
+                            minColor: { ...editBaseline.minColor },
+                            avgColor: { ...editBaseline.avgColor },
+                            maxColor: { ...editBaseline.maxColor },
+                            minDarkColor: { ...editBaseline.minDarkColor },
+                            avgDarkColor: { ...editBaseline.avgDarkColor },
+                            maxDarkColor: { ...editBaseline.maxDarkColor },
                           }
                         : prev,
                     )
                   }
                 >
                   <Undo2Icon className="h-3.5 w-3.5" />
-                  Clear Overrides
-                  {hasLightColorOverrides(editForm) && <SunIcon className="h-3.5 w-3.5" />}
-                  {hasDarkColorOverrides(editForm) && <MoonIcon className="h-3.5 w-3.5" />}
+                  {editForm.name === "Default" ? "Clear Overrides" : "Clear Changes"}
+                  {hasLightColorOverrides(editForm, editBaseline) && <SunIcon className="h-3.5 w-3.5" />}
+                  {hasDarkColorOverrides(editForm, editBaseline) && <MoonIcon className="h-3.5 w-3.5" />}
                 </Button>
               ) : (
                 <div />
@@ -1278,31 +1388,33 @@ function isColorDirty(a: OklchColorData, b: OklchColorData): boolean {
   )
 }
 
-function hasLightColorOverrides(form: HeatMapData): boolean {
+function hasLightColorOverrides(form: HeatMapData, baseline: HeatMapData): boolean {
   return (
-    isColorDirty(form.minColor, BBQ_DEFAULT.minColor) ||
-    isColorDirty(form.avgColor, BBQ_DEFAULT.avgColor) ||
-    isColorDirty(form.maxColor, BBQ_DEFAULT.maxColor)
+    isColorDirty(form.minColor, baseline.minColor) ||
+    isColorDirty(form.avgColor, baseline.avgColor) ||
+    isColorDirty(form.maxColor, baseline.maxColor)
   )
 }
 
-function hasDarkColorOverrides(form: HeatMapData): boolean {
+function hasDarkColorOverrides(form: HeatMapData, baseline: HeatMapData): boolean {
   return (
-    isColorDirty(form.minDarkColor, BBQ_DEFAULT.minDarkColor) ||
-    isColorDirty(form.avgDarkColor, BBQ_DEFAULT.avgDarkColor) ||
-    isColorDirty(form.maxDarkColor, BBQ_DEFAULT.maxDarkColor)
+    isColorDirty(form.minDarkColor, baseline.minDarkColor) ||
+    isColorDirty(form.avgDarkColor, baseline.avgDarkColor) ||
+    isColorDirty(form.maxDarkColor, baseline.maxDarkColor)
   )
 }
 
-function isAnyDirty(form: HeatMapData): boolean {
-  if (form.name !== "Default") return false
+function isAnyDirty(form: HeatMapData, baseline: HeatMapData): boolean {
   return (
-    form.min !== BBQ_DEFAULT.min ||
-    form.max !== BBQ_DEFAULT.max ||
-    form.avg !== BBQ_DEFAULT.avg ||
-    form.increments !== BBQ_DEFAULT.increments ||
-    form.isPivot !== BBQ_DEFAULT.isPivot ||
-    hasLightColorOverrides(form) ||
-    hasDarkColorOverrides(form)
+    form.name !== baseline.name ||
+    form.min !== baseline.min ||
+    form.max !== baseline.max ||
+    form.avg !== baseline.avg ||
+    form.increments !== baseline.increments ||
+    form.isPivot !== baseline.isPivot ||
+    form.curve !== baseline.curve ||
+    form.curveDark !== baseline.curveDark ||
+    hasLightColorOverrides(form, baseline) ||
+    hasDarkColorOverrides(form, baseline)
   )
 }

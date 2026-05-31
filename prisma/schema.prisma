@@ -450,6 +450,9 @@ model HeatMap {
   increments     Int
   /// When true, avg point uses avgColor as the pivot; min hue used for first half, max hue for second half.
   isPivot        Boolean    @default(false) @map("is_pivot")
+  /// Power curve exponent k; t' = t^(1/k). k=1 is linear; k>1 spreads colors near the extremes.
+  curve          Float      @default(1) @map("curve")
+  curveDark      Float      @default(3) @map("curve_dark")
   minColorId     Int        @map("min_color_id")
   avgColorId     Int        @map("avg_color_id")
   maxColorId     Int        @map("max_color_id")

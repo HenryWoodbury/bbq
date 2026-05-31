@@ -1,8 +1,8 @@
 "use client"
 
-import { ChevronLeftIcon, Trash2Icon, Undo2Icon } from "lucide-react"
+import { ChevronLeftIcon, Undo2Icon } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { Suspense, use, useState } from "react"
+import { Suspense, use, useRef, useState } from "react"
 import type { UniverseSearchResult } from "@/app/api/admin/players/universe-search/route"
 import { PlayerAddIcon } from "@/components/icons"
 import {
@@ -12,7 +12,6 @@ import {
   type StatsFilter,
 } from "@/components/players-table"
 import { Button } from "@/components/ui/button"
-import { FormError } from "@/components/ui/field"
 import {
   Drawer,
   DrawerBody,
@@ -22,6 +21,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer"
+import { FormError } from "@/components/ui/field"
 import { IconButton } from "@/components/ui/icon-button"
 import { Input } from "@/components/ui/input"
 import { showToast } from "@/components/ui/sonner"
@@ -74,6 +74,25 @@ function rowToOverride(row: PlayerRow): OverrideFields {
   }
 }
 
+function rowToBaseline(row: PlayerRow): OverrideFields {
+  if (row.isManual || !row.baseFields) return rowToOverride(row)
+  const bf = row.baseFields
+  return {
+    displayName: bf.displayName,
+    firstName: bf.firstName ?? "",
+    lastName: bf.lastName ?? "",
+    nickname: "",
+    birthday: bf.birthday ?? "",
+    team: bf.team ?? "",
+    mlbLevel: bf.mlbLevel ?? "",
+    league: bf.league ?? "",
+    active: bf.active,
+    bats: bf.bats ?? "",
+    throws: bf.throws ?? "",
+    positions: bf.positions.join("/"),
+  }
+}
+
 function nullify(s: string): string | null {
   return s.trim() || null
 }
@@ -98,46 +117,33 @@ function buildOverridePayload(fields: OverrideFields) {
 function EditOverrideDrawer({
   row,
   onClose,
-  onRemoveManual,
 }: {
   row: PlayerRow
   onClose: () => void
-  onRemoveManual?: () => void
 }) {
   const router = useRouter()
   const [fields, setFields] = useState<OverrideFields>(rowToOverride(row))
+  const baseline = useRef<OverrideFields>(rowToBaseline(row))
   const [status, setStatus] = useState<"idle" | "saving" | "error">("idle")
   const [error, setError] = useState("")
 
   function isDirty(key: OverrideStringKey): boolean {
-    if (!row.baseFields) return false
-    return (nullify(fields[key]) ?? null) !== (row.baseFields[key] ?? null)
+    return (nullify(fields[key]) ?? null) !== (nullify(baseline.current[key]) ?? null)
   }
 
   function isDirtyActive(): boolean {
-    if (!row.baseFields) return false
-    return fields.active !== row.baseFields.active
+    return fields.active !== baseline.current.active
   }
 
   function isDirtyPositions(): boolean {
-    if (!row.baseFields) return false
     return (
       parsePositions(fields.positions).join("/") !==
-      row.baseFields.positions.join("/")
+      parsePositions(baseline.current.positions).join("/")
     )
   }
 
   function clearField(key: keyof OverrideFields) {
-    if (key === "active") {
-      set("active", row.baseFields?.active ?? null)
-    } else if (key === "nickname") {
-      set("nickname", "")
-    } else if (key === "positions") {
-      set("positions", (row.baseFields?.positions ?? []).join("/"))
-    } else {
-      const k = key as OverrideStringKey
-      set(k, row.baseFields?.[k] ?? "")
-    }
+    set(key, baseline.current[key])
   }
 
   function set<K extends keyof OverrideFields>(key: K, val: OverrideFields[K]) {
@@ -159,7 +165,7 @@ function EditOverrideDrawer({
     return (
       stringKeys.some((k) => isDirty(k)) ||
       isDirtyActive() ||
-      !!nullify(fields.nickname) ||
+      (nullify(fields.nickname) ?? null) !== (nullify(baseline.current.nickname) ?? null) ||
       isDirtyPositions()
     )
   }
@@ -269,9 +275,7 @@ function EditOverrideDrawer({
     <DrawerContent width="w-150">
       <DrawerHeader onClose={onClose}>
         <DrawerTitle>
-          {row.isManual
-            ? "Edit Manually Added Player"
-            : "Override Player Profile"}
+          {row.isManual ? "Edit Added Player" : "Override Player Profile"}
         </DrawerTitle>
       </DrawerHeader>
 
@@ -280,49 +284,36 @@ function EditOverrideDrawer({
         <PlayerFormGrid
           fields={fields}
           onChange={set}
-          undo={
-            row.isManual
-              ? undefined
-              : {
-                  isDirty,
-                  isDirtyActive,
-                  isDirtyPositions,
-                  clearField,
-                  hasNickname: !!nullify(fields.nickname),
-                }
-          }
+          includeNullActive={row.isManual}
+          undo={{
+            isDirty,
+            isDirtyActive,
+            isDirtyPositions,
+            clearField,
+            hasNickname:
+              (nullify(fields.nickname) ?? null) !==
+              (nullify(baseline.current.nickname) ?? null),
+          }}
         />
         {error && <FormError className="mt-3">{error}</FormError>}
       </DrawerBody>
 
       <DrawerFooter className="flex items-center justify-between gap-2">
         <div>
-          {row.isManual ? (
+          {isAnyDirty() && (
             <Button
               variant="subtle"
               size="md"
-              onClick={onRemoveManual}
+              onClick={() => {
+                ;(
+                  Object.keys(emptyOverride()) as (keyof OverrideFields)[]
+                ).forEach(clearField)
+              }}
               disabled={status === "saving"}
             >
-              <Trash2Icon />
-              Remove Player
+              <Undo2Icon />
+              {row.isManual ? "Clear Changes" : "Clear Overrides"}
             </Button>
-          ) : (
-            isAnyDirty() && (
-              <Button
-                variant="subtle"
-                size="md"
-                onClick={() => {
-                  ;(
-                    Object.keys(emptyOverride()) as (keyof OverrideFields)[]
-                  ).forEach(clearField)
-                }}
-                disabled={status === "saving"}
-              >
-                <Undo2Icon />
-                Clear Overrides
-              </Button>
-            )
           )}
         </div>
         <div className="flex gap-2">
@@ -694,10 +685,6 @@ export function PlayersTableAdmin({
             key={editingRow.id}
             row={editingRow}
             onClose={() => setEditingRow(null)}
-            onRemoveManual={() => {
-              scheduleManualDelete(editingRow)
-              setEditingRow(null)
-            }}
           />
         )}
       </Drawer>

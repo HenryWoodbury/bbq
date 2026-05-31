@@ -12,6 +12,7 @@ import { toISODate } from "@/lib/date"
 import { prisma } from "@/lib/prisma"
 import { deduplicatePitcherSplits, PROJECTION_MAP, SPLIT_MAP } from "@/lib/stat-maps"
 import { deriveLeagueFromTeam, deriveLevelFromFgId } from "@/lib/team-codes"
+import { flatPositions } from "@/lib/positions"
 import { PlayerPageTabs, type Tab } from "./player-page-tabs"
 import { PlayerProfilesSection } from "./player-profiles-section"
 import { PlayerStatsSection } from "./player-stats-section"
@@ -152,7 +153,7 @@ async function PlayersTableSection({
           throws: true,
           universe: {
             where: { format: "ottoneu", deletedAt: null },
-            select: { positions: true, fangraphsId: true },
+            select: { positions: true, fangraphsId: true, ottoneuId: true },
             take: 1,
           },
           override: {
@@ -299,14 +300,14 @@ async function PlayersTableSection({
 
   const playerRows: PlayerRow[] = players.map((p) => {
     const ov = p.override?.deletedAt ? null : p.override
-    const canonicalPositions = p.universe[0]?.positions ?? []
+    const canonicalPositions = flatPositions(p.universe[0]?.positions ?? [])
     const baseTeam = p.team
     const baseFgId = p.fangraphsId ?? p.universe[0]?.fangraphsId
     const derivedLevel = deriveLevelFromFgId(baseFgId ?? null) || null
     const derivedLeague = deriveLeagueFromTeam(baseTeam ?? null)
     return {
       id: p.id,
-      ottoneuId: p.ottoneuId,
+      ottoneuId: p.ottoneuId ?? p.universe[0]?.ottoneuId ?? null,
       // Display name: override.displayName > fgSpecialChar > playerName
       playerName: p.playerName,
       fgSpecialChar: ov?.displayName ?? p.fgSpecialChar,
@@ -322,7 +323,7 @@ async function PlayersTableSection({
       bats: ov?.bats ?? p.bats,
       throws: ov?.throws ?? p.throws,
       ottoneuPositions: ov?.positions?.length
-        ? ov.positions
+        ? flatPositions(ov.positions)
         : canonicalPositions,
       universeFgId: p.universe[0]?.fangraphsId ?? null,
       overrideId: ov?.id ?? null,
@@ -363,7 +364,7 @@ async function PlayersTableSection({
     fangraphsId: o.fangraphsId,
     bats: o.bats,
     throws: o.throws,
-    ottoneuPositions: o.positions?.length ? o.positions : [],
+    ottoneuPositions: flatPositions(o.positions),
     universeFgId: null,
     overrideId: o.id,
     isManual: true,

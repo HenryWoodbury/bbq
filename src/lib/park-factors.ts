@@ -1,5 +1,5 @@
 import { csvEscape } from "./csv"
-import { SAVANT_TEAM_TO_ABBREV } from "./team-codes"
+import { SAVANT_TEAM_TO_ABBREV, VENUE_TO_ABBREV } from "./team-codes"
 
 export type ParkFactorRow = {
   venueName: string
@@ -91,7 +91,10 @@ export function toCsv(rows: DisplayRow[]): string {
   ]
   const lines = [headers.join(",")]
   for (const row of rows) {
-    const abbr = row.teamName ? (SAVANT_TEAM_TO_ABBREV[row.teamName] ?? "") : ""
+    const abbr =
+      (row.teamName && SAVANT_TEAM_TO_ABBREV[row.teamName]) ||
+      VENUE_TO_ABBREV[row.venueName] ||
+      ""
     lines.push(
       [
         abbr,

@@ -44,7 +44,49 @@ export const SAVANT_TEAM_TO_ABBREV: Record<string, string> = {
   "Tampa Bay Rays": "TBR",
   "Texas Rangers": "TEX",
   "Toronto Blue Jays": "TOR",
-  "Washington Nationals": "WAS",
+  "Washington Nationals": "WSN",
+}
+
+// Maps Baseball Savant venue_name values to canonical SFBB abbreviations.
+// Update when a ballpark is renamed (naming rights changes).
+export const VENUE_TO_ABBREV: Record<string, string> = {
+  // AL East
+  "Oriole Park at Camden Yards": "BAL",
+  "Fenway Park": "BOS",
+  "Yankee Stadium": "NYY",
+  "Tropicana Field": "TBR",
+  "Rogers Centre": "TOR",
+  // AL Central
+  "Guaranteed Rate Field": "CHW",
+  "Progressive Field": "CLE",
+  "Comerica Park": "DET",
+  "Kauffman Stadium": "KCR",
+  "Target Field": "MIN",
+  // AL West
+  "Minute Maid Park": "HOU",
+  "Angel Stadium": "LAA",
+  "Oakland Coliseum": "ATH",
+  "Sutter Health Park": "ATH",
+  "T-Mobile Park": "SEA",
+  "Globe Life Field": "TEX",
+  // NL East
+  "Truist Park": "ATL",
+  "loanDepot park": "MIA",
+  "Citi Field": "NYM",
+  "Citizens Bank Park": "PHI",
+  "Nationals Park": "WSN",
+  // NL Central
+  "Wrigley Field": "CHC",
+  "Great American Ball Park": "CIN",
+  "American Family Field": "MIL",
+  "PNC Park": "PIT",
+  "Busch Stadium": "STL",
+  // NL West
+  "Chase Field": "ARI",
+  "Coors Field": "COL",
+  "Dodger Stadium": "LAD",
+  "Petco Park": "SDP",
+  "Oracle Park": "SFG",
 }
 
 // Maps non-SFBB abbreviations to canonical SFBB equivalents.

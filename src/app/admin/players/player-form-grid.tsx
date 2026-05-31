@@ -102,6 +102,7 @@ export type PlayerFormGridProps = {
   ) => void
   undo?: UndoControls
   autoFocusDisplayName?: boolean
+  includeNullActive?: boolean
 }
 
 function FieldWithUndo({
@@ -132,6 +133,7 @@ export function PlayerFormGrid({
   onChange,
   undo,
   autoFocusDisplayName,
+  includeNullActive,
 }: PlayerFormGridProps) {
   const nicknamePlaceholder = useRef(
     `e.g. ${NICKNAMES[Math.floor(Math.random() * NICKNAMES.length)]}`,
@@ -199,7 +201,7 @@ export function PlayerFormGrid({
             }
             className="flex-1"
           >
-            {!undo && <option value="">—</option>}
+            {(!undo || includeNullActive) && <option value="">—</option>}
             <option value="true">Yes</option>
             <option value="false">No</option>
           </Select>

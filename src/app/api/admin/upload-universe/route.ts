@@ -73,14 +73,12 @@ export async function POST(request: NextRequest) {
     Object.entries(COL).map(([key, col]) => [key, headers.indexOf(col)]),
   ) as Record<keyof typeof COL, number>
 
-  if (idx.ottoneuId === -1 || idx.playerName === -1) {
-    const missing = (Object.entries(COL) as [keyof typeof COL, string][])
-      .filter(
-        ([key]) =>
-          idx[key] === -1 && (key === "ottoneuId" || key === "playerName"),
-      )
-      .map(([, col]) => col)
-      .join(", ")
+  const REQUIRED_COLS = new Set<keyof typeof COL>(["ottoneuId", "playerName", "positions"])
+  const missing = (Object.entries(COL) as [keyof typeof COL, string][])
+    .filter(([key]) => REQUIRED_COLS.has(key) && idx[key] === -1)
+    .map(([, col]) => col)
+    .join(", ")
+  if (missing) {
     return NextResponse.json(
       {
         error: `Missing required columns: ${missing}. Found: ${headers.slice(0, 10).join(", ")}`,

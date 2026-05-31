@@ -103,7 +103,9 @@ function ColorInput({ label, value, onChange, size = "sm", colorSpace = "oklch" 
     setDrafts((d) => ({ ...d, [key]: raw }))
     const n = Number(raw)
     if (!Number.isNaN(n) && raw !== "" && raw !== "-" && !raw.endsWith(".")) {
-      const stored = key === "alpha" ? n / 100 : n
+      const fieldDef = OKLCH_FIELD_DEFS.find((f) => f.key === key)
+      const clamped = fieldDef ? Math.min(Math.max(n, fieldDef.min), fieldDef.max) : n
+      const stored = key === "alpha" ? clamped / 100 : clamped
       onChange({ ...value, [key]: stored })
     }
   }
@@ -113,6 +115,12 @@ function ColorInput({ label, value, onChange, size = "sm", colorSpace = "oklch" 
     if (Number.isNaN(n) || drafts[key] === "") {
       const current = key === "alpha" ? value.alpha * 100 : value[key as keyof OklchColorData]
       setDrafts((d) => ({ ...d, [key]: String(current) }))
+      return
+    }
+    const fieldDef = OKLCH_FIELD_DEFS.find((f) => f.key === key)
+    if (fieldDef) {
+      const clamped = Math.min(Math.max(n, fieldDef.min), fieldDef.max)
+      if (clamped !== n) setDrafts((d) => ({ ...d, [key]: String(clamped) }))
     }
   }
 

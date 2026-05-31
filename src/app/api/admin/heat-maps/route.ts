@@ -10,8 +10,8 @@ const oklchColorSchema = z.object({
   alpha: z.number(),
 })
 
-const patchSchema = z.object({
-  name: z.string().min(1),
+const postSchema = z.object({
+  name: z.string().min(1).max(24),
   min: z.number(),
   max: z.number(),
   avg: z.number(),
@@ -27,19 +27,11 @@ const patchSchema = z.object({
   maxDarkColor: oklchColorSchema,
 })
 
-type RouteContext = { params: Promise<{ id: string }> }
-
-export async function PATCH(req: NextRequest, { params }: RouteContext) {
+export async function POST(req: NextRequest) {
   await assertAdmin()
 
-  const { id: idStr } = await params
-  const id = Number(idStr)
-  if (Number.isNaN(id)) {
-    return NextResponse.json({ error: "Invalid id" }, { status: 400 })
-  }
-
   const body = await req.json().catch(() => null)
-  const parsed = patchSchema.safeParse(body)
+  const parsed = postSchema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
@@ -47,8 +39,7 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
   const { name, min, max, avg, increments, isPivot, curve, curveDark, minColor, avgColor, maxColor, minDarkColor, avgDarkColor, maxDarkColor } = parsed.data
 
   try {
-    await prisma.heatMap.update({
-      where: { id },
+    const heatMap = await prisma.heatMap.create({
       data: {
         name,
         min,
@@ -58,17 +49,24 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
         isPivot,
         curve,
         curveDark,
-        minColor: { update: minColor },
-        avgColor: { update: avgColor },
-        maxColor: { update: maxColor },
-        minDarkColor: { update: minDarkColor },
-        avgDarkColor: { update: avgDarkColor },
-        maxDarkColor: { update: maxDarkColor },
+        minColor: { create: minColor },
+        avgColor: { create: avgColor },
+        maxColor: { create: maxColor },
+        minDarkColor: { create: minDarkColor },
+        avgDarkColor: { create: avgDarkColor },
+        maxDarkColor: { create: maxDarkColor },
       },
     })
-  } catch {
-    return NextResponse.json({ error: "Heat map not found" }, { status: 404 })
+    return NextResponse.json({ id: heatMap.id, name: heatMap.name }, { status: 201 })
+  } catch (err) {
+    if (
+      typeof err === "object" &&
+      err !== null &&
+      "code" in err &&
+      (err as { code: string }).code === "P2002"
+    ) {
+      return NextResponse.json({ error: `A heat map named "${name}" already exists` }, { status: 409 })
+    }
+    throw err
   }
-
-  return NextResponse.json({ success: true })
 }

@@ -68,6 +68,8 @@ const DEFAULT: HeatMapData = {
   avg: 100,
   increments: 20,
   isPivot: true,
+  curve: 1,
+  curveDark: 1,
   minColor: BLUE,
   avgColor: WHITE,
   maxColor: RED,
@@ -98,6 +100,8 @@ const CUSTOM: HeatMapData = {
   avg: 100,
   increments: 10,
   isPivot: true,
+  curve: 1,
+  curveDark: 1,
   minColor: GREEN,
   avgColor: WHITE,
   maxColor: ORANGE,
@@ -309,5 +313,69 @@ describe("getHeatMapStyle — continuous mode (isPivot=false)", () => {
   it("midpoint (100) is not white — avg is not a pivot", () => {
     const { l } = components(100, CONTINUOUS)
     expect(l).not.toBeCloseTo(1, 1)
+  })
+})
+
+// ── Power curve ────────────────────────────────────────────────────────────────
+
+describe("getHeatMapStyle — power curve (k=2, continuous)", () => {
+  const CURVED: HeatMapData = { ...CONTINUOUS, curve: 2 }
+
+  it("min (90) is unchanged", () => {
+    expectColor(90, CURVED, BLUE)
+  })
+
+  it("max (110) is unchanged", () => {
+    expectColor(110, CURVED, RED)
+  })
+
+  it("value 95 (step=5/20, t=0.25 → t'=0.25^0.5=0.5 curved)", () => {
+    const { l } = components(95, CURVED)
+    const tPrime = Math.pow(0.25, 0.5) // 0.5
+    expect(l).toBeCloseTo(BLUE.lightness + tPrime * (RED.lightness - BLUE.lightness), 3)
+  })
+
+  it("k=1 matches linear", () => {
+    const { l: lLinear } = components(95, CONTINUOUS)
+    const { l: lCurved } = components(95, { ...CONTINUOUS, curve: 1 })
+    expect(lLinear).toBeCloseTo(lCurved, 5)
+  })
+})
+
+describe("getHeatMapStyle — power curve (k=2, pivot)", () => {
+  // DEFAULT: blue→white→red, 90–110, avg 100, 20 increments (10 steps per side)
+  const CURVED: HeatMapData = { ...DEFAULT, curve: 2 }
+
+  it("min (90) and max (110) are unchanged", () => {
+    expectColor(90, CURVED, BLUE)
+    expectColor(110, CURVED, RED)
+  })
+
+  it("lower half: value 95 (step 5 of 10) measures distFromAvg=0.5 → t'=1-√0.5≈0.293", () => {
+    // distFromAvg = (10-5)/10 = 0.5; applyCurve(0.5, 2) = √0.5 ≈ 0.707; t_lerp = 1 - 0.707 ≈ 0.293
+    const { l } = components(95, CURVED)
+    const tLerp = 1 - Math.pow(0.5, 0.5)
+    expect(l).toBeCloseTo(BLUE.lightness + tLerp * (1 - BLUE.lightness), 3)
+  })
+
+  it("upper half: value 105 (step 5 of 10 from avg) measures distFromAvg=0.5 → t'=√0.5≈0.707", () => {
+    // t = (step-stepsToAvg)/stepsFromAvg = 5/10 = 0.5; applyCurve(0.5, 2) = √0.5 ≈ 0.707
+    const { l } = components(105, CURVED)
+    const tLerp = Math.pow(0.5, 0.5)
+    expect(l).toBeCloseTo(1 + tLerp * (RED.lightness - 1), 3)
+  })
+
+  it("lower and upper halves are symmetric at equidistant points from avg (k=2)", () => {
+    const { l: lBelow } = components(95, CURVED)
+    const { l: lAbove } = components(105, CURVED)
+    // Both are 5 steps from avg; curve applied identically → same L if min/max lightness are symmetric
+    // Here BLUE.lightness ≈ 0.4959, RED.lightness ≈ 0.5063, so ~equal
+    expect(Math.abs(lBelow - lAbove)).toBeLessThan(0.02)
+  })
+
+  it("k=1 pivot matches original linear behaviour", () => {
+    const { l: lLinear } = components(95, DEFAULT)
+    const { l: lCurved } = components(95, { ...DEFAULT, curve: 1 })
+    expect(lLinear).toBeCloseTo(lCurved, 5)
   })
 })
