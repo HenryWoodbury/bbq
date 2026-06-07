@@ -121,7 +121,7 @@ function FieldWithUndo({
       {children}
       {dirty && (
         <IconButton onClick={onUndo} aria-label={`Clear ${label} override`}>
-          <Undo2Icon className="h-3.5 w-3.5" />
+          <Undo2Icon />
         </IconButton>
       )}
     </div>

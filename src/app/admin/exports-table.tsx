@@ -199,7 +199,7 @@ function EditDrawer({ row }: { row: ExportRow }) {
           aria-label={`Edit ${row.name}`}
           onClick={() => setOpen(true)}
         >
-          <PencilIcon className="h-3.5 w-3.5" />
+          <PencilIcon />
         </IconButton>
       </DrawerTrigger>
       {open && (
@@ -241,7 +241,7 @@ function DeleteButton({ row }: { row: ExportRow }) {
       aria-label={`Delete ${row.name}`}
       className="hover:text-destructive"
     >
-      <Trash2Icon className="h-3.5 w-3.5" />
+      <Trash2Icon />
     </IconButton>
   )
 }

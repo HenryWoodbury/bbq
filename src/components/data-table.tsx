@@ -191,7 +191,7 @@ export function DataTable<T>({
               disabled={!canPrev}
               aria-label="Previous page"
             >
-              <ChevronLeftIcon className="h-4 w-4" />
+              <ChevronLeftIcon />
             </IconButton>
             <span className="tabular-nums">
               {pageCount === 0 ? "—" : `${pageIndex + 1} / ${pageCount}`}
@@ -201,7 +201,7 @@ export function DataTable<T>({
               disabled={!canNext}
               aria-label="Next page"
             >
-              <ChevronRightIcon className="h-4 w-4" />
+              <ChevronRightIcon />
             </IconButton>
           </div>
 

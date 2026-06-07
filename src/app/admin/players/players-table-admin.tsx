@@ -493,7 +493,7 @@ function AddManualDrawer({ onClose }: { onClose: () => void }) {
                 className="flex items-center gap-1"
                 aria-label="Return to search"
               >
-                <ChevronLeftIcon className="h-4 w-4" />
+                <ChevronLeftIcon />
               </IconButton>
               <h2>{fields.displayName}</h2>
             </div>

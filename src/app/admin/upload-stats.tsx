@@ -278,7 +278,7 @@ export function UploadStats({
             title="Delete"
             onClick={() => scheduleDelete(row.original.id)}
           >
-            <Trash2Icon className="h-4 w-4" />
+            <Trash2Icon />
           </IconButton>
         </div>
       ),
@@ -422,7 +422,7 @@ export function UploadStats({
                         triggerDismiss(row.id, () => removeRow(row.id))
                       }
                     >
-                      <XIcon className="h-4 w-4" />
+                      <XIcon />
                     </IconButton>
                   </div>
                 </div>

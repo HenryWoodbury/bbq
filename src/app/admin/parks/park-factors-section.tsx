@@ -3,23 +3,25 @@
 import type { ColumnDef } from "@tanstack/react-table"
 import {
   ArrowUpDownIcon,
+  CopyPlusIcon,
   DownloadIcon,
+  EllipsisVerticalIcon,
   MoonIcon,
   PencilIcon,
-  PlusIcon,
   SunIcon,
   Trash2Icon,
   Undo2Icon,
+  XIcon,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import type React from "react"
 import { type ReactNode, useRef, useState } from "react"
+import { HexColorPicker } from "react-colorful"
 import { DataTable } from "@/components/data-table"
 import { FilterGroup } from "@/components/filter-group"
 import { type Theme, useTheme } from "@/components/theme-provider"
 import { Alert } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { EditInPlace, type EditInPlaceHandle } from "@/components/ui/edit-in-place"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ColorInput, type ColorSpace } from "@/components/ui/color-input"
 import {
@@ -37,13 +39,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  EditInPlace,
+  type EditInPlaceHandle,
+} from "@/components/ui/edit-in-place"
 import { IconButton } from "@/components/ui/icon-button"
 import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import { showToast } from "@/components/ui/sonner"
-import { triggerCsvDownload } from "@/lib/csv"
-import { HexColorPicker } from "react-colorful"
 import { hexToOklch, oklchToHex } from "@/lib/color"
+import { triggerCsvDownload } from "@/lib/csv"
 import {
   BBQ_DEFAULT,
   getConfigForTheme,
@@ -137,7 +142,13 @@ const LIMIT_FIELDS: {
   { field: "max", label: "Max", className: "w-20" },
   { field: "min", label: "Min", className: "w-20" },
   { field: "avg", label: "Avg", className: "w-20" },
-  { field: "increments", label: "Count", className: "w-16", min: 2, displayOffset: 1 },
+  {
+    field: "increments",
+    label: "Count",
+    className: "w-16",
+    min: 2,
+    displayOffset: 1,
+  },
 ]
 
 const COLUMNS: ColumnDef<DisplayRow, unknown>[] = [
@@ -214,6 +225,18 @@ function groupSyncs(records: SyncRecord[]): GroupedSync[] {
   return [...map.values()]
 }
 
+function cloneHeatMap(hm: HeatMapData): HeatMapData {
+  return {
+    ...hm,
+    minColor: { ...hm.minColor },
+    avgColor: { ...hm.avgColor },
+    maxColor: { ...hm.maxColor },
+    minDarkColor: { ...hm.minDarkColor },
+    avgDarkColor: { ...hm.avgDarkColor },
+    maxDarkColor: { ...hm.maxDarkColor },
+  }
+}
+
 export function ParkFactorsSection({
   recentRows,
   heatMaps,
@@ -255,25 +278,158 @@ export function ParkFactorsSection({
   const [saveState, setSaveState] = useState<SaveState>({ status: "idle" })
   const [previewEnabled, setPreviewEnabled] = useState(true)
   const [colorSpace, setColorSpace] = useState<ColorSpace>("oklch")
-  const [activePicker, setActivePicker] = useState<"min" | "max" | "avg" | null>(null)
+  const [activePicker, setActivePicker] = useState<
+    "min" | "max" | "avg" | null
+  >(null)
+  const [pendingDeleteIds, setPendingDeleteIds] = useState<Set<number>>(
+    () => new Set(),
+  )
 
-  const activeHeatMap = heatMaps.find((hm) => hm.name === heatMapOption) ?? null
+  const visibleHeatMaps = heatMaps.filter((hm) => !pendingDeleteIds.has(hm.id))
+
+  const activeHeatMap =
+    visibleHeatMaps.find((hm) => hm.name === heatMapOption) ?? null
   const displayHeatMap = previewEnabled && editForm ? editForm : activeHeatMap
-  const adjustedDisplayHeatMap = displayHeatMap ? getConfigForTheme(displayHeatMap, isDark) : null
+  const adjustedDisplayHeatMap = displayHeatMap
+    ? getConfigForTheme(displayHeatMap, isDark)
+    : null
 
   const minKey = editMode === "dark" ? "minDarkColor" : "minColor"
   const avgKey = editMode === "dark" ? "avgDarkColor" : "avgColor"
   const maxKey = editMode === "dark" ? "maxDarkColor" : "maxColor"
   const curveKey = editMode === "dark" ? "curveDark" : "curve"
 
-  const panelConfig = editForm ? getConfigForTheme(editForm, editMode === "dark") : null
+  const panelConfig = editForm
+    ? getConfigForTheme(editForm, editMode === "dark")
+    : null
 
-  const editBaseline: HeatMapData | null =
-    !editForm || editForm.id === -1
-      ? null
-      : editForm.name === "Default"
-        ? { ...BBQ_DEFAULT, id: editForm.id, name: "Default" }
-        : initialEditFormRef.current
+  // What the undo arrows / "Clear" button revert to. A new copy reverts to its
+  // origin (the map it was copied from) with the copy's "… Copy" name; Default
+  // reverts to the factory BBQ_DEFAULT; a saved map reverts to its loaded state.
+  function getEditBaseline(): HeatMapData | null {
+    if (!editForm) return null
+    if (editForm.id === -1) {
+      const origin = preCopyFormRef.current
+      return origin ? { ...origin, id: -1, name: `${origin.name} Copy` } : null
+    }
+    if (editForm.name === "Default") {
+      return { ...BBQ_DEFAULT, id: editForm.id, name: "Default" }
+    }
+    return initialEditFormRef.current
+  }
+  const editBaseline = getEditBaseline()
+
+  // Dirty = unsaved edits since the map was loaded. Compared against the
+  // loaded/saved state (not editBaseline, which for Default is the factory
+  // BBQ_DEFAULT), so saved Default overrides do not count as changes.
+  function isDirtyFromSaved(form: HeatMapData): boolean {
+    const saved = initialEditFormRef.current
+    return saved !== null && isAnyDirty(form, saved)
+  }
+
+  function loadEditForm(target: HeatMapData) {
+    const formState = cloneHeatMap(target)
+    initialEditFormRef.current = formState
+    setEditForm(formState)
+    preCopyFormRef.current = null
+    setSaveState({ status: "idle" })
+  }
+
+  function handleSwitchMap(name: string) {
+    const target = visibleHeatMaps.find((hm) => hm.name === name)
+    if (target) loadEditForm(target)
+  }
+
+  const switchDisabled =
+    !editForm || editForm.id === -1 || isDirtyFromSaved(editForm)
+
+  // Sync edit-in-place's in-progress name into the form, so a mid-edit rename is
+  // captured before copying or saving (shared by handleCopy and handleSave).
+  function commitLiveName(form: HeatMapData): HeatMapData {
+    const liveName = editInPlaceRef.current?.getCurrentValue()
+    editInPlaceRef.current?.commit()
+    return liveName !== undefined ? { ...form, name: liveName } : form
+  }
+
+  // Exit copy mode by restoring the origin the copy was made from.
+  function restorePreCopy() {
+    if (preCopyFormRef.current) {
+      setEditForm(preCopyFormRef.current)
+      preCopyFormRef.current = null
+    }
+  }
+
+  function handleCopy() {
+    if (!editForm) return
+    // The copy carries the origin's in-progress name into its "name + copy".
+    const origin = commitLiveName(editForm)
+    const dirty = isDirtyFromSaved(origin)
+    preCopyFormRef.current = origin
+    setEditForm({ ...origin, id: -1, name: `${origin.name} Copy` })
+    if (dirty) {
+      showToast({
+        title: "Your changes will be applied to the new heat map.",
+        action: {
+          label: "Go back",
+          icon: <Undo2Icon className="h-3.5 w-3.5" />,
+          onClick: restorePreCopy,
+        },
+      })
+    }
+  }
+
+  function handleDeleteHeatMap(target: HeatMapData) {
+    setPendingDeleteIds((prev) => new Set(prev).add(target.id))
+    setHeatMapOption((prev) => (prev === target.name ? "none" : prev))
+
+    let cancelled = false
+    let executed = false
+
+    function removePending() {
+      setPendingDeleteIds((prev) => {
+        const next = new Set(prev)
+        next.delete(target.id)
+        return next
+      })
+    }
+
+    async function execute() {
+      if (executed || cancelled) return
+      executed = true
+      const res = await fetch(`/api/admin/heat-maps/${target.id}`, {
+        method: "DELETE",
+      })
+      if (res.ok) {
+        router.refresh()
+        // Delete committed: if the drawer is still open on the now-gone map,
+        // return it to the Default heat map.
+        const defaultMap = heatMaps.find((hm) => hm.name === "Default")
+        if (defaultMap) {
+          const formState = cloneHeatMap(defaultMap)
+          initialEditFormRef.current = formState
+          preCopyFormRef.current = null
+          setSaveState({ status: "idle" })
+          setEditForm((prev) => (prev ? formState : prev))
+        }
+      } else {
+        removePending()
+        showToast.error(`Failed to delete the ${target.name} heat map.`)
+      }
+    }
+
+    showToast({
+      title: `You have deleted the ${target.name} heat map.`,
+      action: {
+        label: "Restore",
+        onClick: () => {
+          cancelled = true
+          removePending()
+        },
+      },
+      onDismiss: execute,
+      onAutoClose: execute,
+    })
+  }
 
   function handleEditModeChange(mode: "light" | "dark") {
     setEditMode(mode)
@@ -302,7 +458,8 @@ export function ParkFactorsSection({
   ): React.CSSProperties | undefined {
     if (columnId === "rank") return CENTERED
     if (!FACTOR_COL_IDS.has(columnId)) return undefined
-    if (!adjustedDisplayHeatMap || !HEAT_MAP_COL_IDS.has(columnId)) return CENTERED
+    if (!adjustedDisplayHeatMap || !HEAT_MAP_COL_IDS.has(columnId))
+      return CENTERED
     const value = row.factors[columnId]
     if (value === undefined) return CENTERED
     return {
@@ -435,13 +592,13 @@ export function ParkFactorsSection({
   async function handleSave() {
     if (!editForm) return
     setSaveState({ status: "loading" })
-    const liveName = editInPlaceRef.current?.getCurrentValue()
-    editInPlaceRef.current?.commit()
-    const formToSave = liveName !== undefined ? { ...editForm, name: liveName } : editForm
+    const formToSave = commitLiveName(editForm)
     const isNew = formToSave.id === -1
     try {
       const res = await fetch(
-        isNew ? "/api/admin/heat-maps" : `/api/admin/heat-maps/${formToSave.id}`,
+        isNew
+          ? "/api/admin/heat-maps"
+          : `/api/admin/heat-maps/${formToSave.id}`,
         {
           method: isNew ? "POST" : "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -514,14 +671,14 @@ export function ParkFactorsSection({
                 <div className="border-l border-border h-6" />
 
                 <div className="flex items-center gap-2">
-                  {heatMaps.length === 1 ? (
+                  {visibleHeatMaps.length === 1 ? (
                     <label className="flex items-center gap-2 cursor-pointer text-body font-normal text-muted-foreground">
                       <Checkbox
                         size="sm"
                         checked={heatMapOption !== "none"}
                         onChange={(e) =>
                           setHeatMapOption(
-                            e.target.checked ? heatMaps[0].name : "none",
+                            e.target.checked ? visibleHeatMaps[0].name : "none",
                           )
                         }
                       />
@@ -535,7 +692,9 @@ export function ParkFactorsSection({
                         onChange={(e) =>
                           setHeatMapOption(
                             e.target.checked
-                              ? (heatMapOption !== "none" ? heatMapOption : (heatMaps[0]?.name ?? "none"))
+                              ? heatMapOption !== "none"
+                                ? heatMapOption
+                                : (visibleHeatMaps[0]?.name ?? "none")
                               : "none",
                           )
                         }
@@ -543,10 +702,14 @@ export function ParkFactorsSection({
                       Heat Map
                       <Select
                         size="sm"
-                        value={heatMapOption !== "none" ? heatMapOption : (heatMaps[0]?.name ?? "")}
+                        value={
+                          heatMapOption !== "none"
+                            ? heatMapOption
+                            : (visibleHeatMaps[0]?.name ?? "")
+                        }
                         onChange={(e) => setHeatMapOption(e.target.value)}
                       >
-                        {heatMaps.map((hm) => (
+                        {visibleHeatMaps.map((hm) => (
                           <option key={hm.name} value={hm.name}>
                             {hm.name}
                           </option>
@@ -559,22 +722,11 @@ export function ParkFactorsSection({
                     size="sm"
                     mode="icon"
                     onClick={() => {
-                      const target = activeHeatMap ?? heatMaps[0]
+                      const target = activeHeatMap ?? visibleHeatMaps[0]
                       if (target) {
                         preEditThemeRef.current = theme
                         setEditMode(isDark ? "dark" : "light")
-                        const formState = {
-                          ...target,
-                          minColor: { ...target.minColor },
-                          avgColor: { ...target.avgColor },
-                          maxColor: { ...target.maxColor },
-                          minDarkColor: { ...target.minDarkColor },
-                          avgDarkColor: { ...target.avgDarkColor },
-                          maxDarkColor: { ...target.maxDarkColor },
-                        }
-                        initialEditFormRef.current = formState
-                        setEditForm(formState)
-                        setSaveState({ status: "idle" })
+                        loadEditForm(target)
                         setColorSpace("oklch")
                       }
                     }}
@@ -810,7 +962,27 @@ export function ParkFactorsSection({
       <Drawer open={editForm !== null} onClose={handleEditFormClose}>
         <DrawerContent>
           <DrawerHeader onClose={handleEditFormClose}>
-            <DrawerTitle>Edit Heat Map</DrawerTitle>
+            <div className="flex items-center gap-3">
+              <DrawerTitle>Edit Heat Map</DrawerTitle>
+              {editForm && visibleHeatMaps.length > 1 && (
+                <Select
+                  size="sm"
+                  value={editForm.name}
+                  disabled={switchDisabled}
+                  onChange={(e) => handleSwitchMap(e.target.value)}
+                  aria-label="Switch heat map"
+                >
+                  {!visibleHeatMaps.some((hm) => hm.name === editForm.name) && (
+                    <option value={editForm.name}>{editForm.name}</option>
+                  )}
+                  {visibleHeatMaps.map((hm) => (
+                    <option key={hm.name} value={hm.name}>
+                      {hm.name}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            </div>
           </DrawerHeader>
           <DrawerBody className="flex flex-col gap-5">
             {editForm && (
@@ -827,12 +999,13 @@ export function ParkFactorsSection({
                         maxLength={24}
                         className="text-xl font-semibold"
                         onChange={(name) =>
-                          setEditForm((prev) => (prev ? { ...prev, name } : prev))
+                          setEditForm((prev) =>
+                            prev ? { ...prev, name } : prev,
+                          )
                         }
                       />
                       {editBaseline && editForm.name !== editBaseline.name && (
                         <IconButton
-                          size="sm"
                           onClick={() =>
                             setEditForm((prev) =>
                               prev && editBaseline
@@ -843,42 +1016,50 @@ export function ParkFactorsSection({
                           aria-label="Reset name"
                           className="shrink-0"
                         >
-                          <Undo2Icon className="h-3.5 w-3.5" />
+                          <Undo2Icon />
                         </IconButton>
                       )}
                     </div>
                   )}
-                  {editForm.id === -1 ? (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        if (preCopyFormRef.current) {
-                          setEditForm(preCopyFormRef.current)
-                          preCopyFormRef.current = null
-                        }
-                      }}
-                    >
-                      <Undo2Icon className="h-3.5 w-3.5" />
-                      Revert
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() =>
-                        setEditForm((prev) => {
-                          if (!prev) return prev
-                          preCopyFormRef.current = prev
-                          return { ...prev, id: -1, name: `${prev.name} Copy` }
-                        })
-                      }
-                    >
-                      <PlusIcon className="h-3.5 w-3.5" />
-                      Copy
-                    </Button>
-                  )}
+                  <DropdownMenu modal={false} size="sm">
+                    <DropdownMenuTrigger asChild>
+                      <IconButton aria-label="Heat map actions">
+                        <EllipsisVerticalIcon />
+                      </IconButton>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {editForm.id === -1 ? (
+                        <DropdownMenuItem onSelect={restorePreCopy}>
+                          <XIcon className="h-3.5 w-3.5" />
+                          Cancel
+                        </DropdownMenuItem>
+                      ) : (
+                        <>
+                          <DropdownMenuItem onSelect={handleCopy}>
+                            <CopyPlusIcon className="h-3.5 w-3.5" />
+                            Copy
+                          </DropdownMenuItem>
+                          {editForm.name !== "Default" && (
+                            <DropdownMenuItem
+                              variant="destructive"
+                              onSelect={() => handleDeleteHeatMap(editForm)}
+                            >
+                              <Trash2Icon className="h-3.5 w-3.5" />
+                              Delete
+                            </DropdownMenuItem>
+                          )}
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
+
+                {editForm.id === -1 && (
+                  <Alert variant="warning">
+                    This new heat map is not saved until you submit the form
+                    with the Save button.
+                  </Alert>
+                )}
 
                 <div className="flex items-center gap-6">
                   <label className="flex items-center gap-2 text-body font-normal text-muted-foreground">
@@ -909,7 +1090,9 @@ export function ParkFactorsSection({
                         },
                       ]}
                       value={editMode}
-                      onChange={(v) => handleEditModeChange(v as "light" | "dark")}
+                      onChange={(v) =>
+                        handleEditModeChange(v as "light" | "dark")
+                      }
                       size="sm"
                     />
                   </div>
@@ -918,41 +1101,63 @@ export function ParkFactorsSection({
                 <div className="flex flex-col gap-2">
                   <h3>Limits</h3>
                   <div className="flex flex-wrap gap-3">
-                    {LIMIT_FIELDS.map(({ field, label, className, min, max, step, displayOffset = 0 }) => {
-                      const baselineVal = editBaseline ? editBaseline[field] as number : null
-                      const dirty = baselineVal !== null && editForm[field] !== baselineVal
-                      return (
-                        <FieldWithUndo
-                          key={field}
-                          dirty={dirty}
-                          onUndo={() =>
-                            setEditForm((prev) =>
-                              prev && baselineVal !== null ? { ...prev, [field]: baselineVal } : prev,
-                            )
-                          }
-                        >
-                          <label className="flex flex-col gap-1 text-sm">
-                            <span className="text-muted-foreground">{label}</span>
-                            <Input
-                              size="sm"
-                              type="number"
-                              min={min}
-                              max={max}
-                              step={step ?? 1}
-                              className={className}
-                              value={(editForm[field] as number) + displayOffset}
-                              onChange={(e) => {
-                                let stored = Number(e.target.value) - displayOffset
-                                if (field === "increments") stored = Math.max(1, stored)
-                                setEditForm((prev) =>
-                                  prev ? { ...prev, [field]: stored } : prev,
-                                )
-                              }}
-                            />
-                          </label>
-                        </FieldWithUndo>
-                      )
-                    })}
+                    {LIMIT_FIELDS.map(
+                      ({
+                        field,
+                        label,
+                        className,
+                        min,
+                        max,
+                        step,
+                        displayOffset = 0,
+                      }) => {
+                        const baselineVal = editBaseline
+                          ? (editBaseline[field] as number)
+                          : null
+                        const dirty =
+                          baselineVal !== null &&
+                          editForm[field] !== baselineVal
+                        return (
+                          <FieldWithUndo
+                            key={field}
+                            dirty={dirty}
+                            onUndo={() =>
+                              setEditForm((prev) =>
+                                prev && baselineVal !== null
+                                  ? { ...prev, [field]: baselineVal }
+                                  : prev,
+                              )
+                            }
+                          >
+                            <label className="flex flex-col gap-1 text-sm">
+                              <span className="text-muted-foreground">
+                                {label}
+                              </span>
+                              <Input
+                                size="sm"
+                                type="number"
+                                min={min}
+                                max={max}
+                                step={step ?? 1}
+                                className={className}
+                                value={
+                                  (editForm[field] as number) + displayOffset
+                                }
+                                onChange={(e) => {
+                                  let stored =
+                                    Number(e.target.value) - displayOffset
+                                  if (field === "increments")
+                                    stored = Math.max(1, stored)
+                                  setEditForm((prev) =>
+                                    prev ? { ...prev, [field]: stored } : prev,
+                                  )
+                                }}
+                              />
+                            </label>
+                          </FieldWithUndo>
+                        )
+                      },
+                    )}
                   </div>
                 </div>
 
@@ -967,35 +1172,57 @@ export function ParkFactorsSection({
                         config={panelConfig ?? editForm}
                         label="Max"
                         isOpen={activePicker === "max"}
-                        onOpenChange={(open) => setActivePicker(open ? "max" : null)}
+                        onOpenChange={(open) =>
+                          setActivePicker(open ? "max" : null)
+                        }
                         pickerColor={editForm[maxKey]}
                         onPickerChange={(c) =>
-                          setEditForm((prev) => prev ? { ...prev, [maxKey]: c } : prev)
+                          setEditForm((prev) =>
+                            prev ? { ...prev, [maxKey]: c } : prev,
+                          )
                         }
                       />
-                      <GradientSection config={panelConfig ?? editForm} side="above" />
+                      <GradientSection
+                        config={panelConfig ?? editForm}
+                        side="above"
+                      />
                       <GradientColorBox
                         value={editForm.avg}
                         config={panelConfig ?? editForm}
                         label="Avg"
                         transparent={editForm.increments === 1}
                         isOpen={activePicker === "avg"}
-                        onOpenChange={(open) => setActivePicker(open ? "avg" : null)}
-                        pickerColor={editForm.increments === 1 ? undefined : editForm[avgKey]}
+                        onOpenChange={(open) =>
+                          setActivePicker(open ? "avg" : null)
+                        }
+                        pickerColor={
+                          editForm.increments === 1
+                            ? undefined
+                            : editForm[avgKey]
+                        }
                         onPickerChange={(c) =>
-                          setEditForm((prev) => prev ? { ...prev, [avgKey]: c } : prev)
+                          setEditForm((prev) =>
+                            prev ? { ...prev, [avgKey]: c } : prev,
+                          )
                         }
                       />
-                      <GradientSection config={panelConfig ?? editForm} side="below" />
+                      <GradientSection
+                        config={panelConfig ?? editForm}
+                        side="below"
+                      />
                       <GradientColorBox
                         value={editForm.min}
                         config={panelConfig ?? editForm}
                         label="Min"
                         isOpen={activePicker === "min"}
-                        onOpenChange={(open) => setActivePicker(open ? "min" : null)}
+                        onOpenChange={(open) =>
+                          setActivePicker(open ? "min" : null)
+                        }
                         pickerColor={editForm[minKey]}
                         onPickerChange={(c) =>
-                          setEditForm((prev) => prev ? { ...prev, [minKey]: c } : prev)
+                          setEditForm((prev) =>
+                            prev ? { ...prev, [minKey]: c } : prev,
+                          )
                         }
                       />
                     </div>
@@ -1010,7 +1237,10 @@ export function ParkFactorsSection({
                         onUndo={() =>
                           setEditForm((prev) =>
                             prev && editBaseline
-                              ? { ...prev, [maxKey]: { ...editBaseline[maxKey] } }
+                              ? {
+                                  ...prev,
+                                  [maxKey]: { ...editBaseline[maxKey] },
+                                }
                               : prev,
                           )
                         }
@@ -1029,7 +1259,9 @@ export function ParkFactorsSection({
 
                       <div style={{ height: SPACER_HEIGHT }} />
 
-                      <div className={`flex items-end${editForm.increments === 1 ? " opacity-50 pointer-events-none" : ""}`}>
+                      <div
+                        className={`flex items-end${editForm.increments === 1 ? " opacity-50 pointer-events-none" : ""}`}
+                      >
                         <div
                           className={`pr-3 transition-[max-width,opacity] duration-400 ${editForm.isPivot ? "overflow-visible" : "overflow-hidden"}`}
                           style={{
@@ -1049,14 +1281,16 @@ export function ParkFactorsSection({
                           />
                         </div>
 
-                        <label
-                          className="flex items-center gap-1.5 text-body font-normal text-muted-foreground mb-1.5 cursor-pointer"
-                        >
+                        <label className="flex items-center gap-1.5 text-body font-normal text-muted-foreground mb-1.5 cursor-pointer">
                           <Checkbox
                             size="sm"
                             checked={editForm.isPivot}
                             disabled={editForm.increments === 1}
-                            className={editForm.increments === 1 ? "disabled:opacity-100" : undefined}
+                            className={
+                              editForm.increments === 1
+                                ? "disabled:opacity-100"
+                                : undefined
+                            }
                             onChange={(e) =>
                               setEditForm((prev) =>
                                 prev
@@ -1069,10 +1303,12 @@ export function ParkFactorsSection({
                         </label>
 
                         {editBaseline !== null &&
-                          (isColorDirty(editForm[avgKey], editBaseline[avgKey]) ||
+                          (isColorDirty(
+                            editForm[avgKey],
+                            editBaseline[avgKey],
+                          ) ||
                             editForm.isPivot !== editBaseline.isPivot) && (
                             <IconButton
-                              size="sm"
                               onClick={() =>
                                 setEditForm((prev) =>
                                   prev && editBaseline
@@ -1087,7 +1323,7 @@ export function ParkFactorsSection({
                               aria-label="Reset to default"
                               className="mb-1 ml-1 shrink-0"
                             >
-                              <Undo2Icon className="h-3.5 w-3.5" />
+                              <Undo2Icon />
                             </IconButton>
                           )}
                       </div>
@@ -1102,7 +1338,10 @@ export function ParkFactorsSection({
                         onUndo={() =>
                           setEditForm((prev) =>
                             prev && editBaseline
-                              ? { ...prev, [minKey]: { ...editBaseline[minKey] } }
+                              ? {
+                                  ...prev,
+                                  [minKey]: { ...editBaseline[minKey] },
+                                }
                               : prev,
                           )
                         }
@@ -1121,10 +1360,15 @@ export function ParkFactorsSection({
                     </div>
                   </div>
                   <FieldWithUndo
-                    dirty={editBaseline !== null && editForm[curveKey] !== editBaseline[curveKey]}
+                    dirty={
+                      editBaseline !== null &&
+                      editForm[curveKey] !== editBaseline[curveKey]
+                    }
                     onUndo={() =>
                       setEditForm((prev) =>
-                        prev && editBaseline ? { ...prev, [curveKey]: editBaseline[curveKey] } : prev,
+                        prev && editBaseline
+                          ? { ...prev, [curveKey]: editBaseline[curveKey] }
+                          : prev,
                       )
                     }
                   >
@@ -1139,7 +1383,10 @@ export function ParkFactorsSection({
                         className="w-16"
                         value={editForm[curveKey]}
                         onChange={(e) => {
-                          const stored = Math.max(0.1, Math.min(10, Number(e.target.value)))
+                          const stored = Math.max(
+                            0.1,
+                            Math.min(10, Number(e.target.value)),
+                          )
                           setEditForm((prev) =>
                             prev ? { ...prev, [curveKey]: stored } : prev,
                           )
@@ -1167,7 +1414,9 @@ export function ParkFactorsSection({
           </DrawerBody>
           <DrawerFooter>
             <div className="flex w-full items-center justify-between">
-              {editForm && editBaseline && isAnyDirty(editForm, editBaseline) ? (
+              {editForm &&
+              editBaseline &&
+              isAnyDirty(editForm, editBaseline) ? (
                 <Button
                   variant="subtle"
                   size="sm"
@@ -1196,19 +1445,21 @@ export function ParkFactorsSection({
                   }
                 >
                   <Undo2Icon className="h-3.5 w-3.5" />
-                  {editForm.name === "Default" ? "Clear Overrides" : "Clear Changes"}
-                  {hasLightColorOverrides(editForm, editBaseline) && <SunIcon className="h-3.5 w-3.5" />}
-                  {hasDarkColorOverrides(editForm, editBaseline) && <MoonIcon className="h-3.5 w-3.5" />}
+                  {editForm.name === "Default"
+                    ? "Clear Overrides"
+                    : "Clear Changes"}
+                  {hasLightColorOverrides(editForm, editBaseline) && (
+                    <SunIcon className="h-3.5 w-3.5" />
+                  )}
+                  {hasDarkColorOverrides(editForm, editBaseline) && (
+                    <MoonIcon className="h-3.5 w-3.5" />
+                  )}
                 </Button>
               ) : (
                 <div />
               )}
               <div className="flex gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleEditFormClose}
-                >
+                <Button variant="ghost" size="sm" onClick={handleEditFormClose}>
                   Cancel
                 </Button>
                 <Button
@@ -1243,12 +1494,11 @@ function FieldWithUndo({
       {children}
       {dirty && (
         <IconButton
-          size="sm"
           onClick={onUndo}
           aria-label="Reset to default"
           className="mb-1 shrink-0"
         >
-          <Undo2Icon className="h-3.5 w-3.5" />
+          <Undo2Icon />
         </IconButton>
       )}
     </div>
@@ -1319,17 +1569,25 @@ function GradientColorBox({
 
   function handleChange(hex: string) {
     const next = hexToOklch(hex)
-    if (next && onPickerChange && pickerColor) onPickerChange({ ...next, alpha: pickerColor.alpha })
+    if (next && onPickerChange && pickerColor)
+      onPickerChange({ ...next, alpha: pickerColor.alpha })
   }
 
   return (
     <div className="relative">
-      <button type="button" onClick={() => onOpenChange(!isOpen)} className="block">
+      <button
+        type="button"
+        onClick={() => onOpenChange(!isOpen)}
+        className="block"
+      >
         {box}
       </button>
       {isOpen && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => onOpenChange(false)} />
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => onOpenChange(false)}
+          />
           <div className="absolute left-[calc(100%+8px)] top-1/2 -translate-y-1/2 z-50 shadow-lg rounded-lg overflow-hidden">
             <HexColorPicker color={hexValue} onChange={handleChange} />
           </div>
@@ -1388,7 +1646,10 @@ function isColorDirty(a: OklchColorData, b: OklchColorData): boolean {
   )
 }
 
-function hasLightColorOverrides(form: HeatMapData, baseline: HeatMapData): boolean {
+function hasLightColorOverrides(
+  form: HeatMapData,
+  baseline: HeatMapData,
+): boolean {
   return (
     isColorDirty(form.minColor, baseline.minColor) ||
     isColorDirty(form.avgColor, baseline.avgColor) ||
@@ -1396,7 +1657,10 @@ function hasLightColorOverrides(form: HeatMapData, baseline: HeatMapData): boole
   )
 }
 
-function hasDarkColorOverrides(form: HeatMapData, baseline: HeatMapData): boolean {
+function hasDarkColorOverrides(
+  form: HeatMapData,
+  baseline: HeatMapData,
+): boolean {
   return (
     isColorDirty(form.minDarkColor, baseline.minDarkColor) ||
     isColorDirty(form.avgDarkColor, baseline.avgDarkColor) ||

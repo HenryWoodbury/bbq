@@ -724,31 +724,28 @@ export function PlayersTable({
         <div className="flex items-center gap-1">
           {onEdit && (
             <IconButton
-              size="md"
               onClick={() => onEdit(row.original)}
               aria-label="Edit player"
             >
-              <PencilIcon className="h-3.5 w-3.5" />
+              <PencilIcon />
             </IconButton>
           )}
           {onClearOverride && row.original.isManual && (
             <IconButton
-              size="md"
               onClick={() => onClearOverride(row.original)}
               aria-label="Delete player"
             >
-              <Trash2Icon className="h-3.5 w-3.5" />
+              <Trash2Icon />
             </IconButton>
           )}
           {onClearOverride &&
             !row.original.isManual &&
             hasActiveOverride(row.original) && (
               <IconButton
-                size="md"
                 onClick={() => onClearOverride(row.original)}
                 aria-label="Clear override"
               >
-                <Undo2Icon className="h-3.5 w-3.5" />
+                <Undo2Icon />
               </IconButton>
             )}
         </div>

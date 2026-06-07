@@ -72,3 +72,40 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
 
   return NextResponse.json({ success: true })
 }
+
+export async function DELETE(_req: NextRequest, { params }: RouteContext) {
+  await assertAdmin()
+
+  const { id: idStr } = await params
+  const id = Number(idStr)
+  if (Number.isNaN(id)) {
+    return NextResponse.json({ error: "Invalid id" }, { status: 400 })
+  }
+
+  const heatMap = await prisma.heatMap.findUnique({ where: { id } })
+  if (!heatMap) {
+    return NextResponse.json({ error: "Heat map not found" }, { status: 404 })
+  }
+  if (heatMap.name === "Default") {
+    return NextResponse.json(
+      { error: "The Default heat map cannot be deleted" },
+      { status: 400 },
+    )
+  }
+
+  const colorIds = [
+    heatMap.minColorId,
+    heatMap.avgColorId,
+    heatMap.maxColorId,
+    heatMap.minDarkColorId,
+    heatMap.avgDarkColorId,
+    heatMap.maxDarkColorId,
+  ]
+
+  await prisma.$transaction([
+    prisma.heatMap.delete({ where: { id } }),
+    prisma.oklchColor.deleteMany({ where: { id: { in: colorIds } } }),
+  ])
+
+  return NextResponse.json({ success: true })
+}

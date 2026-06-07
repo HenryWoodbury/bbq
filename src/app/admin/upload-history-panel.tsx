@@ -153,7 +153,7 @@ export function UploadHistoryPanel({
             title="Delete"
             onClick={() => scheduleDelete(row.original)}
           >
-            <Trash2Icon className="h-4 w-4" />
+            <Trash2Icon />
           </IconButton>
         </div>
       ),
