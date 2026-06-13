@@ -50,7 +50,7 @@ function DrawerContent({
         <div
           aria-hidden={true}
           tabIndex={-1}
-          className="fixed inset-x-0 bottom-0 top-14 z-40 cursor-default bg-black/30"
+          className="fixed inset-x-0 bottom-0 top-14 z-40 cursor-default bg-overlay"
         />
       </DialogPrimitive.Close>
       <DialogPrimitive.Content

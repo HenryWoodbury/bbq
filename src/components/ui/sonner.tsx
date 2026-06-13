@@ -6,11 +6,13 @@ import {
   Loader2Icon,
   OctagonXIcon,
   TriangleAlertIcon,
+  XIcon,
 } from "lucide-react"
 import type { CSSProperties, ReactNode } from "react"
 import { Toaster as Sonner, type ToasterProps, toast } from "sonner"
 import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
+import { IconButton } from "@/components/ui/icon-button"
 import { cn } from "@/lib/utils"
 
 // ── Toaster ───────────────────────────────────────────────────────────────────
@@ -100,18 +102,29 @@ function ToastContent({
         </div>
       </div>
       {action && (
-        <Button
-          variant="secondary"
-          size="sm"
-          className="shrink-0"
-          onClick={() => {
-            action.onClick()
-            toast.dismiss(action.toastId)
-          }}
-        >
-          {action.icon}
-          {action.label}
-        </Button>
+        <div className="flex shrink-0 items-center gap-1">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              action.onClick()
+              toast.dismiss(action.toastId)
+            }}
+          >
+            {action.icon}
+            {action.label}
+          </Button>
+          <IconButton
+            size="sm"
+            type="button"
+            aria-label="Close"
+            tooltip={false}
+            onClick={() => toast.dismiss(action.toastId)}
+            className="hover:bg-black/5 dark:hover:bg-white/10"
+          >
+            <XIcon />
+          </IconButton>
+        </div>
       )}
     </div>
   )
@@ -145,7 +158,12 @@ function showToast({
         action={action ? { ...action, toastId: id } : undefined}
       />
     ),
-    { onDismiss, onAutoClose },
+    // Toasts with an action stay until the user resolves them (act or close).
+    {
+      onDismiss,
+      onAutoClose,
+      duration: action ? Number.POSITIVE_INFINITY : undefined,
+    },
   )
 }
 
@@ -162,3 +180,4 @@ showToast.error = (title: string, description?: string) =>
   showToast({ title, description, variant: "error" })
 
 export { showToast, Toaster }
+export type { ToastVariant }

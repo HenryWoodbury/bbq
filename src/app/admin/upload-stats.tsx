@@ -13,8 +13,8 @@ import { FileLabel } from "@/components/ui/file-label"
 import { IconButton } from "@/components/ui/icon-button"
 import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
-import { showToast } from "@/components/ui/sonner"
 import { useFileDrop } from "@/hooks/use-file-drop"
+import { useOptimisticDelete } from "@/hooks/use-optimistic-delete"
 import {
   inferStatsRow,
   type PendingRow,
@@ -84,9 +84,19 @@ export function UploadStats({
   const dismissTimers = useRef<Set<ReturnType<typeof setTimeout>>>(new Set())
   const [pendingRows, setPendingRows] = useState<PendingRow[]>([])
   const [dismissingIds, setDismissingIds] = useState<Set<string>>(new Set())
-  const [pendingDeleteIds, setPendingDeleteIds] = useState<Set<string>>(
-    new Set(),
-  )
+  const { pendingDeleteIds, scheduleDelete } = useOptimisticDelete<string>({
+    getId: (id) => id,
+    title: "Upload removed.",
+    variant: "warning",
+    perform: async (id) => {
+      try {
+        await onDelete(id)
+        return true
+      } catch {
+        return false
+      }
+    },
+  })
 
   useEffect(
     () => () => {
@@ -173,43 +183,6 @@ export function UploadStats({
     }
   }
 
-  function scheduleDelete(id: string) {
-    setPendingDeleteIds((prev) => new Set(prev).add(id))
-    let cancelled = false
-    let executed = false
-
-    function clearPending() {
-      setPendingDeleteIds((prev) => {
-        const next = new Set(prev)
-        next.delete(id)
-        return next
-      })
-    }
-
-    async function execute() {
-      if (executed || cancelled) return
-      executed = true
-      try {
-        await onDelete(id)
-      } catch {
-        clearPending()
-      }
-    }
-
-    showToast({
-      title: "Upload removed from history.",
-      action: {
-        label: "Restore",
-        onClick: () => {
-          cancelled = true
-          clearPending()
-        },
-      },
-      onDismiss: execute,
-      onAutoClose: execute,
-    })
-  }
-
   const columns: ColumnDef<StatUploadRow>[] = [
     {
       id: "file",
@@ -274,8 +247,7 @@ export function UploadStats({
       cell: ({ row }) => (
         <div className="flex justify-end">
           <IconButton
-            aria-label="Delete"
-            title="Delete"
+            aria-label="Delete upload"
             onClick={() => scheduleDelete(row.original.id)}
           >
             <Trash2Icon />
@@ -417,7 +389,6 @@ export function UploadStats({
                   <div className="pl-3 pr-4 py-2 flex justify-end">
                     <IconButton
                       aria-label="Dismiss"
-                      title="Dismiss"
                       onClick={() =>
                         triggerDismiss(row.id, () => removeRow(row.id))
                       }

@@ -15,11 +15,17 @@ import {
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import type React from "react"
-import { type ReactNode, useRef, useState } from "react"
+import {
+  type ReactNode,
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+} from "react"
 import { HexColorPicker } from "react-colorful"
 import { DataTable } from "@/components/data-table"
 import { FilterGroup } from "@/components/filter-group"
-import { type Theme, useTheme } from "@/components/theme-provider"
+import { useTheme } from "@/components/theme-provider"
 import { Alert } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -47,6 +53,12 @@ import { IconButton } from "@/components/ui/icon-button"
 import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import { showToast } from "@/components/ui/sonner"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { useOptimisticDelete } from "@/hooks/use-optimistic-delete"
 import { hexToOklch, oklchToHex } from "@/lib/color"
 import { triggerCsvDownload } from "@/lib/csv"
 import {
@@ -245,8 +257,7 @@ export function ParkFactorsSection({
   heatMaps: HeatMapData[]
 }) {
   const router = useRouter()
-  const { isDark, setTheme, theme } = useTheme()
-  const preEditThemeRef = useRef<Theme>(theme)
+  const { isDark, accountIsDark, setPreview } = useTheme()
   const preCopyFormRef = useRef<HeatMapData | null>(null)
   const editInPlaceRef = useRef<EditInPlaceHandle>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -281,9 +292,28 @@ export function ParkFactorsSection({
   const [activePicker, setActivePicker] = useState<
     "min" | "max" | "avg" | null
   >(null)
-  const [pendingDeleteIds, setPendingDeleteIds] = useState<Set<number>>(
-    () => new Set(),
-  )
+  const { pendingDeleteIds, scheduleDelete: scheduleDeleteHeatMap } =
+    useOptimisticDelete<HeatMapData, number>({
+      getId: (hm) => hm.id,
+      title: (hm) => `${hm.name} heat map removed.`,
+      variant: "warning",
+      perform: async (hm) =>
+        (await fetch(`/api/admin/heat-maps/${hm.id}`, { method: "DELETE" })).ok,
+      onSuccess: () => {
+        router.refresh()
+        // Delete committed: if the drawer is still open on the now-gone map,
+        // return it to the Default heat map.
+        const defaultMap = heatMaps.find((hm) => hm.name === "Default")
+        if (defaultMap) {
+          const formState = cloneHeatMap(defaultMap)
+          initialEditFormRef.current = formState
+          preCopyFormRef.current = null
+          setSaveState({ status: "idle" })
+          setEditForm((prev) => (prev ? formState : prev))
+        }
+      },
+      errorMessage: (hm) => `Failed to delete the ${hm.name} heat map.`,
+    })
 
   const visibleHeatMaps = heatMaps.filter((hm) => !pendingDeleteIds.has(hm.id))
 
@@ -379,69 +409,36 @@ export function ParkFactorsSection({
   }
 
   function handleDeleteHeatMap(target: HeatMapData) {
-    setPendingDeleteIds((prev) => new Set(prev).add(target.id))
     setHeatMapOption((prev) => (prev === target.name ? "none" : prev))
-
-    let cancelled = false
-    let executed = false
-
-    function removePending() {
-      setPendingDeleteIds((prev) => {
-        const next = new Set(prev)
-        next.delete(target.id)
-        return next
-      })
-    }
-
-    async function execute() {
-      if (executed || cancelled) return
-      executed = true
-      const res = await fetch(`/api/admin/heat-maps/${target.id}`, {
-        method: "DELETE",
-      })
-      if (res.ok) {
-        router.refresh()
-        // Delete committed: if the drawer is still open on the now-gone map,
-        // return it to the Default heat map.
-        const defaultMap = heatMaps.find((hm) => hm.name === "Default")
-        if (defaultMap) {
-          const formState = cloneHeatMap(defaultMap)
-          initialEditFormRef.current = formState
-          preCopyFormRef.current = null
-          setSaveState({ status: "idle" })
-          setEditForm((prev) => (prev ? formState : prev))
-        }
-      } else {
-        removePending()
-        showToast.error(`Failed to delete the ${target.name} heat map.`)
-      }
-    }
-
-    showToast({
-      title: `You have deleted the ${target.name} heat map.`,
-      action: {
-        label: "Restore",
-        onClick: () => {
-          cancelled = true
-          removePending()
-        },
-      },
-      onDismiss: execute,
-      onAutoClose: execute,
-    })
+    scheduleDeleteHeatMap(target)
   }
 
   function handleEditModeChange(mode: "light" | "dark") {
     setEditMode(mode)
-    if (previewEnabled) setTheme(mode)
+    setPreview(previewEnabled ? mode : null)
   }
+
+  // If the user changes the Account theme while editing, snap the heat-map edit
+  // mode (and its preview) back to the new account default. Fires only when the
+  // account's resolved dark state actually changes — reading the latest editing
+  // state via an effect event so toggling preview/mode doesn't re-trigger it.
+  const syncEditModeToAccount = useEffectEvent((dark: boolean) => {
+    if (!editForm) return
+    const mode = dark ? "dark" : "light"
+    setEditMode(mode)
+    setPreview(previewEnabled ? mode : null)
+  })
+
+  useEffect(() => {
+    syncEditModeToAccount(accountIsDark)
+  }, [accountIsDark])
 
   function handleEditFormClose() {
     setEditForm(null)
     setActivePicker(null)
     preCopyFormRef.current = null
     initialEditFormRef.current = null
-    if (previewEnabled) setTheme(preEditThemeRef.current)
+    setPreview(null)
   }
 
   const syncButton = (
@@ -555,7 +552,8 @@ export function ParkFactorsSection({
 
     const batSideLabel = g.batSide === "" ? "both" : g.batSide
     showToast({
-      title: `Cleared ${g.season} · ${batSideLabel} · ${g.rolling}yr sync`,
+      title: `Removed ${g.season} · ${batSideLabel} · ${g.rolling}yr sync`,
+      variant: "warning",
       action: {
         label: "Restore",
         onClick: () => {
@@ -610,6 +608,7 @@ export function ParkFactorsSection({
         setHeatMapOption(formToSave.name)
         setEditForm(null)
         preCopyFormRef.current = null
+        setPreview(null)
         router.refresh()
       } else {
         const data = (await res.json()) as { error?: string }
@@ -724,7 +723,6 @@ export function ParkFactorsSection({
                     onClick={() => {
                       const target = activeHeatMap ?? visibleHeatMaps[0]
                       if (target) {
-                        preEditThemeRef.current = theme
                         setEditMode(isDark ? "dark" : "light")
                         loadEditForm(target)
                         setColorSpace("oklch")
@@ -1022,11 +1020,19 @@ export function ParkFactorsSection({
                     </div>
                   )}
                   <DropdownMenu modal={false} size="sm">
-                    <DropdownMenuTrigger asChild>
-                      <IconButton aria-label="Heat map actions">
-                        <EllipsisVerticalIcon />
-                      </IconButton>
-                    </DropdownMenuTrigger>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <DropdownMenuTrigger asChild>
+                          <IconButton
+                            tooltip={false}
+                            aria-label="Heat map actions"
+                          >
+                            <EllipsisVerticalIcon />
+                          </IconButton>
+                        </DropdownMenuTrigger>
+                      </TooltipTrigger>
+                      <TooltipContent>Heat map actions</TooltipContent>
+                    </Tooltip>
                     <DropdownMenuContent align="end">
                       {editForm.id === -1 ? (
                         <DropdownMenuItem onSelect={restorePreCopy}>
@@ -1056,8 +1062,7 @@ export function ParkFactorsSection({
 
                 {editForm.id === -1 && (
                   <Alert variant="warning">
-                    This new heat map is not saved until you submit the form
-                    with the Save button.
+                    This new heat map is not saved until you submit the form.
                   </Alert>
                 )}
 
@@ -1401,7 +1406,11 @@ export function ParkFactorsSection({
                   <Checkbox
                     size="sm"
                     checked={previewEnabled}
-                    onChange={(e) => setPreviewEnabled(e.target.checked)}
+                    onChange={(e) => {
+                      const enabled = e.target.checked
+                      setPreviewEnabled(enabled)
+                      setPreview(enabled ? editMode : null)
+                    }}
                   />
                   Preview
                 </label>

@@ -10,8 +10,8 @@ import { Button } from "@/components/ui/button"
 import { FileLabel } from "@/components/ui/file-label"
 import { IconButton } from "@/components/ui/icon-button"
 import { Input } from "@/components/ui/input"
-import { showToast } from "@/components/ui/sonner"
 import { formatDateTime } from "@/lib/date"
+import { useOptimisticDelete } from "@/hooks/use-optimistic-delete"
 import { cn } from "@/lib/utils"
 
 export type UploadHistoryRow = {
@@ -38,52 +38,18 @@ export function UploadHistoryPanel({
   const [season, setSeason] = useState(() => new Date().getFullYear())
   const [status, setStatus] = useState<"idle" | "saving" | "error">("idle")
   const [errorMessage, setErrorMessage] = useState("")
-  const [pendingDeleteIds, setPendingDeleteIds] = useState<Set<string>>(
-    new Set(),
-  )
+  const { pendingDeleteIds, scheduleDelete } =
+    useOptimisticDelete<UploadHistoryRow>({
+      getId: (row) => row.id,
+      title: "Upload removed.",
+      variant: "warning",
+      perform: async (row) =>
+        (await fetch(`${deleteUrlBase}/${row.id}`, { method: "DELETE" })).ok,
+      onSuccess: () => router.refresh(),
+      errorMessage: () => "Failed to delete upload",
+    })
 
   const visibleRows = rows.filter((r) => !pendingDeleteIds.has(r.id))
-
-  function scheduleDelete(row: UploadHistoryRow) {
-    setPendingDeleteIds((prev) => new Set(prev).add(row.id))
-    let cancelled = false
-    let executed = false
-
-    function removePending() {
-      setPendingDeleteIds((prev) => {
-        const next = new Set(prev)
-        next.delete(row.id)
-        return next
-      })
-    }
-
-    async function execute() {
-      if (executed || cancelled) return
-      executed = true
-      const res = await fetch(`${deleteUrlBase}/${row.id}`, {
-        method: "DELETE",
-      })
-      if (res.ok) {
-        router.refresh()
-      } else {
-        removePending()
-        showToast.error("Failed to delete upload")
-      }
-    }
-
-    showToast({
-      title: "Upload record removed.",
-      action: {
-        label: "Restore",
-        onClick: () => {
-          cancelled = true
-          removePending()
-        },
-      },
-      onDismiss: execute,
-      onAutoClose: execute,
-    })
-  }
 
   async function handleSave() {
     const file = fileRef.current?.files?.[0]
@@ -149,8 +115,7 @@ export function UploadHistoryPanel({
       cell: ({ row }) => (
         <div className="flex justify-end">
           <IconButton
-            aria-label="Delete"
-            title="Delete"
+            aria-label="Delete upload"
             onClick={() => scheduleDelete(row.original)}
           >
             <Trash2Icon />

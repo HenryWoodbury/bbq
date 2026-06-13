@@ -19,7 +19,7 @@ const buttonVariants = cva(
           "border-transparent text-muted-foreground enabled:hover:bg-zinc-150 enabled:hover:border-zinc-150 enabled:active:bg-zinc-150 enabled:active:border-zinc-150 dark:enabled:hover:bg-zinc-750 dark:enabled:hover:border-zinc-750 dark:enabled:active:bg-zinc-750 dark:enabled:active:border-zinc-750",
       },
       size: {
-        sm: "rounded-md px-3 py-1 min-h-8",
+        sm: "rounded-sm px-3 py-1 min-h-8",
         md: "rounded-lg px-4 py-1.5 min-h-9",
         lg: "rounded-xl px-4 py-2 min-h-10",
       },
@@ -40,7 +40,14 @@ export interface ButtonProps
   ref?: Ref<HTMLButtonElement>
 }
 
-function Button({ className, variant, size, mode, ref, ...props }: ButtonProps) {
+function Button({
+  className,
+  variant,
+  size,
+  mode,
+  ref,
+  ...props
+}: ButtonProps) {
   return (
     <button
       ref={ref}

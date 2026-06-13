@@ -10,63 +10,49 @@ const STORAGE_KEY = "bbq-theme"
 const ThemeContext = createContext<{
   theme: Theme
   setTheme: (t: Theme) => void
+  /** Temporary visual override (e.g. heat-map preview). Does not persist. Pass null to clear. */
+  setPreview: (p: "light" | "dark" | null) => void
+  /** Effective dark state — a preview wins over the persisted theme. */
   isDark: boolean
+  /** Dark state resolved from the persisted theme alone, ignoring any preview. */
+  accountIsDark: boolean
 } | null>(null)
-
-function applyTheme(theme: Theme) {
-  const root = document.documentElement
-  if (theme === "dark") {
-    root.classList.add("dark")
-  } else if (theme === "light") {
-    root.classList.remove("dark")
-  } else {
-    // system
-    if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-      root.classList.add("dark")
-    } else {
-      root.classList.remove("dark")
-    }
-  }
-}
-
-function resolveIsDark(theme: Theme): boolean {
-  if (theme === "dark") return true
-  if (theme === "light") return false
-  return window.matchMedia("(prefers-color-scheme: dark)").matches
-}
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>("system")
-  const [isDark, setIsDark] = useState(false)
+  const [preview, setPreview] = useState<"light" | "dark" | null>(null)
+  const [systemDark, setSystemDark] = useState(false)
 
+  // Load the persisted theme and subscribe to OS changes (tracked even while a
+  // preview is active, so accountIsDark stays correct underneath).
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY) as Theme | null
-    const initial = stored ?? "system"
-    setThemeState(initial)
-    setIsDark(resolveIsDark(initial))
-    applyTheme(initial)
-  }, [])
-
-  useEffect(() => {
-    if (theme !== "system") return
+    setThemeState(stored ?? "system")
     const mq = window.matchMedia("(prefers-color-scheme: dark)")
-    const handler = () => {
-      applyTheme("system")
-      setIsDark(mq.matches)
-    }
+    setSystemDark(mq.matches)
+    const handler = () => setSystemDark(mq.matches)
     mq.addEventListener("change", handler)
     return () => mq.removeEventListener("change", handler)
-  }, [theme])
+  }, [])
+
+  const accountIsDark =
+    theme === "dark" ? true : theme === "light" ? false : systemDark
+  const isDark = preview ? preview === "dark" : accountIsDark
+
+  // Sync the actual <html> class to the effective dark state.
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", isDark)
+  }, [isDark])
 
   function setTheme(t: Theme) {
     setThemeState(t)
-    setIsDark(resolveIsDark(t))
     localStorage.setItem(STORAGE_KEY, t)
-    applyTheme(t)
   }
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, isDark }}>
+    <ThemeContext.Provider
+      value={{ theme, setTheme, setPreview, isDark, accountIsDark }}
+    >
       {children}
     </ThemeContext.Provider>
   )

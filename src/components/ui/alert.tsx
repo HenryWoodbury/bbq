@@ -5,14 +5,14 @@ import { cn } from "@/lib/utils"
 const alertVariants = cva("border", {
   variants: {
     variant: {
-      success: "border-success-border bg-success text-success-foreground",
-      error: "border-error-border bg-error text-error-foreground",
-      warning: "border-warning-border bg-warning text-warning-foreground",
+      success: "border-success-border bg-success text-foreground",
+      error: "border-error-border bg-error text-foreground",
+      warning: "border-warning-border bg-warning text-foreground",
       info: "border-border bg-muted text-foreground",
     },
     size: {
-      sm: "rounded-sm px-3 py-2 text-xs",
-      md: "rounded-md px-4 py-3 text-sm",
+      sm: "rounded-sm px-3 py-2 text-sm",
+      md: "rounded-md px-4 py-3 text-body",
       lg: "rounded-lg px-5 py-4 text-body",
     },
   },

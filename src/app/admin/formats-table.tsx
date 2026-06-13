@@ -22,6 +22,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import type {
   FormatDraftMode,
   FormatDraftType,
@@ -29,6 +34,7 @@ import type {
   FormatPlayType,
   FormatScoring,
 } from "@/generated/prisma/client"
+import { useOptimisticDelete } from "@/hooks/use-optimistic-delete"
 
 export type FormatRow = {
   id: string
@@ -363,14 +369,20 @@ function EditDrawer({ row }: { row: FormatRow }) {
 
   return (
     <Drawer open={open} onClose={() => setOpen(false)}>
-      <DrawerTrigger asChild>
-        <IconButton
-          aria-label={`Edit ${row.name}`}
-          onClick={() => setOpen(true)}
-        >
-          <PencilIcon />
-        </IconButton>
-      </DrawerTrigger>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DrawerTrigger asChild>
+            <IconButton
+              tooltip={false}
+              aria-label={`Edit ${row.name}`}
+              onClick={() => setOpen(true)}
+            >
+              <PencilIcon />
+            </IconButton>
+          </DrawerTrigger>
+        </TooltipTrigger>
+        <TooltipContent>Edit {row.name}</TooltipContent>
+      </Tooltip>
       {open && (
         <FormatForm
           mode="edit"
@@ -387,36 +399,6 @@ function EditDrawer({ row }: { row: FormatRow }) {
   )
 }
 
-function DeleteButton({ row }: { row: FormatRow }) {
-  const router = useRouter()
-  const [pending, setPending] = useState(false)
-
-  async function handleDelete() {
-    if (
-      !window.confirm(`Delete template "${row.name}"? This cannot be undone.`)
-    )
-      return
-    setPending(true)
-    try {
-      await fetch(`/api/admin/league-formats/${row.id}`, { method: "DELETE" })
-      router.refresh()
-    } finally {
-      setPending(false)
-    }
-  }
-
-  return (
-    <IconButton
-      onClick={handleDelete}
-      disabled={pending}
-      aria-label={`Delete ${row.name}`}
-      className="hover:text-destructive"
-    >
-      <Trash2Icon />
-    </IconButton>
-  )
-}
-
 const SCORING_LABEL: Record<FormatScoring, string> = {
   FiveX5: "5×5",
   FourX4: "4×4",
@@ -425,88 +407,107 @@ const SCORING_LABEL: Record<FormatScoring, string> = {
   Points: "Points",
 }
 
-const columns: ColumnDef<FormatRow, unknown>[] = [
-  {
-    accessorKey: "name",
-    header: "Name",
-    size: 180,
-    cell: ({ getValue }) => (
-      <span className="font-medium text-foreground">
-        {getValue() as string}
-      </span>
-    ),
-  },
-  {
-    accessorKey: "platform",
-    header: "Platform",
-    size: 90,
-    cell: ({ getValue }) => getValue() as string,
-  },
-  {
-    accessorKey: "playType",
-    header: "Type",
-    size: 80,
-    cell: ({ getValue }) => getValue() as string,
-  },
-  {
-    accessorKey: "scoring",
-    header: "Scoring",
-    size: 80,
-    cell: ({ getValue }) => SCORING_LABEL[getValue() as FormatRow["scoring"]],
-  },
-  {
-    accessorKey: "draftType",
-    header: "Draft",
-    size: 80,
-    cell: ({ getValue }) => getValue() as string,
-  },
-  {
-    accessorKey: "teams",
-    header: "Teams",
-    size: 60,
-    cell: ({ getValue }) => (
-      <span className="tabular-nums">{getValue() as number}</span>
-    ),
-  },
-  {
-    accessorKey: "rosterSize",
-    header: "Roster",
-    size: 60,
-    cell: ({ getValue }) => (
-      <span className="tabular-nums">{getValue() as number}</span>
-    ),
-  },
-  {
-    accessorKey: "cap",
-    header: "Cap",
-    size: 60,
-    cell: ({ getValue }) => {
-      const v = getValue() as number | null
-      return <span className="tabular-nums">{v !== null ? `$${v}` : "—"}</span>
-    },
-  },
-  {
-    accessorKey: "isActive",
-    header: "Active",
-    size: 70,
-    cell: ({ getValue }) => (getValue() ? "Active" : "Inactive"),
-  },
-  {
-    id: "actions",
-    header: "",
-    size: 60,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-1">
-        <EditDrawer row={row.original} />
-        <DeleteButton row={row.original} />
-      </div>
-    ),
-  },
-]
-
 export function FormatsTable({ data }: { data: FormatRow[] }) {
   const router = useRouter()
   const [createOpen, setCreateOpen] = useState(false)
+  const { pendingDeleteIds, scheduleDelete } = useOptimisticDelete<FormatRow>({
+    getId: (row) => row.id,
+    title: (row) => `Deleted format "${row.name}"`,
+    perform: async (row) =>
+      (await fetch(`/api/admin/league-formats/${row.id}`, { method: "DELETE" }))
+        .ok,
+    onSuccess: () => router.refresh(),
+    errorMessage: () => "Failed to delete format",
+  })
+
+  const columns: ColumnDef<FormatRow, unknown>[] = [
+    {
+      accessorKey: "name",
+      header: "Name",
+      size: 180,
+      cell: ({ getValue }) => (
+        <span className="font-medium text-foreground">
+          {getValue() as string}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "platform",
+      header: "Platform",
+      size: 90,
+      cell: ({ getValue }) => getValue() as string,
+    },
+    {
+      accessorKey: "playType",
+      header: "Type",
+      size: 80,
+      cell: ({ getValue }) => getValue() as string,
+    },
+    {
+      accessorKey: "scoring",
+      header: "Scoring",
+      size: 80,
+      cell: ({ getValue }) => SCORING_LABEL[getValue() as FormatRow["scoring"]],
+    },
+    {
+      accessorKey: "draftType",
+      header: "Draft",
+      size: 80,
+      cell: ({ getValue }) => getValue() as string,
+    },
+    {
+      accessorKey: "teams",
+      header: "Teams",
+      size: 60,
+      cell: ({ getValue }) => (
+        <span className="tabular-nums">{getValue() as number}</span>
+      ),
+    },
+    {
+      accessorKey: "rosterSize",
+      header: "Roster",
+      size: 60,
+      cell: ({ getValue }) => (
+        <span className="tabular-nums">{getValue() as number}</span>
+      ),
+    },
+    {
+      accessorKey: "cap",
+      header: "Cap",
+      size: 60,
+      cell: ({ getValue }) => {
+        const v = getValue() as number | null
+        return (
+          <span className="tabular-nums">{v !== null ? `$${v}` : "—"}</span>
+        )
+      },
+    },
+    {
+      accessorKey: "isActive",
+      header: "Active",
+      size: 70,
+      cell: ({ getValue }) => (getValue() ? "Active" : "Inactive"),
+    },
+    {
+      id: "actions",
+      header: "",
+      size: 60,
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1">
+          <EditDrawer row={row.original} />
+          <IconButton
+            aria-label={`Delete ${row.original.name}`}
+            onClick={() => scheduleDelete(row.original)}
+            className="hover:text-destructive"
+          >
+            <Trash2Icon />
+          </IconButton>
+        </div>
+      ),
+    },
+  ]
+
+  const visible = data.filter((row) => !pendingDeleteIds.has(row.id))
 
   return (
     <div className="flex flex-col gap-3">
@@ -538,7 +539,7 @@ export function FormatsTable({ data }: { data: FormatRow[] }) {
 
       <DataTable
         columns={columns}
-        data={data}
+        data={visible}
         defaultPageSize={20}
         defaultSorting={[{ id: "name", desc: false }]}
       />

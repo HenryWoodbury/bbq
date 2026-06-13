@@ -1,5 +1,12 @@
+"use client"
+
 import { cva, type VariantProps } from "class-variance-authority"
-import type { ButtonHTMLAttributes, Ref } from "react"
+import type { ButtonHTMLAttributes, ReactNode, Ref } from "react"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 
 const iconButtonVariants = cva(
@@ -23,15 +30,36 @@ export interface IconButtonProps
     VariantProps<typeof iconButtonVariants> {
   ref?: Ref<HTMLButtonElement>
   "aria-label": string
+  /** Tooltip content. Defaults to `aria-label`. Pass `false` to disable (e.g. when the
+   * button is itself an external Radix `asChild` trigger and the tooltip is nested outside). */
+  tooltip?: ReactNode | false
+  tooltipSide?: "top" | "right" | "bottom" | "left"
 }
 
-function IconButton({ className, size, ref, ...props }: IconButtonProps) {
-  return (
+function IconButton({
+  className,
+  size,
+  ref,
+  tooltip,
+  tooltipSide = "top",
+  ...props
+}: IconButtonProps) {
+  const button = (
     <button
       ref={ref}
       className={cn(iconButtonVariants({ size }), className)}
       {...props}
     />
+  )
+
+  const content = tooltip === undefined ? props["aria-label"] : tooltip
+  if (!content) return button
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{button}</TooltipTrigger>
+      <TooltipContent side={tooltipSide}>{content}</TooltipContent>
+    </Tooltip>
   )
 }
 

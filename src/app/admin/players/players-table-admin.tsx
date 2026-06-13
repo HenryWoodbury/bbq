@@ -24,7 +24,7 @@ import {
 import { FormError } from "@/components/ui/field"
 import { IconButton } from "@/components/ui/icon-button"
 import { Input } from "@/components/ui/input"
-import { showToast } from "@/components/ui/sonner"
+import { useOptimisticDelete } from "@/hooks/use-optimistic-delete"
 import { parsePositions } from "@/lib/positions"
 import { deriveLevelFromFgId } from "@/lib/team-codes"
 import { useDebouncedFetch } from "@/lib/use-debounced-fetch"
@@ -128,7 +128,10 @@ function EditOverrideDrawer({
   const [error, setError] = useState("")
 
   function isDirty(key: OverrideStringKey): boolean {
-    return (nullify(fields[key]) ?? null) !== (nullify(baseline.current[key]) ?? null)
+    return (
+      (nullify(fields[key]) ?? null) !==
+      (nullify(baseline.current[key]) ?? null)
+    )
   }
 
   function isDirtyActive(): boolean {
@@ -165,7 +168,8 @@ function EditOverrideDrawer({
     return (
       stringKeys.some((k) => isDirty(k)) ||
       isDirtyActive() ||
-      (nullify(fields.nickname) ?? null) !== (nullify(baseline.current.nickname) ?? null) ||
+      (nullify(fields.nickname) ?? null) !==
+        (nullify(baseline.current.nickname) ?? null) ||
       isDirtyPositions()
     )
   }
@@ -578,9 +582,22 @@ export function PlayersTableAdmin({
   const router = useRouter()
   const [editingRow, setEditingRow] = useState<PlayerRow | null>(null)
   const [addingManual, setAddingManual] = useState(false)
-  const [pendingDeleteIds, setPendingDeleteIds] = useState<Set<string>>(
-    new Set(),
-  )
+  const { pendingDeleteIds, scheduleDelete: scheduleManualDelete } =
+    useOptimisticDelete<PlayerRow>({
+      getId: (row) => row.id,
+      title: (row) =>
+        `You have removed ${row.fgSpecialChar ?? row.playerName} from the player list.`,
+      variant: "warning",
+      perform: async (row) =>
+        (
+          await fetch(`/api/admin/players/manual/${row.id}`, {
+            method: "DELETE",
+          })
+        ).ok,
+      onSuccess: () => router.refresh(),
+      errorMessage: (row) =>
+        `Failed to remove ${row.fgSpecialChar ?? row.playerName}`,
+    })
   const [prevData, setPrevData] = useState(data)
   if (prevData !== data) {
     setPrevData(data)
@@ -591,49 +608,6 @@ export function PlayersTableAdmin({
   }
 
   const visibleData = data.filter((r) => !pendingDeleteIds.has(r.id))
-
-  function scheduleManualDelete(row: PlayerRow) {
-    setPendingDeleteIds((prev) => new Set(prev).add(row.id))
-    let cancelled = false
-    let executed = false
-
-    function removePending() {
-      setPendingDeleteIds((prev) => {
-        const next = new Set(prev)
-        next.delete(row.id)
-        return next
-      })
-    }
-
-    async function execute() {
-      if (executed || cancelled) return
-      executed = true
-      const res = await fetch(`/api/admin/players/manual/${row.id}`, {
-        method: "DELETE",
-      })
-      removePending()
-      if (res.ok) {
-        router.refresh()
-      } else {
-        showToast.error(
-          `Failed to remove ${row.fgSpecialChar ?? row.playerName}`,
-        )
-      }
-    }
-
-    showToast({
-      title: `You have removed ${row.fgSpecialChar ?? row.playerName} from the player list.`,
-      action: {
-        label: "Restore",
-        onClick: () => {
-          cancelled = true
-          removePending()
-        },
-      },
-      onDismiss: execute,
-      onAutoClose: execute,
-    })
-  }
 
   async function handleClearOverride(row: PlayerRow) {
     if (row.isManual) {

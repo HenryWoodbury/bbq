@@ -4,6 +4,7 @@ import { Geist_Mono, Lato } from "next/font/google"
 import { Header } from "@/components/header"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
+import { TooltipProvider } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import "./globals.css"
 
@@ -36,9 +37,13 @@ export default function RootLayout({
       <html lang="en" suppressHydrationWarning className={cn(lato.variable, geistMono.variable)}>
         <body className="min-h-screen w-full overflow-x-hidden bg-background antialiased">
           <ThemeProvider>
-            <Header />
-            <main className="w-full px-4 py-6 sm:px-6 lg:px-8">{children}</main>
-            <Toaster />
+            <TooltipProvider>
+              <Header />
+              <main className="w-full px-4 py-6 sm:px-6 lg:px-8">
+                {children}
+              </main>
+              <Toaster />
+            </TooltipProvider>
           </ThemeProvider>
         </body>
       </html>

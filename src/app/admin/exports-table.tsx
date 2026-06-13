@@ -20,7 +20,13 @@ import { IconButton } from "@/components/ui/icon-button"
 import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import type { ExportScope, ExportType } from "@/generated/prisma/client"
+import { useOptimisticDelete } from "@/hooks/use-optimistic-delete"
 
 export type ExportRow = {
   id: string
@@ -194,14 +200,20 @@ function EditDrawer({ row }: { row: ExportRow }) {
 
   return (
     <Drawer open={open} onClose={() => setOpen(false)}>
-      <DrawerTrigger asChild>
-        <IconButton
-          aria-label={`Edit ${row.name}`}
-          onClick={() => setOpen(true)}
-        >
-          <PencilIcon />
-        </IconButton>
-      </DrawerTrigger>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DrawerTrigger asChild>
+            <IconButton
+              tooltip={false}
+              aria-label={`Edit ${row.name}`}
+              onClick={() => setOpen(true)}
+            >
+              <PencilIcon />
+            </IconButton>
+          </DrawerTrigger>
+        </TooltipTrigger>
+        <TooltipContent>Edit {row.name}</TooltipContent>
+      </Tooltip>
       {open && (
         <ExportForm
           mode="edit"
@@ -218,83 +230,71 @@ function EditDrawer({ row }: { row: ExportRow }) {
   )
 }
 
-function DeleteButton({ row }: { row: ExportRow }) {
-  const router = useRouter()
-  const [pending, setPending] = useState(false)
-
-  async function handleDelete() {
-    if (!window.confirm(`Delete export "${row.name}"? This cannot be undone.`))
-      return
-    setPending(true)
-    try {
-      await fetch(`/api/admin/data-exports/${row.id}`, { method: "DELETE" })
-      router.refresh()
-    } finally {
-      setPending(false)
-    }
-  }
-
-  return (
-    <IconButton
-      onClick={handleDelete}
-      disabled={pending}
-      aria-label={`Delete ${row.name}`}
-      className="hover:text-destructive"
-    >
-      <Trash2Icon />
-    </IconButton>
-  )
-}
-
-const columns: ColumnDef<ExportRow, unknown>[] = [
-  {
-    accessorKey: "name",
-    header: "Name",
-    size: 180,
-    cell: ({ getValue }) => (
-      <span className="font-medium text-foreground">
-        {getValue() as string}
-      </span>
-    ),
-  },
-  {
-    accessorKey: "scope",
-    header: "Scope",
-    size: 90,
-    cell: ({ getValue }) => getValue() as string,
-  },
-  {
-    accessorKey: "type",
-    header: "Type",
-    size: 90,
-    cell: ({ getValue }) => getValue() as string,
-  },
-  {
-    accessorKey: "fields",
-    header: "Fields",
-    size: 450,
-    cell: ({ getValue }) => (getValue() as string[]).join(", "),
-  },
-  {
-    id: "actions",
-    header: "",
-    size: 60,
-    cell: ({ row }) => (
-      <div className="flex items-center gap-1">
-        <EditDrawer row={row.original} />
-        <DeleteButton row={row.original} />
-      </div>
-    ),
-  },
-]
-
 export function ExportsTable({ data }: { data: ExportRow[] }) {
   const router = useRouter()
   const [createOpen, setCreateOpen] = useState(false)
   const [scopeFilter, setScopeFilter] = useState<string>("ALL")
   const [typeFilter, setTypeFilter] = useState<string>("ALL")
+  const { pendingDeleteIds, scheduleDelete } = useOptimisticDelete<ExportRow>({
+    getId: (row) => row.id,
+    title: (row) => `Deleted export "${row.name}"`,
+    perform: async (row) =>
+      (await fetch(`/api/admin/data-exports/${row.id}`, { method: "DELETE" }))
+        .ok,
+    onSuccess: () => router.refresh(),
+    errorMessage: () => "Failed to delete export",
+  })
+
+  const columns: ColumnDef<ExportRow, unknown>[] = [
+    {
+      accessorKey: "name",
+      header: "Name",
+      size: 180,
+      cell: ({ getValue }) => (
+        <span className="font-medium text-foreground">
+          {getValue() as string}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "scope",
+      header: "Scope",
+      size: 90,
+      cell: ({ getValue }) => getValue() as string,
+    },
+    {
+      accessorKey: "type",
+      header: "Type",
+      size: 90,
+      cell: ({ getValue }) => getValue() as string,
+    },
+    {
+      accessorKey: "fields",
+      header: "Fields",
+      size: 450,
+      cell: ({ getValue }) => (getValue() as string[]).join(", "),
+    },
+    {
+      id: "actions",
+      header: "",
+      size: 60,
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1">
+          <EditDrawer row={row.original} />
+          <IconButton
+            aria-label={`Delete ${row.original.name}`}
+            onClick={() => scheduleDelete(row.original)}
+            className="hover:text-destructive"
+          >
+            <Trash2Icon />
+          </IconButton>
+        </div>
+      ),
+    },
+  ]
 
   const filtered = data.filter((row) => {
+    if (pendingDeleteIds.has(row.id)) return false
     if (scopeFilter !== "ALL" && row.scope !== scopeFilter) return false
     if (typeFilter !== "ALL" && row.type !== typeFilter) return false
     return true
