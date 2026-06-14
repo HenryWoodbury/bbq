@@ -7,7 +7,7 @@ export type Theme = "system" | "light" | "dark"
 
 const STORAGE_KEY = "bbq-theme"
 
-const ThemeContext = createContext<{
+export type ThemeContextValue = {
   theme: Theme
   setTheme: (t: Theme) => void
   /** Temporary visual override (e.g. heat-map preview). Does not persist. Pass null to clear. */
@@ -16,7 +16,10 @@ const ThemeContext = createContext<{
   isDark: boolean
   /** Dark state resolved from the persisted theme alone, ignoring any preview. */
   accountIsDark: boolean
-} | null>(null)
+}
+
+/** Exported for test/Storybook harnesses that supply a value without mounting the real provider. */
+export const ThemeContext = createContext<ThemeContextValue | null>(null)
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>("system")
