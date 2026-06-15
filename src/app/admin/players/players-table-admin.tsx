@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronLeftIcon, Undo2Icon } from "lucide-react"
+import { ChevronLeftIcon, Undo2Icon } from "@/components/icons/lucide"
 import { useRouter } from "next/navigation"
 import { Suspense, use, useRef, useState } from "react"
 import type { UniverseSearchResult } from "@/app/api/admin/players/universe-search/route"

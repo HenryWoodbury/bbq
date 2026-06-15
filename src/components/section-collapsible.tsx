@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronRightIcon } from "lucide-react"
+import { ChevronRightIcon } from "@/components/icons/lucide"
 import type { ReactNode } from "react"
 import { useState } from "react"
 import {

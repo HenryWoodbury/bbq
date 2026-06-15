@@ -8,6 +8,16 @@
   --color-zinc-150: oklch(94.39% 0.004 286.32);
   --color-zinc-750: oklch(0.32 0.013 285.805);
 
+  --text-body: 0.925rem;
+  --text-sm: 0.825rem;
+  --text-xs: 0.725rem;
+  --opacity-disabled: 0.6;
+}
+
+/* Reference-only palettes: no utility references them, so a plain @theme would
+   tree-shake their vars away. `static` forces emission so the Foundations/Colors
+   story can read each shade via var(). */
+@theme static {
   /* rain — gray-blue palette */
   --color-rain-50: oklch(97.30% 0.007 268.548);
   --color-rain-100: oklch(94.29% 0.0141 268.49);
@@ -33,11 +43,6 @@
   --color-brick-800: oklch(43.99% 0.1537 25.537);
   --color-brick-900: oklch(39.39% 0.1264 24.589);
   --color-brick-950: oklch(25.59% 0.0837 24.484);
-
-  --text-body: 0.925rem;
-  --text-sm: 0.825rem;
-  --text-xs: 0.725rem;
-  --opacity-disabled: 0.6;
 }
 
 @theme inline {
@@ -68,6 +73,7 @@
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
+  --color-skeleton: var(--skeleton);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
@@ -121,6 +127,7 @@
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.967 0.003 286.029); /* zinc-100 */
   --muted-foreground: oklch(0.556 0.014 285.755); /* zinc-500 */
+  --skeleton: oklch(0.922 0.004 286); /* zinc-200 */
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
@@ -146,11 +153,11 @@
   --success-border: oklch(0.905 0.093 164.15);
   /* ── Status: error (red scale) ───────────────────────────────────────────── */
   --error: oklch(0.971 0.013 17.38);
-  --error-foreground: oklch(0.444 0.177 26.899);
+  --error-foreground: oklch(0.505 0.213 27.518); /* red-700 */
   --error-border: oklch(0.885 0.062 18.334);
   /* ── Status: warning (amber scale) ──────────────────────────────────────── */
   --warning: oklch(0.987 0.022 95.277);
-  --warning-foreground: oklch(0.555 0.163 48.998);
+  --warning-foreground: oklch(0.62 0.17 55); /* one amber step lighter */
   --warning-border: oklch(0.924 0.12 95.746);
   /* ── Status: info (sky scale) ────────────────────────────────────────────── */
   --info: oklch(0.977 0.013 236);
@@ -182,6 +189,7 @@
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0.013 285.805); /* zinc-800 */
   --muted-foreground: oklch(0.709 0.012 285.95); /* zinc-400 */
+  --skeleton: oklch(0.37 0.013 285.805); /* zinc-700 */
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
@@ -207,7 +215,7 @@
   --success-border: oklch(0.432 0.095 166.913);
   /* ── Status: error ───────────────────────────────────────────────────────── */
   --error: oklch(0.258 0.092 26.072);
-  --error-foreground: oklch(0.885 0.062 18.334);
+  --error-foreground: oklch(0.936 0.032 17.717); /* red-100 */
   --error-border: oklch(0.444 0.177 26.899);
   /* ── Status: warning ─────────────────────────────────────────────────────── */
   --warning: oklch(0.279 0.077 45.635);

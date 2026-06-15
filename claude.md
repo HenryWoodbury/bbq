@@ -24,6 +24,11 @@ Rollout: Focus on working prototype using free-tier services. Design architectur
 - **Lucide Icons**: https://lucide.dev/icons/
 - **Tanstack Table**: https://tanstack.com/table/latest
 
+## 📁 Project Specs (`docs/`)
+- **Start at `docs/overview.md`** for the conceptual target; `docs/index.md` is the spec map.
+- Specs are **task-structured** (see `docs/_template.md`): intent → invariants → capabilities (with acceptance) → realization → next. Each has a `Type`/`Status`/`Last reconciled` header.
+- **Keep docs in sync in the same change:** edits to `prisma/schema.prisma` update `docs/schema.md`; new/changed API routes update `docs/api.md`; new `LeagueFormat` seeds update `docs/formats.md`. Stale docs mislead future agents (e.g. a model rename not reflected in docs produces code against a non-existent model).
+
 ## 🛠 Tech Stack & Environment
 - **Core**: Next.js 16.1.6, React 19.2.3 (Strict Mode).
 - **ORM**: Prisma 7.x (Local Docker Postgres -> Cloud DB Agnostic).

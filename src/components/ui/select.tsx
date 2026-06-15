@@ -1,5 +1,5 @@
 import { cva, type VariantProps } from "class-variance-authority"
-import { ChevronDownIcon } from "lucide-react"
+import { ChevronDownIcon } from "@/components/icons/lucide"
 import type { Ref, SelectHTMLAttributes } from "react"
 import { cn } from "@/lib/utils"
 

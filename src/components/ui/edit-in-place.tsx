@@ -1,6 +1,6 @@
 "use client"
 
-import { CheckIcon, PencilIcon, XIcon } from "lucide-react"
+import { CheckIcon, PencilIcon, XIcon } from "@/components/icons/lucide"
 import { useImperativeHandle, useState } from "react"
 import type { Ref } from "react"
 import { cn } from "@/lib/utils"

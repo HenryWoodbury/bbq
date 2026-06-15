@@ -1,6 +1,6 @@
 "use client"
 
-import { CheckIcon, ChevronRightIcon, CircleIcon } from "lucide-react"
+import { CheckIcon, ChevronRightIcon, CircleIcon } from "@/components/icons/lucide"
 import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui"
 import { createContext, type ComponentProps, use } from "react"
 

@@ -8,7 +8,7 @@ import {
   MoonIcon,
   SunIcon,
   UserIcon,
-} from "lucide-react"
+} from "@/components/icons/lucide"
 import type { ReactNode } from "react"
 import { type Theme, useTheme } from "@/components/theme-provider"
 import {

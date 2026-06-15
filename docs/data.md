@@ -37,7 +37,7 @@ The container is named `bbq_postgres` and binds to port 5432. Data persists in t
 
 | Script | Command | Purpose |
 |---|---|---|
-| `db:seed` | `prisma db seed` | Seed stat definitions, league templates, and a demo league + team |
+| `db:seed` | `tsx prisma/seed.ts` | Seed stat definitions, league formats, heat maps, data exports, and a demo league + team |
 | `seed:players` | `tsx prisma/seed-players.ts` | Seed `Player` and `PlayerUniverse` tables from local CSV files |
 
 #### `db:seed`
@@ -45,7 +45,9 @@ The container is named `bbq_postgres` and binds to port 5432. Data persists in t
 Runs `prisma/seed.ts`. Idempotent — safe to run multiple times. Seeds:
 
 - **StatDefinitions** — all batter and pitcher stat abbreviations (wipes and re-creates)
-- **LeagueTemplates** — ESPN, Ottoneu, and Custom templates (upserted by name)
+- **LeagueFormats** — the ESPN, Ottoneu, and Custom formats (upserted by name) — see [formats.md](formats.md)
+- **HeatMaps** — the `Default` OKLCH colour scale (`seedHeatMaps`) — see [heat-maps.md](heat-maps.md)
+- **DataExports** — export templates (`seedDataExports`) — see [data-exports.md](data-exports.md)
 - **Demo League** — `BBQ Demo League` with Clerk org ID `org_dev_placeholder`
 - **Demo Team** — `Smoke & Signals` attached to the demo league
 - **Commissioner membership** — if `SEED_COMMISSIONER_ID=user_xxxx` is set in `.env.local`, creates a COMMISSIONER `LeagueMember` for that Clerk user ID
@@ -93,7 +95,7 @@ Opens a browser-based GUI at `http://localhost:5555` for browsing and editing th
 pnpm db:up
 pnpm db:push
 pnpm db:seed
-pnpm seed:players   # after placing CSVs in source/
+pnpm seed:players   # after placing CSVs in sources/
 ```
 
 ### Full local reset

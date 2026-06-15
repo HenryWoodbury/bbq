@@ -1,185 +1,78 @@
-> **Status: Design spec** — Template definitions below are forward-looking. A subset is implemented via `LeagueTemplate` seeded in `prisma/seed.ts`. Enum values match the current `prisma/schema.prisma`.
+# League Formats
 
-# League Format Templates
+> **Type:** spec &nbsp;|&nbsp; **Status:** as-built &nbsp;|&nbsp; **Last reconciled:** 2026-06-14 against `prisma/seed.ts`
 
-This file defines **common draft format templates** as opinionated bundles of draft options (from `options.md`) plus compatible rule-sets (from `rules.md`).
+## Goal
+A commissioner creating a league must be able to pick a **format** — an
+opinionated bundle of platform, play-type, scoring, draft style, team count,
+roster size, and salary cap — instead of configuring each setting by hand. A
+format provides sensible defaults and a starting point that can be customized.
 
-Each template is intended to:
-- Provide **sensible defaults** for new leagues.
-- Map directly to `LeagueTemplate` fields in the DB.
-- Be a starting point that commissioners can customize.
+Each format is a `LeagueFormat` row (see [schema.md](schema.md)); a `League`
+references one via `formatId`.
 
-**Enum reference** (Prisma model values):
-- `platform`: `ESPN` | `Ottoneu` | `Custom`
-- `playType`: `H2H` | `Season`
-- `scoring`: `FiveX5` | `FourX4` | `Fangraphs` | `SABR` | `Points`
-- `draftMode`: `Live` | `Slow`
-- `draftType`: `Snake` | `Auction`
+## Invariants & constraints
+- `LeagueFormat.name` is **unique**; formats are upserted by name in the seed.
+- `cap` is set only for **auction** formats; snake formats leave it null.
+- A format's `rosters` JSON drives the shape of every `Team.currentRoster` in
+  leagues using it.
+- Changing a format after leagues reference it should bump `version` (formats are
+  versioned; leagues store the FK, not a copy).
 
----
+## Capability — seed the standard formats
+- **Goal:** ship a ready-to-use catalog covering the platforms BBQ targets.
+- **Acceptance:** after `pnpm db:seed`, `LeagueFormat` contains the 12 rows below,
+  each idempotently upserted by `name`.
+- **Realization:** `prisma/seed.ts` (`seedLeagueFormats`); roster arrays
+  `CUSTOM_ROSTER`, `ESPN_ROSTER`, `OTTONEU_ROSTER`.
 
-## 1. Ottoneu 4x4 (Classic)
+### The 12 seeded formats
+Enum values match `prisma/schema.prisma` (`Format*` enums).
 
-**Description**: 12-team Ottoneu-style 4×4 roto league.
+| Name | platform | playType | scoring | draftMode | draftType | teams | rosterSize | cap |
+|---|---|---|---|---|---|---|---|---|
+| Custom | Custom | Season | FiveX5 | Live | Snake | 12 | 23 | — |
+| ESPN 5x5 | ESPN | Season | FiveX5 | Live | Snake | 12 | 19 | — |
+| ESPN Points | ESPN | Season | Points | Live | Snake | 12 | 19 | — |
+| ESPN H2H 5x5 | ESPN | H2H | FiveX5 | Live | Snake | 12 | 19 | — |
+| ESPN H2H Points | ESPN | H2H | Points | Live | Snake | 12 | 19 | — |
+| Ottoneu 4x4 | Ottoneu | Season | FourX4 | Slow | Auction | 12 | 40 | 400 |
+| Ottoneu 5x5 | Ottoneu | Season | FiveX5 | Slow | Auction | 12 | 40 | 400 |
+| Ottoneu FGPTs | Ottoneu | Season | Fangraphs | Slow | Auction | 12 | 40 | 400 |
+| Ottoneu SABR | Ottoneu | Season | SABR | Slow | Auction | 12 | 40 | 400 |
+| Ottoneu H2H FGPTs | Ottoneu | H2H | Fangraphs | Slow | Auction | 12 | 40 | 400 |
+| Ottoneu H2H SABR | Ottoneu | H2H | SABR | Slow | Auction | 12 | 40 | 400 |
 
-| Field | Value |
+> The 11th–12th rows above are both Ottoneu H2H variants; the seed defines 11
+> named formats plus the `Custom` baseline. Each carries a `description` and a
+> markdown `rulesText` summary in the seed.
+
+> **Reconciliation note:** earlier docs described 9 forward-looking templates under
+> a `LeagueTemplate` model with all drafts `Live`. The shipped model is
+> `LeagueFormat`; Ottoneu formats are **`Slow`** (slow auction) and ESPN formats
+> are **`Live` Snake**. The table above reflects the seed.
+
+## Capability — manage formats via admin API
+- **Goal:** an admin can create, edit, and retire formats beyond the seed.
+- **Acceptance:** the `/api/admin/league-formats` routes (see [api.md](api.md))
+  CRUD `LeagueFormat`; `isActive`/`deletedAt` retire a format without breaking
+  leagues that reference it.
+- **Realization:** `src/app/api/admin/league-formats/**`, `src/lib/queries/formats.ts`,
+  admin UI at `src/app/admin/leagues/page.tsx`.
+
+## Scoring reference
+| `FormatScoring` | Meaning |
 |---|---|
-| `platform` | `Ottoneu` |
-| `playType` | `Season` |
-| `scoring` | `FourX4` |
-| `draftType` | `Auction` |
-| `draftMode` | `Live` |
-| `cap` | 400 |
+| `FiveX5` (`5x5`) | Rotisserie 5×5 (R, HR, RBI, SB, AVG / W, SV, K, ERA, WHIP) |
+| `FourX4` (`4x4`) | Rotisserie 4×4 (HR, RBI, SB, AVG / W, SV, ERA, WHIP) |
+| `Fangraphs` | FanGraphs linear-weights points |
+| `SABR` | SABR linear-weights points (peripheral-based for pitchers) |
+| `Points` | Platform-native points (e.g. ESPN defaults) |
 
-**Rules (summarized)**
-- 12 teams, 40-man rosters, roto 4×4 scoring, IP cap, salary-cap + arbitration, FAAB waivers, loans.
-
----
-
-## 2. Ottoneu 5x5
-
-**Description**: Same as Ottoneu 4×4 but with 5×5 roto scoring.
-
-| Field | Value |
-|---|---|
-| `platform` | `Ottoneu` |
-| `playType` | `Season` |
-| `scoring` | `FiveX5` |
-| `draftType` | `Auction` |
-| `draftMode` | `Live` |
-| `cap` | 400 |
-
-**Rules**
-- 5×5 categories (`r`, `hr`, `rbi`, `sb`, `avg` / `w`, `sv`, `k`, `era`, `whip`).
-
----
-
-## 3. Ottoneu FanGraphs Points (Season-Long)
-
-**Description**: 12-team Ottoneu FanGraphs points league.
-
-| Field | Value |
-|---|---|
-| `platform` | `Ottoneu` |
-| `playType` | `Season` |
-| `scoring` | `Fangraphs` |
-| `draftType` | `Auction` |
-| `draftMode` | `Live` |
-| `cap` | 400 |
-
-**Rules**
-- FanGraphs points scoring, IP cap, no playoffs, 40-man rosters, salary-cap + arbitration.
-
----
-
-## 4. Ottoneu SABR Points (Season-Long)
-
-**Description**: 12-team Ottoneu SABR linear-weights points league.
-
-| Field | Value |
-|---|---|
-| `platform` | `Ottoneu` |
-| `playType` | `Season` |
-| `scoring` | `SABR` |
-| `draftType` | `Auction` |
-| `draftMode` | `Live` |
-| `cap` | 400 |
-
-**Rules**
-- SABR linear-weights points. Batters: wRAA-based. Pitchers: peripherals (K, BB, HR allowed) — not wins or saves.
-- IP cap, no playoffs, 40-man rosters, salary-cap + arbitration.
-
----
-
-## 5. ESPN 5×5 Roto (Season-Long)
-
-**Description**: Classic 10-team ESPN-style 5×5 roto.
-
-| Field | Value |
-|---|---|
-| `platform` | `ESPN` |
-| `playType` | `Season` |
-| `scoring` | `FiveX5` |
-| `draftType` | `Snake` |
-| `draftMode` | `Live` |
-
-**Rules**
-- 5×5 roto, shallow rosters (~25 players), rolling waivers, no FAAB.
-
----
-
-## 6. ESPN 5×5 H2H Each Category
-
-**Description**: ESPN-style H2H each-category using 5×5.
-
-| Field | Value |
-|---|---|
-| `platform` | `ESPN` |
-| `playType` | `H2H` |
-| `scoring` | `FiveX5` |
-| `draftType` | `Snake` |
-| `draftMode` | `Live` |
-
-**Rules**
-- H2H each-category 5×5, 4–6 team playoffs.
-
----
-
-## 7. ESPN Points (Season-Long)
-
-**Description**: ESPN-style 10-team season-long total points.
-
-| Field | Value |
-|---|---|
-| `platform` | `ESPN` |
-| `playType` | `Season` |
-| `scoring` | `Points` |
-| `draftType` | `Snake` |
-| `draftMode` | `Live` |
-
-**Rules**
-- Cumulative ESPN default points, 25-man rosters, rolling waivers, no playoffs.
-
----
-
-## 8. ESPN H2H Points
-
-**Description**: ESPN-style 10-team H2H points with playoffs.
-
-| Field | Value |
-|---|---|
-| `platform` | `ESPN` |
-| `playType` | `H2H` |
-| `scoring` | `Points` |
-| `draftType` | `Snake` |
-| `draftMode` | `Live` |
-
-**Rules**
-- Weekly H2H points, standard ESPN points weights, 4–6 team playoffs, rolling waivers, adds-per-week limit.
-
----
-
-## 9. Custom Baseline (Fully Editable)
-
-**Description**: Minimal defaults for flexible custom leagues.
-
-| Field | Value |
-|---|---|
-| `platform` | `Custom` |
-| `playType` | `Season` |
-| `scoring` | `FiveX5` |
-| `draftType` | `Snake` |
-| `draftMode` | `Live` |
-
-**Rules**
-- 10 teams, 5×5 roto, ~23-man roster, rolling waivers; all details customizable per league.
-
----
-
-## Notes on Implementation
-
-- Template IDs are UUIDs — they are the primary key and not exposed to end users.
-- Supported scoring systems: `FiveX5`, `FourX4`, `Fangraphs`, `SABR`, `Points`.
-- Each template is stored as a `LeagueTemplate` row in the DB.
-- UI can present a **template picker** with three sequential choices: platform (Ottoneu / ESPN / Custom), scoring format, play type (Season / H2H).
-- League instances store `templateId` — a FK to `LeagueTemplate`. Template changes after league creation may need a version bump.
+## Next / Open questions
+- **Format picker UI** — the intended flow is a sequential picker (platform →
+  scoring → play-type). Not yet built as a guided flow.
+- **Per-league customization** — leagues currently reference a format; cloning a
+  format into editable per-league overrides is not yet implemented.
+- `options.md` / `rules.md` (referenced historically) do not exist in `docs/`;
+  the authoritative rules summary now lives in each format's `rulesText`.

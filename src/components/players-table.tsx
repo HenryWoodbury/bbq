@@ -1,7 +1,7 @@
 "use client"
 
 import type { ColumnDef } from "@tanstack/react-table"
-import { DownloadIcon, PencilIcon, Trash2Icon, Undo2Icon } from "lucide-react"
+import { DownloadIcon, PencilIcon, Trash2Icon, Undo2Icon } from "@/components/icons/lucide"
 import { useRouter } from "next/navigation"
 import type React from "react"
 import { useState } from "react"

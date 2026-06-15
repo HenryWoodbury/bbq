@@ -1,7 +1,7 @@
 "use client"
 
 import type { ColumnDef } from "@tanstack/react-table"
-import { Trash2Icon, XIcon } from "lucide-react"
+import { Trash2Icon, XIcon } from "@/components/icons/lucide"
 import { useRouter } from "next/navigation"
 import { type CSSProperties, useEffect, useRef, useState } from "react"
 import { DataTable } from "@/components/data-table"

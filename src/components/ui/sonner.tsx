@@ -2,17 +2,16 @@
 
 import {
   CircleCheckIcon,
+  CircleXIcon,
   InfoIcon,
   Loader2Icon,
-  OctagonXIcon,
   TriangleAlertIcon,
-  XIcon,
-} from "lucide-react"
+} from "@/components/icons/lucide"
 import type { CSSProperties, ReactNode } from "react"
 import { Toaster as Sonner, type ToasterProps, toast } from "sonner"
 import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
-import { IconButton } from "@/components/ui/icon-button"
+import { CloseButton } from "@/components/ui/close-button"
 import { cn } from "@/lib/utils"
 
 // ── Toaster ───────────────────────────────────────────────────────────────────
@@ -28,7 +27,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
         success: <CircleCheckIcon className="size-4" />,
         info: <InfoIcon className="size-4" />,
         warning: <TriangleAlertIcon className="size-4" />,
-        error: <OctagonXIcon className="size-4" />,
+        error: <CircleXIcon className="size-4" />,
         loading: <Loader2Icon className="size-4 animate-spin" />,
       }}
       style={
@@ -53,7 +52,6 @@ type ToastAction = {
   label: string
   icon?: ReactNode
   onClick: () => void
-  toastId: string | number
 }
 
 const VARIANT_STYLES: Record<ToastVariant, string> = {
@@ -68,7 +66,7 @@ const VARIANT_ICONS: Partial<Record<ToastVariant, ReactNode>> = {
   success: <CircleCheckIcon className="size-4 shrink-0" />,
   info:    <InfoIcon className="size-4 shrink-0" />,
   warning: <TriangleAlertIcon className="size-4 shrink-0" />,
-  error:   <OctagonXIcon className="size-4 shrink-0" />,
+  error:   <CircleXIcon className="size-4 shrink-0" />,
 }
 
 function ToastContent({
@@ -76,17 +74,22 @@ function ToastContent({
   description,
   action,
   variant = "default",
+  toastId,
+  showClose = false,
 }: {
   title?: string
   description?: string
   action?: ToastAction
   variant?: ToastVariant
+  toastId: string | number
+  /** Render a manual close (×); used for toasts that don't auto-close. */
+  showClose?: boolean
 }) {
   const icon = VARIANT_ICONS[variant]
   return (
     <div
       className={cn(
-        "flex w-full items-center justify-between gap-4 border rounded-md pt-3 pb-4 px-4",
+        "flex w-full items-start justify-between gap-4 border rounded-md pt-3 pb-4 px-4",
         VARIANT_STYLES[variant],
       )}
     >
@@ -101,29 +104,27 @@ function ToastContent({
           )}
         </div>
       </div>
-      {action && (
-        <div className="flex shrink-0 items-center gap-1">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => {
-              action.onClick()
-              toast.dismiss(action.toastId)
-            }}
-          >
-            {action.icon}
-            {action.label}
-          </Button>
-          <IconButton
-            size="sm"
-            type="button"
-            aria-label="Close"
-            tooltip={false}
-            onClick={() => toast.dismiss(action.toastId)}
-            className="hover:bg-black/5 dark:hover:bg-white/10"
-          >
-            <XIcon />
-          </IconButton>
+      {(action || showClose) && (
+        <div className="flex shrink-0 items-start gap-1">
+          {action && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                action.onClick()
+                toast.dismiss(toastId)
+              }}
+            >
+              {action.icon}
+              {action.label}
+            </Button>
+          )}
+          {showClose && (
+            <CloseButton
+              aria-label="Close"
+              onClick={() => toast.dismiss(toastId)}
+            />
+          )}
         </div>
       )}
     </div>
@@ -136,7 +137,9 @@ type ShowToastOptions = {
   title: string
   description?: string
   variant?: ToastVariant
-  action?: Omit<ToastAction, "toastId">
+  action?: ToastAction
+  /** Keep the toast open until the user dismisses it (renders a × close). */
+  persistent?: boolean
   onDismiss?: () => void
   onAutoClose?: () => void
 }
@@ -146,23 +149,29 @@ function showToast({
   description,
   variant,
   action,
+  persistent,
   onDismiss,
   onAutoClose,
 }: ShowToastOptions) {
+  // A toast that won't auto-close — because it has an action to resolve or is
+  // explicitly persistent — gets a manual close (×). Auto-closing toasts dismiss
+  // themselves, so they show no ×.
+  const noAutoClose = persistent === true || action != null
   return toast.custom(
     (id) => (
       <ToastContent
         title={title}
         description={description}
         variant={variant}
-        action={action ? { ...action, toastId: id } : undefined}
+        action={action}
+        toastId={id}
+        showClose={noAutoClose}
       />
     ),
-    // Toasts with an action stay until the user resolves them (act or close).
     {
       onDismiss,
       onAutoClose,
-      duration: action ? Number.POSITIVE_INFINITY : undefined,
+      duration: noAutoClose ? Number.POSITIVE_INFINITY : undefined,
     },
   )
 }

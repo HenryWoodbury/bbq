@@ -5,7 +5,7 @@ import {
   LayoutTemplateIcon,
   SettingsIcon,
   SquareLibraryIcon,
-} from "lucide-react"
+} from "@/components/icons/lucide"
 import Link from "next/link"
 import { BaseballIcon, ParkIcon, PlayerIcon } from "@/components/icons"
 import {

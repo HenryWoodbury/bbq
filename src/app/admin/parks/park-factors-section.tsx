@@ -12,7 +12,7 @@ import {
   Trash2Icon,
   Undo2Icon,
   XIcon,
-} from "lucide-react"
+} from "@/components/icons/lucide"
 import { useRouter } from "next/navigation"
 import type React from "react"
 import {

@@ -1,5 +1,7 @@
 # Authentication & Authorization
 
+> **Type:** reference &nbsp;|&nbsp; **Status:** as-built &nbsp;|&nbsp; **Last reconciled:** 2026-06-14 against `src/lib/auth-helpers.ts`
+
 ## Overview
 
 Auth is handled by **Clerk** with **Next.js 16 proxy** pattern. All auth logic flows through `src/proxy.ts` and `src/lib/auth-helpers.ts`.

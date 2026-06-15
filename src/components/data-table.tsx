@@ -16,7 +16,7 @@ import {
   ArrowUpIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-} from "lucide-react"
+} from "@/components/icons/lucide"
 import { useState } from "react"
 import { IconButton } from "@/components/ui/icon-button"
 import { Select } from "@/components/ui/select"

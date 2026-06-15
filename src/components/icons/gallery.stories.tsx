@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
-import { GaugeIcon } from "lucide-react"
+import type { ComponentType } from "react"
 import { BaseballIcon, ParkIcon, PlayerAddIcon, PlayerIcon } from "./index"
+import * as lucideIcons from "./lucide"
 import type { IconSize } from "./types"
 
 const meta: Meta = {
@@ -19,6 +20,12 @@ const custom = [
 ] as const
 
 const sizes: IconSize[] = ["xs", "sm", "md", "lg"]
+
+// Reflects the production barrel (src/components/icons/lucide.ts) — i.e. the
+// lucide icons actually used in the UI. Sorted for stable display.
+const lucide = (
+  Object.entries(lucideIcons) as [string, ComponentType<{ size?: number }>][]
+).sort(([a], [b]) => a.localeCompare(b))
 
 export const Custom: Story = {
   render: () => (
@@ -40,26 +47,25 @@ export const Custom: Story = {
   ),
 }
 
-export const LucideUsage: Story = {
+export const Lucide: Story = {
   render: () => (
-    <div className="flex flex-col gap-3 text-foreground">
-      <h2>Lucide icons</h2>
+    <div className="flex flex-col gap-6 text-foreground">
+      <h2>Lucide icons in use</h2>
       <p className="text-body text-muted-foreground">
-        Composites use{" "}
-        <a
-          className="underline"
-          href="https://lucide.dev/icons/"
-          target="_blank"
-          rel="noreferrer"
-        >
-          lucide-react
-        </a>{" "}
-        directly, sized with the <code>size</code> prop:
+        Re-exported from{" "}
+        <code>@/components/icons/lucide</code> — the icons actually used across
+        the app. Import from the barrel (not <code>lucide-react</code>) to keep
+        this gallery accurate.
       </p>
-      <div className="flex items-center gap-3">
-        <GaugeIcon size={16} />
-        <GaugeIcon size={20} />
-        <GaugeIcon size={24} />
+      <div className="grid grid-cols-3 gap-6 sm:grid-cols-4 md:grid-cols-6">
+        {lucide.map(([name, Icon]) => (
+          <div key={name} className="flex flex-col items-center gap-2">
+            <Icon size={24} />
+            <code className="text-center text-xs text-muted-foreground">
+              {name}
+            </code>
+          </div>
+        ))}
       </div>
     </div>
   ),
