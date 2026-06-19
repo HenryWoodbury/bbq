@@ -2,24 +2,22 @@
 
 import { cva, type VariantProps } from "class-variance-authority"
 import { type HTMLAttributes, type ReactNode, useState } from "react"
-import {
-  CircleCheckIcon,
-  CircleXIcon,
-  InfoIcon,
-  TriangleAlertIcon,
-} from "@/components/icons/lucide"
 import { CloseButton } from "@/components/ui/close-button"
+import {
+  STATUS_VARIANTS,
+  type StatusVariant,
+} from "@/components/ui/status-variants"
 import { cn } from "@/lib/utils"
 
 const alertVariants = cva("border", {
   variants: {
+    // Colors come from the shared STATUS_VARIANTS source of truth.
     variant: {
-      // Variant colors mirror the Sonner toast mapping (src/components/ui/sonner.tsx).
-      default: "bg-popover border-border text-foreground",
-      success: "border-success-border bg-success text-foreground",
-      error: "border-error-border bg-error text-foreground",
-      warning: "border-warning-border bg-warning text-foreground",
-      info: "bg-info border-info-border text-info-foreground",
+      default: STATUS_VARIANTS.default.container,
+      success: STATUS_VARIANTS.success.container,
+      error: STATUS_VARIANTS.error.container,
+      warning: STATUS_VARIANTS.warning.container,
+      info: STATUS_VARIANTS.info.container,
     },
     size: {
       sm: "rounded-sm px-3 py-2 text-sm",
@@ -32,18 +30,6 @@ const alertVariants = cva("border", {
     size: "md",
   },
 })
-
-type AlertVariant = NonNullable<VariantProps<typeof alertVariants>["variant"]>
-
-// Variant icons mirror the Sonner toast mapping (src/components/ui/sonner.tsx),
-// tinted with each variant's foreground token for a subtle status signal.
-// `default` (no variant) has no icon, matching the toast default.
-const VARIANT_ICONS: Partial<Record<AlertVariant, ReactNode>> = {
-  success: <CircleCheckIcon className="size-4 shrink-0 text-success-foreground" />,
-  error: <CircleXIcon className="size-4 shrink-0 text-error-foreground" />,
-  warning: <TriangleAlertIcon className="size-4 shrink-0 text-warning-foreground" />,
-  info: <InfoIcon className="size-4 shrink-0 text-info-foreground" />,
-}
 
 export interface AlertProps
   extends HTMLAttributes<HTMLDivElement>,
@@ -70,12 +56,14 @@ function Alert({
   const [dismissed, setDismissed] = useState(false)
   if (dismissed) return null
 
-  const resolvedVariant: AlertVariant = variant ?? "default"
+  const resolvedVariant: StatusVariant = variant ?? "default"
   const defaultRole =
     resolvedVariant === "error" || resolvedVariant === "warning"
       ? "alert"
       : "status"
-  const resolvedIcon = icon === false ? null : (icon ?? VARIANT_ICONS[resolvedVariant])
+  const { Icon, iconClass } = STATUS_VARIANTS[resolvedVariant]
+  const variantIcon = Icon ? <Icon className={iconClass} /> : null
+  const resolvedIcon = icon === false ? null : (icon ?? variantIcon)
   const handleClear = () => {
     setDismissed(true)
     onClear?.()

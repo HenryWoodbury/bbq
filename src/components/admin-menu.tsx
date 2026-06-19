@@ -2,12 +2,14 @@
 
 import {
   BarChart2Icon,
+  BaseballIcon,
   LayoutTemplateIcon,
+  ParkIcon,
+  PlayerIcon,
   SettingsIcon,
   SquareLibraryIcon,
-} from "@/components/icons/lucide"
+} from "@/components/icons"
 import Link from "next/link"
-import { BaseballIcon, ParkIcon, PlayerIcon } from "@/components/icons"
 import {
   DropdownMenu,
   DropdownMenuContent,

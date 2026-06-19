@@ -195,12 +195,6 @@ const status: Token[] = [
     fg: "--info-foreground",
     border: "--info-border",
   },
-  {
-    token: "--positive",
-    label: "positive",
-    util: "text-positive",
-    purpose: "Active/positive indicator",
-  },
 ]
 
 const charts: Token[] = [1, 2, 3, 4, 5].map((n) => ({

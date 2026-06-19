@@ -12,6 +12,10 @@ import { Toaster as Sonner, type ToasterProps, toast } from "sonner"
 import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import { CloseButton } from "@/components/ui/close-button"
+import {
+  STATUS_VARIANTS,
+  type StatusVariant,
+} from "@/components/ui/status-variants"
 import { cn } from "@/lib/utils"
 
 // ── Toaster ───────────────────────────────────────────────────────────────────
@@ -46,27 +50,14 @@ const Toaster = ({ ...props }: ToasterProps) => {
 
 // ── ToastContent ──────────────────────────────────────────────────────────────
 
-type ToastVariant = "default" | "success" | "info" | "warning" | "error"
+// Re-exported alias for the shared status variant (kept for call sites that
+// import `ToastVariant` from here).
+type ToastVariant = StatusVariant
 
 type ToastAction = {
   label: string
   icon?: ReactNode
   onClick: () => void
-}
-
-const VARIANT_STYLES: Record<ToastVariant, string> = {
-  default: "bg-popover border-border text-foreground",
-  success: "bg-success border-success-border text-success-foreground",
-  info:    "bg-info border-info-border text-info-foreground",
-  warning: "bg-warning border-warning-border text-warning-foreground",
-  error:   "bg-error border-error-border text-error-foreground",
-}
-
-const VARIANT_ICONS: Partial<Record<ToastVariant, ReactNode>> = {
-  success: <CircleCheckIcon className="size-4 shrink-0" />,
-  info:    <InfoIcon className="size-4 shrink-0" />,
-  warning: <TriangleAlertIcon className="size-4 shrink-0" />,
-  error:   <CircleXIcon className="size-4 shrink-0" />,
 }
 
 function ToastContent({
@@ -85,16 +76,20 @@ function ToastContent({
   /** Render a manual close (×); used for toasts that don't auto-close. */
   showClose?: boolean
 }) {
-  const icon = VARIANT_ICONS[variant]
+  const { Icon, iconClass, container } = STATUS_VARIANTS[variant]
   return (
     <div
       className={cn(
         "flex w-full items-start justify-between gap-4 border rounded-md pt-3 pb-4 px-4",
-        VARIANT_STYLES[variant],
+        container,
       )}
     >
       <div className="flex items-start gap-3 min-w-0">
-        {icon && <span className="mt-0.5">{icon}</span>}
+        {Icon && (
+          <span className="mt-0.5">
+            <Icon className={iconClass} />
+          </span>
+        )}
         <div className="min-w-0">
           {title && (
             <p className="text-body font-medium">{title}</p>
