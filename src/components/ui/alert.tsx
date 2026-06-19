@@ -20,9 +20,9 @@ const alertVariants = cva("border", {
       info: STATUS_VARIANTS.info.container,
     },
     size: {
-      sm: "rounded-sm px-3 py-2 text-sm",
-      md: "rounded-md px-4 py-3 text-body",
-      lg: "rounded-lg px-5 py-4 text-body",
+      sm: "rounded-sm ps-3 pe-4 py-2 text-sm",
+      md: "rounded-md ps-4 pe-5 py-3 text-body",
+      lg: "rounded-lg ps-5 pe-6 py-4 text-body",
     },
   },
   defaultVariants: {
@@ -75,9 +75,11 @@ function Alert({
       {...props}
     >
       <div className="flex items-start gap-3">
-        {resolvedIcon && <span className="mt-0.5">{resolvedIcon}</span>}
+        {resolvedIcon && <span className="mt-0.75">{resolvedIcon}</span>}
         <div className="min-w-0 flex-1">{children}</div>
-        {clearable && <CloseButton aria-label="Dismiss" onClick={handleClear} />}
+        {clearable && (
+          <CloseButton aria-label="Dismiss" onClick={handleClear} />
+        )}
       </div>
     </div>
   )

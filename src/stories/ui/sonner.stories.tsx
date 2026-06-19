@@ -22,6 +22,9 @@ const VARIANTS: { variant: ToastVariant; label: string }[] = [
 export const Variants: Story = {
   render: () => (
     <div className="flex flex-wrap gap-3">
+      <Button variant="secondary" onClick={() => showToast("Default toast")}>
+        Default
+      </Button>
       <Button
         variant="secondary"
         onClick={() => showToast.success("Stats uploaded", "342 rows added.")}

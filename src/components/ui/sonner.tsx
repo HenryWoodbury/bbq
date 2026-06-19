@@ -1,5 +1,7 @@
 "use client"
 
+import type { CSSProperties, ReactNode } from "react"
+import { Toaster as Sonner, type ToasterProps, toast } from "sonner"
 import {
   CircleCheckIcon,
   CircleXIcon,
@@ -7,8 +9,6 @@ import {
   Loader2Icon,
   TriangleAlertIcon,
 } from "@/components/icons/lucide"
-import type { CSSProperties, ReactNode } from "react"
-import { Toaster as Sonner, type ToasterProps, toast } from "sonner"
 import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import { CloseButton } from "@/components/ui/close-button"
@@ -80,23 +80,19 @@ function ToastContent({
   return (
     <div
       className={cn(
-        "flex w-full items-start justify-between gap-4 border rounded-md pt-3 pb-4 px-4",
+        "flex w-full items-start justify-between gap-4 border rounded-md pt-3 pb-3 px-4",
         container,
       )}
     >
       <div className="flex items-start gap-3 min-w-0">
         {Icon && (
-          <span className="mt-0.5">
+          <span className="mt-0.75 -ml-1">
             <Icon className={iconClass} />
           </span>
         )}
         <div className="min-w-0">
-          {title && (
-            <p className="text-body font-medium">{title}</p>
-          )}
-          {description && (
-            <p className="text-body opacity-80">{description}</p>
-          )}
+          {title && <p className="text-body font-medium">{title}</p>}
+          {description && <p className="text-body opacity-80">{description}</p>}
         </div>
       </div>
       {(action || showClose) && (
@@ -139,15 +135,25 @@ type ShowToastOptions = {
   onAutoClose?: () => void
 }
 
-function showToast({
-  title,
-  description,
-  variant,
-  action,
-  persistent,
-  onDismiss,
-  onAutoClose,
-}: ShowToastOptions) {
+function showToast(options: ShowToastOptions): string | number
+function showToast(title: string, description?: string): string | number
+function showToast(
+  optionsOrTitle: ShowToastOptions | string,
+  descArg?: string,
+): string | number {
+  const options: ShowToastOptions =
+    typeof optionsOrTitle === "string"
+      ? { title: optionsOrTitle, description: descArg }
+      : optionsOrTitle
+  const {
+    title,
+    description,
+    variant,
+    action,
+    persistent,
+    onDismiss,
+    onAutoClose,
+  } = options
   // A toast that won't auto-close — because it has an action to resolve or is
   // explicitly persistent — gets a manual close (×). Auto-closing toasts dismiss
   // themselves, so they show no ×.

@@ -45,8 +45,7 @@ export const Clearable: Story = {
         Upload failed — invalid CSV.
       </Alert>
       <Alert variant="info" clearable>
-        Sync runs nightly at 3am. This one wraps onto a second line to show the
-        × stays aligned with the icon at the top.
+        Sync runs nightly at 3am. This has a longer message to show wrapping.
       </Alert>
     </div>
   ),
