@@ -23,9 +23,6 @@ const buttonVariants = cva(
         md: "rounded-lg px-4 py-1.5 min-h-9",
         lg: "rounded-xl px-4 py-2 min-h-10",
       },
-      mode: {
-        icon: "px-0 aspect-square",
-      },
     },
     defaultVariants: {
       variant: "primary",
@@ -40,18 +37,11 @@ export interface ButtonProps
   ref?: Ref<HTMLButtonElement>
 }
 
-function Button({
-  className,
-  variant,
-  size,
-  mode,
-  ref,
-  ...props
-}: ButtonProps) {
+function Button({ className, variant, size, ref, ...props }: ButtonProps) {
   return (
     <button
       ref={ref}
-      className={cn(buttonVariants({ variant, size, mode }), className)}
+      className={cn(buttonVariants({ variant, size }), className)}
       {...props}
     />
   )

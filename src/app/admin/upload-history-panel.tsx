@@ -1,17 +1,17 @@
 "use client"
 
 import type { ColumnDef } from "@tanstack/react-table"
-import { Trash2Icon } from "@/components/icons/lucide"
 import { useRouter } from "next/navigation"
 import { useRef, useState } from "react"
 import { DataTable } from "@/components/data-table"
+import { Trash2Icon } from "@/components/icons/lucide"
 import { Alert } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { FileLabel } from "@/components/ui/file-label"
 import { IconButton } from "@/components/ui/icon-button"
 import { Input } from "@/components/ui/input"
-import { formatDateTime } from "@/lib/date"
 import { useOptimisticDelete } from "@/hooks/use-optimistic-delete"
+import { formatDateTime } from "@/lib/date"
 import { cn } from "@/lib/utils"
 
 export type UploadHistoryRow = {
@@ -115,6 +115,7 @@ export function UploadHistoryPanel({
       cell: ({ row }) => (
         <div className="flex justify-end">
           <IconButton
+            variant="destructive"
             aria-label="Delete upload"
             onClick={() => scheduleDelete(row.original)}
           >

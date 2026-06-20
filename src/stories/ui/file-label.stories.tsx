@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
-import { UploadIcon } from "lucide-react"
 import { FileLabel } from "@/components/ui/file-label"
 
 const meta = {
@@ -16,10 +15,5 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Playground: Story = {
-  render: (args) => (
-    <FileLabel {...args}>
-      <UploadIcon />
-      Upload CSV
-    </FileLabel>
-  ),
+  render: (args) => <FileLabel {...args}>Select Files…</FileLabel>,
 }

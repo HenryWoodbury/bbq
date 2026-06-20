@@ -282,9 +282,9 @@ export function ExportsTable({ data }: { data: ExportRow[] }) {
         <div className="flex items-center gap-1">
           <EditDrawer row={row.original} />
           <IconButton
+            variant="destructive"
             aria-label={`Delete ${row.original.name}`}
             onClick={() => scheduleDelete(row.original)}
-            className="hover:text-destructive"
           >
             <Trash2Icon />
           </IconButton>

@@ -247,6 +247,7 @@ export function UploadStats({
       cell: ({ row }) => (
         <div className="flex justify-end">
           <IconButton
+            variant="destructive"
             aria-label="Delete upload"
             onClick={() => scheduleDelete(row.original.id)}
           >

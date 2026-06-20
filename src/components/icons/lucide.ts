@@ -31,6 +31,7 @@ export {
   Trash2Icon,
   TriangleAlertIcon,
   Undo2Icon,
+  UploadIcon,
   UserIcon,
   XIcon,
 } from "lucide-react"

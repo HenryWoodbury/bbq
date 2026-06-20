@@ -5,28 +5,31 @@ import { type FieldDef, InputFieldGroup } from "@/components/ui/input-field-grou
 const meta = {
   title: "UI/InputFieldGroup",
   component: InputFieldGroup,
+  args: { size: "md" },
+  argTypes: {
+    size: { control: "inline-radio", options: ["sm", "md", "lg"] },
+  },
 } satisfies Meta
 
 export default meta
 type Story = StoryObj
 
 const fields: FieldDef[] = [
-  { key: "max", label: "Max", width: 80 },
-  { key: "min", label: "Min", width: 80 },
-  { key: "avg", label: "Avg", width: 80 },
-  { key: "increments", label: "Count", width: 72, min: 2 },
+  { key: "x", label: "X", width: 72 },
+  { key: "y", label: "Y", width: 72 },
+  { key: "z", label: "Z", width: 72 },
 ]
 
-export const HeatMapLimits: Story = {
-  render: () => {
+export const Playground: Story = {
+  render: (args) => {
     const [values, setValues] = useState<Record<string, number | string>>({
-      max: 110,
-      min: 90,
-      avg: 100,
-      increments: 20,
+      x: 0,
+      y: 0,
+      z: 0,
     })
     return (
       <InputFieldGroup
+        {...args}
         fields={fields}
         values={values}
         onChange={(key, value) =>

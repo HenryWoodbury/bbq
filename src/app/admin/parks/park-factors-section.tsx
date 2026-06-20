@@ -1,18 +1,6 @@
 "use client"
 
 import type { ColumnDef } from "@tanstack/react-table"
-import {
-  ArrowUpDownIcon,
-  CopyPlusIcon,
-  DownloadIcon,
-  EllipsisVerticalIcon,
-  MoonIcon,
-  PencilIcon,
-  SunIcon,
-  Trash2Icon,
-  Undo2Icon,
-  XIcon,
-} from "@/components/icons/lucide"
 import { useRouter } from "next/navigation"
 import type React from "react"
 import {
@@ -25,6 +13,18 @@ import {
 import { HexColorPicker } from "react-colorful"
 import { DataTable } from "@/components/data-table"
 import { FilterGroup } from "@/components/filter-group"
+import {
+  ArrowUpDownIcon,
+  CopyPlusIcon,
+  DownloadIcon,
+  EllipsisVerticalIcon,
+  MoonIcon,
+  PencilIcon,
+  SunIcon,
+  Trash2Icon,
+  Undo2Icon,
+  XIcon,
+} from "@/components/icons/lucide"
 import { useTheme } from "@/components/theme-provider"
 import { Alert } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -716,10 +716,9 @@ export function ParkFactorsSection({
                       </Select>
                     </label>
                   )}
-                  <Button
-                    variant="ghost"
+                  <IconButton
                     size="sm"
-                    mode="icon"
+                    aria-label="Edit heat map"
                     onClick={() => {
                       const target = activeHeatMap ?? visibleHeatMaps[0]
                       if (target) {
@@ -729,9 +728,8 @@ export function ParkFactorsSection({
                       }
                     }}
                   >
-                    <PencilIcon className="h-4 w-4" />
-                    <span className="sr-only">Edit heat map</span>
-                  </Button>
+                    <PencilIcon />
+                  </IconButton>
                 </div>
 
                 <div className="border-l border-border h-6" />
@@ -936,15 +934,14 @@ export function ParkFactorsSection({
                           {new Date(g.syncedAt).toLocaleDateString()}
                         </td>
                         <td className="py-2 text-right">
-                          <Button
-                            variant="ghost"
+                          <IconButton
+                            variant="destructive"
                             size="sm"
+                            aria-label="Clear"
                             onClick={() => handleClear(g)}
-                            className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
                           >
-                            <Trash2Icon className="h-3.5 w-3.5" />
-                            <span className="sr-only">Clear</span>
-                          </Button>
+                            <Trash2Icon />
+                          </IconButton>
                         </td>
                       </tr>
                     )
@@ -1593,8 +1590,10 @@ function GradientColorBox({
       </button>
       {isOpen && (
         <>
-          <div
-            className="fixed inset-0 z-40"
+          <button
+            type="button"
+            aria-label="Close color picker"
+            className="fixed inset-0 z-40 cursor-default"
             onClick={() => onOpenChange(false)}
           />
           <div className="absolute left-[calc(100%+8px)] top-1/2 -translate-y-1/2 z-50 shadow-lg rounded-lg overflow-hidden">

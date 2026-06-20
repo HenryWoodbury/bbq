@@ -41,6 +41,11 @@ export const Custom: Story = {
   render: ({ size }) => (
     <div className="flex flex-col gap-6 text-foreground">
       <h2>Custom SVG icons</h2>
+      <p className="text-body text-muted-foreground">
+        Hand-built SVGs defined to match the lucide icons&rsquo; render contract
+        (same <code>size</code> prop and <code>currentColor</code> stroke), so
+        they drop in interchangeably wherever the app uses an icon.
+      </p>
       <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
         {custom.map(({ name, Icon }) => (
           <div key={name} className="flex flex-col items-center gap-3">
@@ -58,10 +63,9 @@ export const Lucide: Story = {
     <div className="flex flex-col gap-6 text-foreground">
       <h2>Lucide icons in use</h2>
       <p className="text-body text-muted-foreground">
-        Re-exported from{" "}
-        <code>@/components/icons/lucide</code> — the icons actually used across
-        the app. Import from the barrel (not <code>lucide-react</code>) to keep
-        this gallery accurate.
+        Re-exported from <code>@/components/icons/lucide</code>. Add new lucide
+        icons to the barrel rather than <code>lucide-react</code> to keep this
+        gallery accurate.
       </p>
       <div className="grid grid-cols-3 gap-6 sm:grid-cols-4 md:grid-cols-6">
         {lucide.map(([name, Icon]) => (

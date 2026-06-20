@@ -1,21 +1,37 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { hexToOklch, hexToRgb, oklchToHex, oklchToRgb, rgbToOklch } from "@/lib/color"
+import { hexToOklch, oklchToHex, oklchToRgb, rgbToOklch } from "@/lib/color"
 import { type OklchColorData, toOklch } from "@/lib/heat-map"
+import { cn } from "@/lib/utils"
 import { type FieldDef, InputFieldGroup } from "./input-field-group"
 
 export type ColorSpace = "oklch" | "rgb" | "hex"
 
 interface ColorInputProps {
-  label?: string
   value: OklchColorData
   onChange: (value: OklchColorData) => void
   size?: "sm" | "md" | "lg"
   colorSpace?: ColorSpace
+  /**
+   * Render a sample color block to the left of the picker. Off by default; the
+   * heat-map editor uses its own color representation, so it leaves this unset.
+   */
+  showSwatch?: boolean
+  /** Class overrides for the sample color block. */
+  swatchClassName?: string
+  /** Click handler for the sample color block (e.g. to open an external picker). */
+  onSwatchClick?: () => void
 }
 
 type ColorInputSize = NonNullable<ColorInputProps["size"]>
+
+// Sample-block heights, matched to the per-size input-row height.
+const SWATCH_HEIGHT: Record<ColorInputSize, string> = {
+  sm: "h-8",
+  md: "h-9",
+  lg: "h-10",
+}
 
 // ── OKLCH ────────────────────────────────────────────────────────────────────
 
@@ -50,7 +66,10 @@ const RGB_WIDTHS: Record<ColorInputSize, Record<string, number>> = {
 // ── Field builders ────────────────────────────────────────────────────────────
 
 function buildOklchFields(size: ColorInputSize): FieldDef[] {
-  return OKLCH_FIELD_DEFS.map((f) => ({ ...f, width: OKLCH_WIDTHS[size][f.key] }))
+  return OKLCH_FIELD_DEFS.map((f) => ({
+    ...f,
+    width: OKLCH_WIDTHS[size][f.key],
+  }))
 }
 
 function buildRgbFields(size: ColorInputSize): FieldDef[] {
@@ -80,7 +99,15 @@ function rgbToDrafts(color: OklchColorData): Record<string, string> {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-function ColorInput({ label, value, onChange, size = "sm", colorSpace = "oklch" }: ColorInputProps) {
+function ColorInput({
+  value,
+  onChange,
+  size = "sm",
+  colorSpace = "oklch",
+  showSwatch = false,
+  swatchClassName,
+  onSwatchClick,
+}: ColorInputProps) {
   const [drafts, setDrafts] = useState<Record<string, string>>(() =>
     colorSpace === "rgb" ? rgbToDrafts(value) : oklchToDrafts(value),
   )
@@ -95,7 +122,7 @@ function ColorInput({ label, value, onChange, size = "sm", colorSpace = "oklch" 
     } else {
       setHexDraft(oklchToHex(value))
     }
-  }, [value.lightness, value.chroma, value.hue, value.alpha, colorSpace])
+  }, [colorSpace, value])
 
   // ── OKLCH handlers ──────────────────────────────────────────────────────────
 
@@ -104,7 +131,9 @@ function ColorInput({ label, value, onChange, size = "sm", colorSpace = "oklch" 
     const n = Number(raw)
     if (!Number.isNaN(n) && raw !== "" && raw !== "-" && !raw.endsWith(".")) {
       const fieldDef = OKLCH_FIELD_DEFS.find((f) => f.key === key)
-      const clamped = fieldDef ? Math.min(Math.max(n, fieldDef.min), fieldDef.max) : n
+      const clamped = fieldDef
+        ? Math.min(Math.max(n, fieldDef.min), fieldDef.max)
+        : n
       const stored = key === "alpha" ? clamped / 100 : clamped
       onChange({ ...value, [key]: stored })
     }
@@ -113,7 +142,8 @@ function ColorInput({ label, value, onChange, size = "sm", colorSpace = "oklch" 
   function handleOklchBlur(key: string) {
     const n = Number(drafts[key])
     if (Number.isNaN(n) || drafts[key] === "") {
-      const current = key === "alpha" ? value.alpha * 100 : value[key as keyof OklchColorData]
+      const current =
+        key === "alpha" ? value.alpha * 100 : value[key as keyof OklchColorData]
       setDrafts((d) => ({ ...d, [key]: String(current) }))
       return
     }
@@ -178,65 +208,62 @@ function ColorInput({ label, value, onChange, size = "sm", colorSpace = "oklch" 
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
-  const swatch = (
-    <div
-      aria-hidden="true"
-      className="h-5 w-5 rounded border border-border shrink-0"
+  // Optional sample color block, to the left of the picker. Off by default;
+  // squared (no radius/border) and sized to the input row.
+  const swatch = showSwatch ? (
+    <button
+      type="button"
+      aria-label="Selected color"
+      onClick={onSwatchClick}
       style={{ backgroundColor: toOklch(value) }}
+      className={cn(
+        SWATCH_HEIGHT[size],
+        "w-14 shrink-0 mb-[1px]",
+        onSwatchClick && "cursor-pointer",
+        swatchClassName,
+      )}
     />
-  )
+  ) : null
 
+  // `swatch` is null when off, so this single row layout serves both cases.
   if (colorSpace === "hex") {
     return (
-      <div className="flex flex-col gap-1.5">
-        {label && (
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">{label}</span>
-            {swatch}
-          </div>
-        )}
-        <div className="flex items-end gap-2">
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-xs text-muted-foreground">Hex</span>
-            <input
-              type="text"
-              value={hexDraft}
-              onChange={(e) => handleHexChange(e.target.value)}
-              onBlur={handleHexBlur}
-              className="h-8 rounded-sm border border-border bg-transparent px-2 text-body focus:outline-none focus:ring-2 focus:ring-ring w-24"
-              placeholder="#rrggbb"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-xs text-muted-foreground">A</span>
-            <input
-              type="number"
-              min={0}
-              max={100}
-              step={1}
-              value={drafts.alpha ?? String(Math.round(value.alpha * 100))}
-              onChange={(e) => handleHexAlphaChange(e.target.value)}
-              onBlur={handleHexAlphaBlur}
-              style={{ width: OKLCH_WIDTHS[size].alpha }}
-              className="h-8 rounded-sm border border-border bg-transparent px-2 text-body focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          </label>
-        </div>
+      <div className="flex items-end gap-3">
+        {swatch}
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-xs text-muted-foreground">Hex</span>
+          <input
+            type="text"
+            value={hexDraft}
+            onChange={(e) => handleHexChange(e.target.value)}
+            onBlur={handleHexBlur}
+            className="h-8 rounded-sm border border-border bg-transparent px-2 text-body focus:outline-none focus:ring-2 focus:ring-ring w-24"
+            placeholder="#rrggbb"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-xs text-muted-foreground">A</span>
+          <input
+            type="number"
+            min={0}
+            max={100}
+            step={1}
+            value={drafts.alpha ?? String(Math.round(value.alpha * 100))}
+            onChange={(e) => handleHexAlphaChange(e.target.value)}
+            onBlur={handleHexAlphaBlur}
+            style={{ width: OKLCH_WIDTHS[size].alpha }}
+            className="h-8 rounded-sm border border-border bg-transparent px-2 text-body focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </label>
       </div>
     )
   }
 
   const isRgb = colorSpace === "rgb"
   const fields = isRgb ? buildRgbFields(size) : buildOklchFields(size)
-
   return (
-    <div className="flex flex-col gap-1.5">
-      {label && (
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">{label}</span>
-          {swatch}
-        </div>
-      )}
+    <div className="flex items-end gap-3">
+      {swatch}
       <InputFieldGroup
         fields={fields}
         values={drafts}

@@ -1,15 +1,16 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
 import { useState } from "react"
-import { BBQ_DEFAULT, type OklchColorData, toOklch } from "@/lib/heat-map"
+import { BBQ_DEFAULT, type OklchColorData } from "@/lib/heat-map"
 import { ColorInput } from "@/components/ui/color-input"
 
 const meta = {
   title: "UI/ColorInput",
   component: ColorInput,
-  args: { colorSpace: "oklch", size: "md", label: "Max color" },
+  args: { colorSpace: "oklch", size: "md", showSwatch: true },
   argTypes: {
     colorSpace: { control: "inline-radio", options: ["oklch", "rgb", "hex"] },
     size: { control: "inline-radio", options: ["sm", "md", "lg"] },
+    showSwatch: { control: "boolean" },
   },
 } satisfies Meta
 
@@ -21,14 +22,6 @@ export const Playground: Story = {
     const [color, setColor] = useState<OklchColorData>({
       ...BBQ_DEFAULT.maxColor,
     })
-    return (
-      <div className="flex items-center gap-4">
-        <ColorInput {...args} value={color} onChange={setColor} />
-        <div
-          className="h-12 w-12 rounded-md border border-border"
-          style={{ backgroundColor: toOklch(color) }}
-        />
-      </div>
-    )
+    return <ColorInput {...args} value={color} onChange={setColor} />
   },
 }

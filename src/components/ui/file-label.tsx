@@ -2,6 +2,7 @@
 
 import type { ChangeEventHandler, ReactNode, Ref } from "react"
 import { useImperativeHandle, useRef } from "react"
+import { UploadIcon } from "@/components/icons/lucide"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -49,6 +50,7 @@ function FileLabel({
         className="sr-only"
         onChange={onChange}
       />
+      <UploadIcon />
       {children}
     </button>
   )

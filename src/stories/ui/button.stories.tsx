@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
-import { PlusIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 const meta = {
@@ -12,7 +11,6 @@ const meta = {
       options: ["primary", "secondary", "destructive", "ghost", "subtle"],
     },
     size: { control: "inline-radio", options: ["sm", "md", "lg"] },
-    mode: { control: "inline-radio", options: [undefined, "icon"] },
     disabled: { control: "boolean" },
   },
 } satisfies Meta<typeof Button>
@@ -40,22 +38,6 @@ export const Sizes: Story = {
       <Button size="sm">Small</Button>
       <Button size="md">Medium</Button>
       <Button size="lg">Large</Button>
-    </div>
-  ),
-}
-
-export const IconMode: Story = {
-  render: () => (
-    <div className="flex flex-wrap items-center gap-3">
-      <Button mode="icon" size="sm" aria-label="Add">
-        <PlusIcon />
-      </Button>
-      <Button mode="icon" size="md" variant="secondary" aria-label="Add">
-        <PlusIcon />
-      </Button>
-      <Button mode="icon" size="lg" variant="ghost" aria-label="Add">
-        <PlusIcon />
-      </Button>
     </div>
   ),
 }

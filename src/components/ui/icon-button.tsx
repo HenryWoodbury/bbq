@@ -13,6 +13,12 @@ const iconButtonVariants = cva(
   "inline-flex shrink-0 items-center justify-center text-muted-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring hover:bg-zinc-200 dark:hover:bg-zinc-800 hover:text-foreground disabled:opacity-disabled disabled:cursor-not-allowed disabled:focus-visible:ring-0 [&_svg]:shrink-0",
   {
     variants: {
+      variant: {
+        default: "",
+        // Muted at rest (from the base), destructive red on hover.
+        destructive:
+          "hover:text-destructive hover:bg-destructive/10 dark:hover:bg-destructive/10",
+      },
       size: {
         sm: "rounded-sm p-1 [&_svg]:size-3.5",
         md: "rounded-md p-1.5 [&_svg]:size-4",
@@ -20,6 +26,7 @@ const iconButtonVariants = cva(
       },
     },
     defaultVariants: {
+      variant: "default",
       size: "md",
     },
   },
@@ -38,6 +45,7 @@ export interface IconButtonProps
 
 function IconButton({
   className,
+  variant,
   size,
   ref,
   tooltip,
@@ -47,7 +55,7 @@ function IconButton({
   const button = (
     <button
       ref={ref}
-      className={cn(iconButtonVariants({ size }), className)}
+      className={cn(iconButtonVariants({ variant, size }), className)}
       {...props}
     />
   )

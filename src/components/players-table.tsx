@@ -732,6 +732,7 @@ export function PlayersTable({
           )}
           {onClearOverride && row.original.isManual && (
             <IconButton
+              variant="destructive"
               onClick={() => onClearOverride(row.original)}
               aria-label="Delete player"
             >
