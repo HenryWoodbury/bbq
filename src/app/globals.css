@@ -18,6 +18,11 @@
    tree-shake their vars away. `static` forces emission so the Foundations/Colors
    story can read each shade via var(). */
 @theme static {
+  /* zinc halfway in-between shades — midpoints of the adjacent Tailwind steps,
+     referenced only via var() (by --subtle-foreground), so static is required. */
+  --color-zinc-450: oklch(0.629 0.0155 286.003);
+  --color-zinc-550: oklch(0.497 0.0165 285.862);
+
   /* rain — gray-blue palette */
   --color-rain-50: oklch(97.30% 0.007 268.548);
   --color-rain-100: oklch(94.29% 0.0141 268.49);
@@ -111,9 +116,9 @@
   --background: oklch(0.985 0 0);
   --foreground: oklch(0.145 0 0);
   --subtle: var(--color-zinc-150);
-  --subtle-foreground: oklch(
-    0.48 0.015 285.8
-  ); /* slightly darker than muted-foreground (zinc-500) */
+  --subtle-foreground: var(
+    --color-zinc-550
+  ); /* between muted-foreground (zinc-500) and zinc-600 */
   --overlay: oklch(from var(--color-zinc-950) l c h / 0.4);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
@@ -171,9 +176,9 @@
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --subtle: var(--color-zinc-750);
-  --subtle-foreground: oklch(
-    0.63 0.013 285.9
-  ); /* slightly darker than muted-foreground (zinc-400) */
+  --subtle-foreground: var(
+    --color-zinc-450
+  ); /* between muted-foreground (zinc-400) and zinc-500 */
   --overlay: oklch(from var(--color-zinc-950) l c h / 0.5);
   --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.985 0 0);

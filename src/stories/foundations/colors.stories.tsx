@@ -31,6 +31,18 @@ function Section({
   )
 }
 
+// Renders only the active theme's value. Common rule for the palette: show the
+// token/color for the mode selected in the Storybook toolbar, never both.
+function ModeText({ light, dark }: { light: string; dark?: string }) {
+  if (!dark) return <>{light}</>
+  return (
+    <>
+      <span className="dark:hidden">{light}</span>
+      <span className="hidden dark:inline">{dark}</span>
+    </>
+  )
+}
+
 // ── Paired surface swatch (background + its foreground "Aa") ───────────────────
 
 type Token = {
@@ -145,21 +157,29 @@ const textTokens = [
   {
     fg: "--foreground",
     util: "text-foreground",
+    twLight: "neutral-950",
+    twDark: "neutral-50",
     purpose: "Primary text",
   },
   {
     fg: "--muted-foreground",
     util: "text-muted-foreground",
+    twLight: "zinc-500",
+    twDark: "zinc-400",
     purpose: "Secondary text, captions, headers",
   },
   {
     fg: "--subtle-foreground",
     util: "text-subtle-foreground",
+    twLight: "zinc-550",
+    twDark: "zinc-450",
     purpose: "Table-cell text",
   },
   {
     fg: "--destructive",
     util: "text-destructive",
+    twLight: "red-600",
+    twDark: "red-400",
     purpose: "Destructive actions",
   },
 ]
@@ -167,15 +187,32 @@ const textTokens = [
 function TextSamples() {
   return (
     <div className="flex flex-col divide-y divide-border rounded-md border border-border">
+      <div className="grid grid-cols-[14rem_4rem_11rem_7rem_1fr] gap-4 px-4 py-2 text-xs font-medium text-muted-foreground">
+        <span>Sample text</span>
+        <span>Swatch</span>
+        <span>Token</span>
+        <span>Color</span>
+        <span>Use</span>
+      </div>
       {textTokens.map((t) => (
-        <div key={t.util} className="flex items-center gap-4 px-4 py-3">
+        <div
+          key={t.util}
+          className="grid grid-cols-[14rem_4rem_11rem_7rem_1fr] items-center gap-4 px-4 py-3"
+        >
           <span
-            className="w-56 text-lg font-medium"
+            className="text-lg font-medium"
             style={{ color: `var(${t.fg})` }}
           >
             The quick brown fox
           </span>
-          <code className="w-48 text-xs text-muted-foreground">{t.util}</code>
+          <div
+            className="h-7 w-7 rounded-sm border border-border"
+            style={{ backgroundColor: `var(${t.fg})` }}
+          />
+          <code className="text-xs text-muted-foreground">{t.util}</code>
+          <code className="text-xs text-muted-foreground">
+            <ModeText light={t.twLight} dark={t.twDark} />
+          </code>
           <span className="text-xs text-muted-foreground">{t.purpose}</span>
         </div>
       ))}
@@ -183,40 +220,31 @@ function TextSamples() {
   )
 }
 
-// ── Borders & focus ───────────────────────────────────────────────────────────
+// ── Borders & rules ───────────────────────────────────────────────────────────
+// One token — `--border` — paints every box border, divider, and table rule.
 
 function BorderSamples() {
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-      {[
-        {
-          token: "--border",
-          label: "border",
-          util: "border-border",
-          purpose: "Borders, dividers",
-        },
-        {
-          token: "--input",
-          label: "input",
-          util: "border-input",
-          purpose: "Form-control borders (= border)",
-        },
-      ].map((b) => (
-        <div key={b.label} className="flex flex-col gap-1">
-          <div
-            className="h-14 w-full rounded-md border-2"
-            style={{ borderColor: `var(${b.token})` }}
-          />
-          <div className="text-xs font-medium text-foreground">{b.label}</div>
-          <code className="text-xs text-muted-foreground">{b.util}</code>
-          <p className="text-xs text-muted-foreground">{b.purpose}</p>
-        </div>
-      ))}
       <div className="flex flex-col gap-1">
-        <div className="h-14 w-full rounded-md ring-2 ring-ring ring-offset-2 ring-offset-background" />
-        <div className="text-xs font-medium text-foreground">ring</div>
-        <code className="text-xs text-muted-foreground">ring-ring</code>
-        <p className="text-xs text-muted-foreground">Focus rings (blue-500)</p>
+        <div className="h-14 w-full rounded-md border-2 border-border" />
+        <div className="text-xs font-medium text-foreground">border</div>
+        <code className="text-xs text-muted-foreground">border-border</code>
+        <p className="text-xs text-muted-foreground">
+          Cards, inputs, tables — every box border
+        </p>
+      </div>
+      <div className="flex flex-col gap-1">
+        <div className="flex h-14 w-full flex-col justify-center gap-3">
+          <div className="border-t border-border" />
+          <div className="border-t border-border" />
+          <div className="border-t border-border" />
+        </div>
+        <div className="text-xs font-medium text-foreground">rule</div>
+        <code className="text-xs text-muted-foreground">border-border</code>
+        <p className="text-xs text-muted-foreground">
+          Dividers & table row rules
+        </p>
       </div>
     </div>
   )
@@ -226,49 +254,79 @@ function BorderSamples() {
 
 type StateRow = {
   state: string
-  swatches: string[]
+  /** Light-mode swatch class (or the single mode-aware token). */
+  light: string
+  /** Dark-mode swatch class, when it differs from light. */
+  dark?: string
+  /** Utility for light mode (or the single mode-agnostic utility). */
   util: string
+  /** Utility for dark mode, when it differs. */
+  utilDark?: string
   usedBy: string
 }
 
 const states: StateRow[] = [
   {
     state: "Focus",
-    swatches: ["bg-ring"],
+    light: "bg-ring",
     util: "ring-ring (focus-visible:ring-2)",
     usedBy: "All focusable controls",
   },
   {
     state: "Hover",
-    swatches: ["bg-zinc-150", "bg-zinc-800"],
-    util: "hover:bg-zinc-150 · dark:hover:bg-zinc-800",
+    light: "bg-zinc-150",
+    dark: "bg-zinc-800",
+    util: "hover:bg-zinc-150",
+    utilDark: "dark:hover:bg-zinc-800",
     usedBy: "Ghost / subtle / icon buttons, menu items",
   },
   {
     state: "Active",
-    swatches: ["bg-zinc-150", "bg-zinc-750"],
-    util: "active:bg-zinc-150 · dark:active:bg-zinc-750",
+    light: "bg-zinc-150",
+    dark: "bg-zinc-750",
+    util: "active:bg-zinc-150",
+    utilDark: "dark:active:bg-zinc-750",
     usedBy: "Buttons",
   },
   {
     state: "Selected",
-    swatches: ["bg-primary"],
+    light: "bg-primary",
     util: "bg-primary · bg-foreground",
     usedBy: "Filter groups, tabs, menu-filter",
   },
   {
     state: "Destructive hover",
-    swatches: ["bg-destructive/10"],
+    light: "bg-destructive/10",
     util: "hover:bg-destructive/10",
     usedBy: "Delete buttons / items",
   },
   {
     state: "Disabled",
-    swatches: ["bg-foreground opacity-disabled"],
+    light: "bg-foreground opacity-disabled",
     util: "opacity-disabled (0.6)",
     usedBy: "All controls",
   },
 ]
+
+function StateSwatch({ light, dark }: { light: string; dark?: string }) {
+  // Mode-aware tokens (no `dark`) already shift with the theme. For zinc pairs,
+  // show only the active mode's swatch via the `dark:` variant.
+  if (!dark) {
+    return (
+      <div className={`h-7 w-7 rounded-sm border border-border ${light}`} />
+    )
+  }
+  return (
+    <>
+      <div
+        className={`h-7 w-7 rounded-sm border border-border dark:hidden ${light}`}
+      />
+      <div
+        className={`hidden h-7 w-7 rounded-sm border border-border dark:block ${dark}`}
+      />
+    </>
+  )
+}
 
 function StateTable() {
   return (
@@ -286,14 +344,11 @@ function StateTable() {
         >
           <span className="text-sm font-medium text-foreground">{s.state}</span>
           <div className="flex gap-1">
-            {s.swatches.map((c) => (
-              <div
-                key={c}
-                className={`h-7 w-7 rounded-sm border border-border ${c}`}
-              />
-            ))}
+            <StateSwatch light={s.light} dark={s.dark} />
           </div>
-          <code className="text-xs text-muted-foreground">{s.util}</code>
+          <code className="text-xs text-muted-foreground">
+            <ModeText light={s.util} dark={s.utilDark} />
+          </code>
           <span className="text-xs text-muted-foreground">{s.usedBy}</span>
         </div>
       ))}
@@ -343,9 +398,9 @@ const status: Token[] = [
 
 const STD_SHADES = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950]
 const ZINC_SHADES = [
-  50, 100, 150, 200, 300, 400, 500, 600, 700, 750, 800, 900, 950,
+  50, 100, 150, 200, 300, 400, 450, 500, 550, 600, 700, 750, 800, 900, 950,
 ]
-// Union column set — zinc's custom 150/750 sit in otherwise-empty columns.
+// Union row set — zinc's custom 150/450/550/750 sit in otherwise-empty rows.
 const COLS = ZINC_SHADES
 
 const ZINC = [
@@ -355,7 +410,9 @@ const ZINC = [
   "bg-zinc-200",
   "bg-zinc-300",
   "bg-zinc-400",
+  "bg-zinc-450",
   "bg-zinc-500",
+  "bg-zinc-550",
   "bg-zinc-600",
   "bg-zinc-700",
   "bg-zinc-750",
@@ -462,7 +519,7 @@ const scales: ScaleRow[] = [
     name: "zinc",
     note: "neutral",
     classBy: zip(ZINC_SHADES, ZINC),
-    custom: [150, 750],
+    custom: [150, 450, 550, 750],
   },
   {
     name: "rain",
@@ -563,28 +620,20 @@ const ball: Token[] = [
 export const Palette: Story = {
   render: () => (
     <div className="flex flex-col gap-8 bg-background p-8 text-foreground">
-      <p className="text-sm text-muted-foreground">
-        Tokens grouped by how they&rsquo;re consumed, to show consistency and
-        purpose. Paired swatches show the foreground token as{" "}
-        <strong>Aa</strong> on its background.
-      </p>
-      <Section
-        title="Surfaces"
-        note="Background + its paired text. The “Aa” reveals whether each surface’s text token is light or dark."
-      >
+      <Section title="Surfaces" note="Background + paired text.">
         <SwatchGrid tokens={surfaces} />
       </Section>
       <Section
-        title="Text emphasis"
-        note="Foreground tokens by emphasis level, on the page background."
+        title="Text Emphasis"
+        note="Foreground tokens by emphasis on the page background."
       >
         <TextSamples />
       </Section>
-      <Section title="Borders & focus">
+      <Section title="Borders & Rules">
         <BorderSamples />
       </Section>
       <Section
-        title="Interaction states"
+        title="Interaction States"
         note="The token/utility each component uses for a given state — consistent across the UI."
       >
         <StateTable />
@@ -596,7 +645,7 @@ export const Palette: Story = {
         <SwatchGrid tokens={status} />
       </Section>
       <Section
-        title="Base color scales"
+        title="Base Color Scales"
         note="Tailwind and tailwind-based tokens from 950→50. The • marks custom shades."
       >
         <ScaleTable />
