@@ -23,7 +23,7 @@ be reconciled to one record.
 | Field | Type | Null | Notes |
 |---|---|---|---|
 | `id` | UUID | No | PK |
-| `sfbbId` | String | No | SFBB `PLAYERID`. **Unique.** Primary external key. |
+| `sfbbId` | String | No | SFBB `PLAYERID`. **Unique.** Primary external key. Manually-added players get a synthetic `manual:<uuid>` value — see [Manually-added players](#manually-added-players). |
 | `playerName` | String | No | Display name from SFBB |
 | `fgSpecialChar` | String | Yes | Name with diacritics (`FGSPECIALCHAR`). Preferred display when present. |
 | `positions` | String[] | No | Eligible positions, e.g. `["C","1B"]`. GIN-indexed. |
@@ -67,13 +67,89 @@ Manual overrides for display/attributes, and the anchor for manually-added playe
 | Field | Type | Null | Notes |
 |---|---|---|---|
 | `id` | UUID | No | PK |
-| `playerId` | String | Yes | FK → `Player.id`. **Unique.** Null for manual players not yet in SFBB. |
+| `playerId` | String | Yes | FK → `Player.id`. **Unique.** Nullable for historical reasons only — the manual-add flow always mints a `Player`. |
 | `isManual` | Boolean | No | True = manually added. Stays true after auto-linking. |
 | `fangraphsId` `mlbamId` `ottoneuId` | — | Yes | Dedup matching during sync/upload |
 | `displayName` `firstName` `lastName` `nickname` | String | Yes | Display overrides — null = use canonical `Player` field |
 | `birthday` `team` `mlbLevel` `league` `active` `bats` `throws` | — | Yes | Attribute overrides |
 | `positions` | String[] | No | Position override (default `[]`) |
 | timestamps | | | incl. `deletedAt` |
+
+#### Override precedence
+
+**Invariant: a consumer that resolves overrides for display must also resolve
+them for filtering.**
+
+An override wins only when it is **live** (`deletedAt IS NULL`) and **actually
+sets the field**; otherwise the canonical `Player` value stands. Note
+`active: false` is a real override while `active: null` means "no opinion" — a
+`??` chain is required, not `||`. Effective `league` is `override.league`, else
+derived from the *effective* team.
+
+`src/lib/player-effective.ts` is the single implementation: `effectivePlayer()`
+resolves the attributes, `matchesPlayerFilters()` applies the active/league
+filters to them. Consumers: the Batcast export
+(`src/app/api/admin/export/batcast/route.ts`) and the admin players page
+(`src/app/admin/players/page.tsx`, for both `PlayerRow` and `StatRow`).
+
+Resolving overrides for display but filtering on the raw `Player` column drops
+rows the user can see and keeps rows they cannot — which is why
+`PlayerOverride.fangraphsId` / `mlbamId` / `ottoneuId` are deliberately *not*
+part of this rule: they are sync dedup keys, not display overrides.
+
+**The MLB/MiLB split has its own resolution rule.** It reads the Fangraphs id,
+which no override sets — but the linked `PlayerUniverse` row still wins over
+`Player.fangraphsId`, because a manually-added player frequently carries one only
+there. `levelFangraphsId()` (same module) is that rule; every level filter goes
+through it, or the three views disagree about whether such a player is MLB.
+
+#### Manually-added players
+
+**Invariant: every manually-added player has a canonical `Player` row.**
+
+`PlayerStat.playerId` is a required FK to `Player`, so an override on its own can
+carry no projections — such a player is invisible to the stats views and to every
+export. `POST /api/admin/players/manual` therefore creates both rows in one
+transaction: a `Player` with a synthetic `sfbbId` (`manual:<uuid>`, see
+`src/lib/manual-players.ts`) plus the linked `PlayerOverride`.
+
+The prefix carries two obligations:
+
+1. **Bulk `Player` queries that treat SFBB as the source of truth must exclude
+   them.** Replace-mode sweeps soft-delete any `Player` absent from the SFBB CSV;
+   synthetic players are absent by definition, so every such query wraps its
+   clause in `excludeManualPlayers()` (`src/lib/manual-players.ts`) rather than
+   hand-writing the prefix test. Without it, each sync deletes them. The helper
+   composes via `AND` rather than exposing a spreadable fragment: the prefix test
+   needs the `NOT` and `sfbbId` keys, and the sweep's own clause is
+   `sfbbId: { notIn: [...] }` — spreading would silently drop one side with no
+   type error.
+2. **They are merge candidates.** Once SFBB publishes the player, a second
+   `Player` row would share the same FangraphsId. `reconcilePlayerIds()` folds the
+   synthetic row into the real one — repointing stats, roster history, universe
+   rows and the override — then soft-deletes it.
+
+   Both collision rules turn on **liveness, not mere presence**, because neither
+   unique key includes `deletedAt`:
+   - *Stats* (`PlayerStat`'s compound unique includes `playerId`): only a **live**
+     row on the real player wins, and the synthetic's loser is soft-deleted. A
+     **retired** row on the real player yields — it is hard-deleted to free the
+     key so the synthetic's live projection can take it. Letting it win would
+     destroy an uploaded projection in favour of a row no view can see.
+   - *Overrides* (`PlayerOverride.playerId` is unique): liveness governs **both
+     sides symmetrically** — a retired override's values are withdrawn, so it
+     must neither be inherited from nor overwritten by. A **live** override on
+     the real player absorbs a **live** manual one field-by-field, keeping values
+     it already sets. A **retired** one on the real player is detached
+     (`playerId → null`, still soft-deleted) and the live manual override takes
+     the slot whole. A **retired** manual override is left where it is: it
+     contributes nothing, and repointing it would park a dead row in the unique
+     slot. (`DELETE /api/admin/players/[id]/override` retires an override without
+     touching the `Player`, so a live synthetic player with a dead override is a
+     reachable state.)
+
+Positions in exports come from the linked `PlayerUniverse` row, not the override,
+so `reconcilePlayerIds()` runs after a manual add to attach it.
 
 ### `StatDefinition`
 Catalog of scoring stats. ~41 batter + ~33 pitcher definitions seeded.

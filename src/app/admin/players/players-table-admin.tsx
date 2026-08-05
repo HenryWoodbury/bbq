@@ -176,10 +176,16 @@ function EditOverrideDrawer({
 
   async function handleSave() {
     if (row.isManual) {
+      // row.id is the Player id; the manual endpoints are keyed by override id.
+      if (!row.overrideId) {
+        setError("Manual player record is missing")
+        setStatus("error")
+        return
+      }
       setStatus("saving")
       setError("")
       try {
-        const res = await fetch(`/api/admin/players/manual/${row.id}`, {
+        const res = await fetch(`/api/admin/players/manual/${row.overrideId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(buildOverridePayload(fields)),
@@ -589,8 +595,9 @@ export function PlayersTableAdmin({
         `You have removed ${row.fgSpecialChar ?? row.playerName} from the player list.`,
       variant: "warning",
       perform: async (row) =>
+        row.overrideId !== null &&
         (
-          await fetch(`/api/admin/players/manual/${row.id}`, {
+          await fetch(`/api/admin/players/manual/${row.overrideId}`, {
             method: "DELETE",
           })
         ).ok,

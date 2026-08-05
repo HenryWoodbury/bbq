@@ -1,15 +1,20 @@
 import { NextResponse } from "next/server"
-import {
-  type Prisma,
-  StatPlayerType,
-  StatSplit,
-} from "@/generated/prisma/client"
+import { StatPlayerType, StatSplit } from "@/generated/prisma/client"
 import { assertAdmin } from "@/lib/auth-helpers"
 import { prisma } from "@/lib/prisma"
 import { toISODate } from "@/lib/date"
-import { deduplicatePitcherSplits, PROJECTION_MAP } from "@/lib/stat-maps"
+import {
+  type ActiveFilter,
+  effectivePlayer,
+  type LeagueFilter,
+  levelFangraphsId,
+  matchesPlayerFilters,
+} from "@/lib/player-effective"
+import { deduplicatePrimarySplits, PROJECTION_MAP } from "@/lib/stat-maps"
 import { csvEscape } from "@/lib/csv"
-import { AL_TEAM_CODES, NL_TEAM_CODES } from "@/lib/team-codes"
+
+const ACTIVE_FILTERS: ActiveFilter[] = ["all", "yes", "no"]
+const LEAGUE_FILTERS: LeagueFilter[] = ["all", "mlb", "milb", "al", "nl"]
 
 function toCsvRow(fields: (string | number | null | undefined)[]): string {
   return fields.map(csvEscape).join(",")
@@ -49,63 +54,82 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Invalid params" }, { status: 400 })
   }
 
+  // Reject unknown filter values rather than silently falling through to "all":
+  // an export that quietly ignores a filter hands back more rows than asked for.
+  if (
+    !ACTIVE_FILTERS.includes(activeParam as ActiveFilter) ||
+    !LEAGUE_FILTERS.includes(leagueParam as LeagueFilter)
+  ) {
+    return NextResponse.json({ error: "Invalid params" }, { status: 400 })
+  }
+  const filters = {
+    active: activeParam as ActiveFilter,
+    league: leagueParam as LeagueFilter,
+  }
+
   const playerType =
     playerTypeParam === "PITCHER"
       ? StatPlayerType.PITCHER
       : StatPlayerType.BATTER
   const projection = PROJECTION_MAP[projectionParam]
 
-  // ── Build player filter ────────────────────────────────────────────────────
+  const isBatter = playerType === StatPlayerType.BATTER
+  const typeLabel = isBatter ? "batters" : "pitchers"
+  const filename = `batcast-${typeLabel}-${seasonParam}`
 
-  const playerFilter: Prisma.PlayerWhereInput = {}
+  // One header serves the populated and empty cases; they previously disagreed,
+  // the empty CSV omitting the three stat columns entirely.
+  const header = toCsvRow([
+    "Ottoneu ID",
+    "Fangraphs ID",
+    "Name",
+    "Birthday",
+    "Positions",
+    "Bats",
+    "Throws",
+    isBatter ? "wOBA" : "FIP",
+    isBatter ? "wOBA vs LHP" : "wOBA vs LHB",
+    isBatter ? "wOBA vs RHP" : "wOBA vs RHB",
+  ])
 
-  if (activeParam === "yes") playerFilter.active = true
-  else if (activeParam === "no") playerFilter.active = false
-
-  if (leagueParam === "milb") {
-    playerFilter.fangraphsId = { startsWith: "sa" }
-  } else if (leagueParam === "mlb") {
-    playerFilter.AND = [
-      { fangraphsId: { not: null } },
-      { NOT: { fangraphsId: { startsWith: "sa" } } },
-    ]
-  } else if (leagueParam === "al") {
-    playerFilter.team = { in: [...AL_TEAM_CODES] }
-  } else if (leagueParam === "nl") {
-    playerFilter.team = { in: [...NL_TEAM_CODES] }
-  }
-
-  const hasPlayerFilter = Object.keys(playerFilter).length > 0
+  // The active/league filters are applied after profiles load, not here: they
+  // must respect PlayerOverride, which is only reachable from the player query.
+  //
+  // `ros` and `neutralized` complete PlayerStat's compound unique — pin them, or
+  // a player with both a season and a rest-of-season row matches twice and the
+  // lookup maps below silently keep whichever arrived last. Uploads only write
+  // `false` today, so this is a guard against a future upload mixing the two
+  // into one file with nothing to signal it.
   const statsWhere = (split: StatSplit) => ({
     season: seasonParam,
     playerType,
     projection,
     split,
+    ros: false,
+    neutralized: false,
     deletedAt: null as null,
-    ...(hasPlayerFilter ? { player: playerFilter } : {}),
   })
 
-  const isBatter = playerType === StatPlayerType.BATTER
-
-  const pitcherPrimaryWhere = {
+  // The primary (unsplit) line is stored as None or Neutral depending on the
+  // upload, so accept both for batters and pitchers alike — querying None alone
+  // left the wOBA/FIP column empty for every row of a Neutral-sourced upload.
+  const primaryWhere = {
     ...statsWhere(StatSplit.None),
     split: { in: [StatSplit.None, StatSplit.Neutral] },
   }
 
   const [primaryRows, vsLeftRows, vsRightRows] = await Promise.all([
-    isBatter
-      ? prisma.playerStat.findMany({
-          where: statsWhere(StatSplit.None),
-          select: { playerId: true, stats: true },
-        })
-      : prisma.playerStat
-          .findMany({
-            where: pitcherPrimaryWhere,
-            select: { playerId: true, stats: true, split: true },
-          })
-          .then((rows) =>
-            deduplicatePitcherSplits(rows).map((r) => ({ playerId: r.playerId, stats: r.stats })),
-          ),
+    prisma.playerStat
+      .findMany({
+        where: primaryWhere,
+        select: { playerId: true, stats: true, split: true },
+      })
+      .then((rows) =>
+        deduplicatePrimarySplits(rows).map((r) => ({
+          playerId: r.playerId,
+          stats: r.stats,
+        })),
+      ),
     prisma.playerStat.findMany({
       where: statsWhere(StatSplit.VsLeft),
       select: { playerId: true, stats: true },
@@ -129,45 +153,43 @@ export async function GET(request: Request) {
       return new Response("[]", {
         headers: {
           "Content-Type": "application/json; charset=utf-8",
-          "Content-Disposition": `attachment; filename="batcast-${playerTypeParam.toLowerCase()}s-${seasonParam}.json"`,
+          "Content-Disposition": `attachment; filename="${filename}.json"`,
         },
       })
     }
-    return new Response(
-      toCsvRow([
-        "Ottoneu ID",
-        "Fangraphs ID",
-        "Name",
-        "Birthday",
-        "Positions",
-        "Bats",
-        "Throws",
-      ]),
-      {
-        headers: {
-          "Content-Type": "text/csv; charset=utf-8",
-          "Content-Disposition": `attachment; filename="batcast-${playerTypeParam.toLowerCase()}s-${seasonParam}.csv"`,
-        },
+    return new Response(header, {
+      headers: {
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": `attachment; filename="${filename}.csv"`,
       },
-    )
+    })
   }
 
   // ── Fetch player profiles ──────────────────────────────────────────────────
 
   const players = await prisma.player.findMany({
-    where: { id: { in: allPlayerIds } },
+    // A stat row outlives its player: the sync sweep soft-deletes Player without
+    // touching PlayerStat, so a retired player would otherwise still export.
+    where: { id: { in: allPlayerIds }, deletedAt: null },
     select: {
       id: true,
       ottoneuId: true,
       fangraphsId: true,
       playerName: true,
       fgSpecialChar: true,
+      team: true,
+      mlbLevel: true,
+      active: true,
       birthday: true,
       bats: true,
       throws: true,
       override: {
         select: {
           displayName: true,
+          team: true,
+          mlbLevel: true,
+          league: true,
+          active: true,
           birthday: true,
           bats: true,
           throws: true,
@@ -176,11 +198,32 @@ export async function GET(request: Request) {
       },
       universe: {
         where: { format: "ottoneu", deletedAt: null },
-        select: { positions: true },
+        select: { positions: true, fangraphsId: true },
         take: 1,
       },
     },
   })
+
+  // ── Resolve overrides, then filter ─────────────────────────────────────────
+  // Filtering on the raw Player columns would drop players whose override makes
+  // them match (and keep ones whose override makes them stop matching).
+
+  // The resolved Fangraphs id serves both the level filter and the exported
+  // column: Batcast joins on that column, so admitting a player through the
+  // universe row and then emitting a blank id would hand back an unusable row.
+  const sorted = players
+    .map((p) => ({
+      player: p,
+      effective: effectivePlayer(p, p.override),
+      fangraphsId: levelFangraphsId(
+        p.fangraphsId,
+        p.universe[0]?.fangraphsId,
+      ),
+    }))
+    .filter(({ effective, fangraphsId }) =>
+      matchesPlayerFilters(effective, fangraphsId, filters),
+    )
+    .sort((a, b) => a.effective.displayName.localeCompare(b.effective.displayName))
 
   // ── Build lookup maps ──────────────────────────────────────────────────────
 
@@ -188,30 +231,9 @@ export async function GET(request: Request) {
   const vsLeftMap = new Map(vsLeftRows.map((r) => [r.playerId, r.stats]))
   const vsRightMap = new Map(vsRightRows.map((r) => [r.playerId, r.stats]))
 
-  // ── Sort by display name ───────────────────────────────────────────────────
-
-  const sortedPlayers = [...players].sort((a, b) => {
-    const nameA =
-      (a.override?.deletedAt ? null : a.override?.displayName) ??
-      a.fgSpecialChar ??
-      a.playerName
-    const nameB =
-      (b.override?.deletedAt ? null : b.override?.displayName) ??
-      b.fgSpecialChar ??
-      b.playerName
-    return nameA.localeCompare(nameB)
-  })
-
   // ── Build player records ───────────────────────────────────────────────────
 
-  const typeLabel = isBatter ? "batters" : "pitchers"
-
-  const playerRecords = sortedPlayers.map((p) => {
-    const ov = p.override?.deletedAt ? null : p.override
-    const displayName = ov?.displayName ?? p.fgSpecialChar ?? p.playerName
-    const birthday = toISODate(ov?.birthday ?? p.birthday)
-    const bats = ov?.bats ?? p.bats
-    const throws_ = ov?.throws ?? p.throws
+  const playerRecords = sorted.map(({ player: p, effective, fangraphsId }) => {
     const positions = p.universe[0]?.positions.join("/") ?? null
 
     const mainStat = isBatter
@@ -222,19 +244,17 @@ export async function GET(request: Request) {
 
     return {
       ottoneuId: p.ottoneuId,
-      fangraphsId: p.fangraphsId,
-      name: displayName,
-      birthday,
+      fangraphsId,
+      name: effective.displayName,
+      birthday: toISODate(effective.birthday),
       positions,
-      bats,
-      throws: throws_,
+      bats: effective.bats,
+      throws: effective.throws,
       ...(isBatter ? { wOBA: mainStat } : { FIP: mainStat }),
       wOBAVsLeft: vsLeft,
       wOBAVsRight: vsRight,
     }
   })
-
-  const filename = `batcast-${typeLabel}-${seasonParam}`
 
   // ── JSON ───────────────────────────────────────────────────────────────────
 
@@ -248,32 +268,6 @@ export async function GET(request: Request) {
   }
 
   // ── CSV ────────────────────────────────────────────────────────────────────
-
-  const header = isBatter
-    ? toCsvRow([
-        "Ottoneu ID",
-        "Fangraphs ID",
-        "Name",
-        "Birthday",
-        "Positions",
-        "Bats",
-        "Throws",
-        "wOBA",
-        "wOBA vs LHP",
-        "wOBA vs RHP",
-      ])
-    : toCsvRow([
-        "Ottoneu ID",
-        "Fangraphs ID",
-        "Name",
-        "Birthday",
-        "Positions",
-        "Bats",
-        "Throws",
-        "FIP",
-        "wOBA vs LHB",
-        "wOBA vs RHB",
-      ])
 
   const dataRows = playerRecords.map((r) =>
     toCsvRow([

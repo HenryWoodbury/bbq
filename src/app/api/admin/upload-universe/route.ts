@@ -194,7 +194,7 @@ export async function POST(request: NextRequest) {
     deleted = count
   }
 
-  const { linked, ottoneuIdsFilled, manualOverridesLinked } =
+  const { linked, ottoneuIdsFilled, manualOverridesLinked, manualPlayersMerged } =
     await reconcilePlayerIds()
 
   await prisma.playerUniverseUpload.create({
@@ -217,6 +217,7 @@ export async function POST(request: NextRequest) {
     linked,
     ottoneuIdsFilled,
     manualOverridesLinked,
+    manualPlayersMerged,
     uploadedAt,
   })
 }

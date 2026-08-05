@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { DeepMockProxy } from "vitest-mock-extended"
 import { mockReset } from "vitest-mock-extended"
 import type { Player, PrismaClient } from "@/generated/prisma/client"
+import { MANUAL_SFBB_PREFIX } from "@/lib/manual-players"
 
 const { mockAuth } = vi.hoisted(() => ({ mockAuth: vi.fn() }))
 
@@ -298,8 +299,40 @@ describe("POST /api/admin/sync-players — replace vs additive", () => {
     expect(json.deleted).toBe(12)
     expect(prismaMock.player.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ deletedAt: null }),
+        where: {
+          AND: [
+            expect.objectContaining({ deletedAt: null }),
+            expect.anything(),
+          ],
+        },
         data: expect.objectContaining({ deletedAt: expect.any(Date) }),
+      }),
+    )
+  })
+
+  it("exempts manually-added players from the replace sweep", async () => {
+    mockAuth.mockResolvedValue({
+      userId: "u1",
+      sessionClaims: { metadata: { role: "admin" } },
+    })
+    vi.stubGlobal("fetch", mockFetch(VALID_CSV))
+    setupHappyPath()
+    prismaMock.player.updateMany.mockResolvedValue({ count: 0 })
+
+    await POST(makeRequest({ mode: "replace" }))
+
+    // Synthetic players are absent from the SFBB CSV by definition, so without
+    // this exclusion every sync would delete them and orphan their stats. The
+    // clauses are ANDed rather than merged: the sweep's own `sfbbId: { notIn }`
+    // would otherwise collide with the prefix test and one side would vanish.
+    expect(prismaMock.player.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          AND: [
+            expect.objectContaining({ sfbbId: expect.objectContaining({}) }),
+            { NOT: { sfbbId: { startsWith: MANUAL_SFBB_PREFIX } } },
+          ],
+        },
       }),
     )
   })

@@ -1,7 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { assertAdmin } from "@/lib/auth-helpers"
+import { buildManualPlayerData } from "@/lib/manual-players"
 import { prisma } from "@/lib/prisma"
+import { reconcilePlayerIds } from "@/lib/reconcile-player-ids"
 import { normalizeTeamCode } from "@/lib/team-codes"
 
 const manualSchema = z
@@ -37,29 +39,49 @@ export async function POST(request: NextRequest) {
   }
 
   const data = parsed.data
+  const team = normalizeTeamCode(data.team ?? null)
+  const birthday = data.birthday ? new Date(data.birthday) : null
+  const positions = data.positions ?? []
 
-  const override = await prisma.playerOverride.create({
-    data: {
-      isManual: true,
-      playerId: null,
-      displayName: data.displayName ?? null,
-      firstName: data.firstName ?? null,
-      lastName: data.lastName ?? null,
-      nickname: data.nickname ?? null,
-      birthday: data.birthday ? new Date(data.birthday) : null,
-      team: normalizeTeamCode(data.team ?? null),
-      mlbLevel: data.mlbLevel ?? null,
-      league: data.league ?? null,
-      active: data.active ?? null,
-      bats: data.bats ?? null,
-      throws: data.throws ?? null,
-      positions: data.positions ?? [],
-      fangraphsId: data.fangraphsId ?? null,
-      mlbamId: data.mlbamId ?? null,
-      ottoneuId: data.ottoneuId ?? null,
-    },
-    select: { id: true, isManual: true, createdAt: true },
+  // A manual player needs a canonical Player row: PlayerStat.playerId is a
+  // required FK to Player, so an override on its own can never carry
+  // projections and stays invisible to the stats views and every export.
+  const created = await prisma.$transaction(async (tx) => {
+    const player = await tx.player.create({
+      data: buildManualPlayerData({ ...data, team, birthday, positions }),
+      select: { id: true },
+    })
+
+    const override = await tx.playerOverride.create({
+      data: {
+        isManual: true,
+        playerId: player.id,
+        displayName: data.displayName ?? null,
+        firstName: data.firstName ?? null,
+        lastName: data.lastName ?? null,
+        nickname: data.nickname ?? null,
+        birthday,
+        team,
+        mlbLevel: data.mlbLevel ?? null,
+        league: data.league ?? null,
+        active: data.active ?? null,
+        bats: data.bats ?? null,
+        throws: data.throws ?? null,
+        positions,
+        fangraphsId: data.fangraphsId ?? null,
+        mlbamId: data.mlbamId ?? null,
+        ottoneuId: data.ottoneuId ?? null,
+      },
+      select: { id: true, isManual: true, createdAt: true },
+    })
+
+    return { ...override, playerId: player.id }
   })
 
-  return NextResponse.json(override, { status: 201 })
+  // Links any matching PlayerUniverse row to the new Player — exports read
+  // positions from universe, not the override — and folds the synthetic player
+  // into the real one if this id is already in the SFBB map.
+  const reconciled = await reconcilePlayerIds()
+
+  return NextResponse.json({ ...created, reconciled }, { status: 201 })
 }

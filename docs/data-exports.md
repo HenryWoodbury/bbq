@@ -27,7 +27,46 @@ files (e.g. Batcast) on demand.
 - **Goal:** an admin can download a file formatted for an external platform.
 - **Acceptance:** `GET /api/admin/export/batcast` returns a Batcast-format file.
 - **Realization:** `src/app/api/admin/export/batcast/route.ts`; CSV assembly via
-  `src/lib/csv.ts` (covered by `src/lib/csv.test.ts`).
+  `src/lib/csv.ts` (covered by `src/lib/csv.test.ts` and
+  `src/app/api/admin/export/batcast/route.test.ts`).
+- **Invariant — the primary line is `None` *or* `Neutral`.** Uploads store the
+  unsplit projection under either split depending on the source file, so the
+  export queries both and reduces with `deduplicatePrimarySplits`
+  (`src/lib/stat-maps.ts`), preferring `Neutral`. Querying `None` alone silently
+  empties the `wOBA`/`FIP` column for a Neutral-sourced upload.
+- **Invariant — every field of `PlayerStat`'s compound unique is pinned.** The
+  stat queries constrain `season`, `playerType`, `projection`, `split`, `ros` and
+  `neutralized`. Leaving `ros`/`neutralized` open lets a rest-of-season or
+  park-neutralized row match alongside the season row; the export's lookup maps
+  are keyed by `playerId` alone and would silently keep whichever arrived last,
+  mixing both into one file. Uploads write only `false` today, so this is a guard
+  against a future upload rather than a live defect.
+- **Invariant — a player reaches the export only through `Player`.** Rows are
+  found via `PlayerStat` → `Player`, positions via the linked `PlayerUniverse`
+  row. A manually-added player therefore needs both (see
+  [Manually-added players](schema.md#manually-added-players)); an override alone
+  is invisible here.
+- **Invariant — the `active` and `league` filters read *effective* values.** Both
+  resolve `PlayerOverride` first via `effectivePlayer` / `matchesPlayerFilters`
+  (`src/lib/player-effective.ts`), so the export selects the same players the
+  admin table shows. This is why filtering happens in memory after the profile
+  query rather than as a Prisma `where` on `Player` — the override is not
+  reachable from the `PlayerStat` query. See
+  [Override precedence](schema.md#override-precedence).
+- **Invariant — the MLB/MiLB split and the `Fangraphs ID` column read the same
+  *resolved* id.** Via `levelFangraphsId` (same module), which prefers the linked
+  `PlayerUniverse` row's id over `Player.fangraphsId`. Manually-added players
+  often carry one only there, so reading the `Player` column alone drops them
+  from `league=mlb` while the admin table keeps showing them. The filter and the
+  column must agree: Batcast joins on that column, so admitting a player through
+  the universe row and then emitting a blank id returns an unusable row.
+- **Invariant — unknown `active`/`league` values are rejected**, not treated as
+  `all`: an export that silently drops a filter returns more rows than requested.
+- **Invariant — soft-deleted players are excluded.** A stat row outlives its
+  player: the replace-mode sweep soft-deletes `Player` without touching
+  `PlayerStat`, so the profile query filters `deletedAt: null` rather than relying
+  on the stat rows having been retired too.
+- The CSV header is identical whether or not any rows match.
 
 ## Current realization (map)
 - **Model:** `DataExport` + `ExportScope` / `ExportType` enums (see [schema.md](schema.md)).

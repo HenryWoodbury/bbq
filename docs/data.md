@@ -39,6 +39,7 @@ The container is named `bbq_postgres` and binds to port 5432. Data persists in t
 |---|---|---|
 | `db:seed` | `tsx prisma/seed.ts` | Seed stat definitions, league formats, heat maps, data exports, and a demo league + team |
 | `seed:players` | `tsx prisma/seed-players.ts` | Seed `Player` and `PlayerUniverse` tables from local CSV files |
+| `db:backfill-manual` | `tsx prisma/backfill-manual-players.ts` | One-off: give pre-existing manual `PlayerOverride` rows a canonical `Player`. Idempotent — see [Manually-added players](schema.md#manually-added-players) |
 
 #### `db:seed`
 
@@ -60,7 +61,7 @@ Runs `prisma/seed-players.ts`. Seeds:
 - **PlayerUniverse** table from a player universe CSV (Ottoneu format)
 - Runs `reconcilePlayerIds()` after both loads to cross-link the tables
 
-Uses **replace mode**: rows present in the CSV are upserted; rows absent from the CSV are soft-deleted (`deletedAt` set).
+Uses **replace mode**: rows present in the CSV are upserted; rows absent from the CSV are soft-deleted (`deletedAt` set). Manually-added players are exempt from the sweep — see [Manually-added players](schema.md#manually-added-players).
 
 **CSV sources** — place files in `sources/` at the project root:
 
