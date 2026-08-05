@@ -371,6 +371,13 @@ async function PlayersTableSection({
     const baseTeam = p.team
     // Same resolution the Stats tab and the export use, so one player cannot
     // read "AAA" here and "MiLB" there.
+    //
+    // Note this reverses the id precedence this view used to apply: it read
+    // `p.fangraphsId ?? universe`, and `levelFangraphsId` is universe-first. For
+    // a player carrying a numeric Player id *and* an "sa…" universe id, with no
+    // SFBB level, Profiles used to show MLB and now shows MiLB. Universe-first
+    // is deliberate — it is what the level *filter* already uses, and a row the
+    // filter calls MiLB must not be labelled MLB.
     const levelFgId = levelFangraphsId(
       p.fangraphsId,
       p.universe[0]?.fangraphsId,

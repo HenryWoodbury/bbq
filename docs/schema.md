@@ -111,6 +111,13 @@ the other showed one player as `MiLB` on Profiles and `AAA` on Stats, which read
 like a broken filter even when the filters agree. An override on `mlbLevel` still
 wins over both, via `effectivePlayer`.
 
+The Fangraphs id it derives from is the one `levelFangraphsId()` resolves —
+**universe-first**. Profiles previously derived from `Player.fangraphsId` first,
+so a player with a numeric `Player` id, an `"sa…"` universe id and no SFBB level
+moved from `MLB` to `MiLB` when this rule landed. That is the intended direction:
+the level filter was already universe-first, and a row the filter calls MiLB must
+not be labelled MLB.
+
 #### Manually-added players
 
 **Invariant: every manually-added player has a canonical `Player` row.**

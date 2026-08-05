@@ -325,8 +325,15 @@ export async function reconcilePlayerIds(): Promise<ReconcileResult> {
 
   // ── Build lookup maps from only the Players those rows could match ────────
   // The maps are probed exclusively with ids drawn from the two sets above, so
-  // loading every non-deleted Player was wasted work — and it made a one-row
-  // manual add cost a full table scan. All three columns are indexed.
+  // loading every non-deleted Player was wasted work. All three columns are
+  // indexed.
+  //
+  // This bounds the *Player* lookup, not the whole call: the two queries above
+  // and the ottoneuId sweep below are still unbounded, and the unlinked-universe
+  // set never drains — Ottoneu carries players absent from the SFBB map, and
+  // those rows can never match. A single manual add therefore still pays for
+  // that permanent backlog. See docs/data.md for what to do if it starts to
+  // matter.
   const wantedFgIds = new Set<string>()
   const wantedMlbamIds = new Set<number>()
   const wantedOttoneuIds = new Set<number>()
