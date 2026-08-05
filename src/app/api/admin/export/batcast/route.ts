@@ -200,14 +200,20 @@ export async function GET(request: Request) {
   // Filtering on the raw Player columns would drop players whose override makes
   // them match (and keep ones whose override makes them stop matching).
 
+  // The resolved Fangraphs id serves both the level filter and the exported
+  // column: Batcast joins on that column, so admitting a player through the
+  // universe row and then emitting a blank id would hand back an unusable row.
   const sorted = players
-    .map((p) => ({ player: p, effective: effectivePlayer(p, p.override) }))
-    .filter(({ player, effective }) =>
-      matchesPlayerFilters(
-        effective,
-        levelFangraphsId(player.fangraphsId, player.universe[0]?.fangraphsId),
-        filters,
+    .map((p) => ({
+      player: p,
+      effective: effectivePlayer(p, p.override),
+      fangraphsId: levelFangraphsId(
+        p.fangraphsId,
+        p.universe[0]?.fangraphsId,
       ),
+    }))
+    .filter(({ effective, fangraphsId }) =>
+      matchesPlayerFilters(effective, fangraphsId, filters),
     )
     .sort((a, b) => a.effective.displayName.localeCompare(b.effective.displayName))
 
@@ -219,7 +225,7 @@ export async function GET(request: Request) {
 
   // ── Build player records ───────────────────────────────────────────────────
 
-  const playerRecords = sorted.map(({ player: p, effective }) => {
+  const playerRecords = sorted.map(({ player: p, effective, fangraphsId }) => {
     const positions = p.universe[0]?.positions.join("/") ?? null
 
     const mainStat = isBatter
@@ -230,7 +236,7 @@ export async function GET(request: Request) {
 
     return {
       ottoneuId: p.ottoneuId,
-      fangraphsId: p.fangraphsId,
+      fangraphsId,
       name: effective.displayName,
       birthday: toISODate(effective.birthday),
       positions,

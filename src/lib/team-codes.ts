@@ -115,7 +115,7 @@ export function deriveLeagueFromTeam(team: string | null): "AL" | "NL" | null {
 
 /** True when a Fangraphs id denotes a minor leaguer (the `"sa…"` prefix). */
 export function isMiLBFangraphsId(fangraphsId: string | null): boolean {
-  return fangraphsId !== null && fangraphsId.startsWith("sa")
+  return fangraphsId?.startsWith("sa") ?? false
 }
 
 export function deriveLevelFromFgId(fangraphsId: string | null): string {

@@ -211,7 +211,7 @@ describe("reconcilePlayerIds — synthetic player merge", () => {
   it("repoints the manual override when the real player has none", async () => {
     setup({ synthetic: [SYNTHETIC], real: [REAL] })
     prismaMock.playerOverride.findUnique
-      .mockResolvedValueOnce({ id: "override-1" } as never) // synthetic's
+      .mockResolvedValueOnce({ id: "override-1", deletedAt: null } as never) // synthetic's
       .mockResolvedValueOnce(null as never) // real has none
 
     await reconcilePlayerIds()
@@ -229,6 +229,7 @@ describe("reconcilePlayerIds — synthetic player merge", () => {
       // the synthetic player's override — carries the admin's manual values
       .mockResolvedValueOnce({
         id: "manual-override",
+        deletedAt: null,
         displayName: "Jacob Gonzalez",
         nickname: "Gonzo",
         positions: ["1B"],
@@ -306,6 +307,51 @@ describe("reconcilePlayerIds — synthetic player merge", () => {
     )
     expect(revived).toBeUndefined()
     expect(prismaMock.playerOverride.delete).not.toHaveBeenCalled()
+  })
+
+  it("does not let a retired manual override leak into the real player's live one", async () => {
+    // The mirror of the case above. An admin cleared the manual player's
+    // override via DELETE /api/admin/players/[id]/override, which retires the
+    // override without touching the Player — so the synthetic player is still
+    // live and still merges. Its withdrawn values must not fill the real one.
+    setup({ synthetic: [SYNTHETIC], real: [REAL] })
+    prismaMock.playerOverride.findUnique
+      .mockResolvedValueOnce({
+        id: "dead-manual-override",
+        deletedAt: new Date(),
+        nickname: "Gonzo",
+        team: "PIT",
+      } as never)
+      .mockResolvedValueOnce({
+        id: "real-override",
+        deletedAt: null,
+        nickname: null,
+        team: null,
+        positions: [],
+      } as never)
+
+    await reconcilePlayerIds()
+
+    expect(prismaMock.playerOverride.update).not.toHaveBeenCalled()
+    expect(prismaMock.playerOverride.delete).not.toHaveBeenCalled()
+  })
+
+  it("leaves a retired manual override behind rather than repointing it", async () => {
+    // Repointing would park a dead row in the real player's unique slot, which
+    // then blocks a later manual add from taking it.
+    setup({ synthetic: [SYNTHETIC], real: [REAL] })
+    prismaMock.playerOverride.findUnique
+      .mockResolvedValueOnce({
+        id: "dead-manual-override",
+        deletedAt: new Date(),
+      } as never)
+      .mockResolvedValueOnce(null as never) // the real player has none
+
+    const result = await reconcilePlayerIds()
+
+    // The merge itself still happens — stats and universe rows still move.
+    expect(result.manualPlayersMerged).toBe(1)
+    expect(prismaMock.playerOverride.update).not.toHaveBeenCalled()
   })
 })
 

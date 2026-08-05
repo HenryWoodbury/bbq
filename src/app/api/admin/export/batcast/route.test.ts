@@ -293,6 +293,32 @@ describe("GET /api/admin/export/batcast — filters respect overrides", () => {
     expect(await exportedNames({ ...BASE, league: "milb" })).toEqual([])
   })
 
+  it("emits the resolved id in the Fangraphs ID column, not a blank", async () => {
+    // Batcast joins on this column, so admitting a player through the universe
+    // row and then exporting them without an id hands back an unusable row.
+    prismaMock.player.findMany.mockResolvedValue([
+      {
+        ...PLAYER,
+        fangraphsId: null,
+        universe: [{ positions: ["1B"], fangraphsId: "33225" }],
+        override: null,
+      },
+    ] as never)
+    setupStats({
+      primary: [
+        {
+          playerId: "player-1",
+          stats: { wOBA: 0.321 },
+          split: StatSplit.Neutral,
+        },
+      ],
+    })
+
+    const res = await GET(makeRequest({ ...BASE, league: "mlb" }))
+    const [header, ...rows] = await csvRows(res)
+    expect(rows[0]?.[header.indexOf("Fangraphs ID")]).toBe("33225")
+  })
+
   it("lets the universe id win over the Player column for the level split", async () => {
     prismaMock.player.findMany.mockResolvedValue([
       {

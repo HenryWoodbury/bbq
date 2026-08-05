@@ -136,11 +136,17 @@ The prefix carries two obligations:
      **retired** row on the real player yields — it is hard-deleted to free the
      key so the synthetic's live projection can take it. Letting it win would
      destroy an uploaded projection in favour of a row no view can see.
-   - *Overrides* (`PlayerOverride.playerId` is unique): a **live** override on the
-     real player absorbs the manual one field-by-field, keeping values it already
-     sets. A **retired** one is detached (`playerId → null`, still soft-deleted)
-     and the manual override takes the slot whole — filling gaps from a dead
-     override would resurrect stale values over the admin's manual edit.
+   - *Overrides* (`PlayerOverride.playerId` is unique): liveness governs **both
+     sides symmetrically** — a retired override's values are withdrawn, so it
+     must neither be inherited from nor overwritten by. A **live** override on
+     the real player absorbs a **live** manual one field-by-field, keeping values
+     it already sets. A **retired** one on the real player is detached
+     (`playerId → null`, still soft-deleted) and the live manual override takes
+     the slot whole. A **retired** manual override is left where it is: it
+     contributes nothing, and repointing it would park a dead row in the unique
+     slot. (`DELETE /api/admin/players/[id]/override` retires an override without
+     touching the `Player`, so a live synthetic player with a dead override is a
+     reachable state.)
 
 Positions in exports come from the linked `PlayerUniverse` row, not the override,
 so `reconcilePlayerIds()` runs after a manual add to attach it.

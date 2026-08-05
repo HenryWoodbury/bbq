@@ -101,8 +101,9 @@ async function mergeSyntheticPlayer(
         // A live row is about to take this key, so the retired real row has to
         // go. Hard delete is the only option — the unique constraint admits one
         // row per key regardless of deletedAt — and it discards nothing visible.
+        // No second synthetic row can want this key: they share one playerId, so
+        // the same unique constraint makes their keys distinct.
         supersededRealIds.push(retiredRealId)
-        retiredRealByKey.delete(key)
       }
       movable.push(s.id)
     }
@@ -138,16 +139,25 @@ async function mergeSyntheticPlayer(
     // PlayerOverride.playerId is unique, so the manual override can only be
     // repointed when the real player has none. Otherwise its values fill the
     // gaps in the existing override, which keeps the admin's manual edits.
+    //
+    // Liveness governs both sides symmetrically: a retired override's values are
+    // withdrawn, and must neither be inherited from nor overwritten by.
     const [syntheticOverride, realOverride] = await Promise.all([
       tx.playerOverride.findUnique({ where: { playerId: syntheticId } }),
       tx.playerOverride.findUnique({ where: { playerId: realId } }),
     ])
 
-    if (syntheticOverride) {
+    const liveSyntheticOverride = liveOverride(syntheticOverride)
+    // A retired manual override was cleared by an admin (see
+    // `DELETE /api/admin/players/[id]/override`, which retires the override
+    // without touching the Player). Its values must not travel to the real
+    // player, and repointing it would only park a dead row in the unique slot —
+    // so leave it on the synthetic player, which is soft-deleted below.
+    if (liveSyntheticOverride) {
       const liveRealOverride = liveOverride(realOverride)
       if (!realOverride) {
         await tx.playerOverride.update({
-          where: { id: syntheticOverride.id },
+          where: { id: liveSyntheticOverride.id },
           data: { playerId: realId },
         })
       } else if (!liveRealOverride) {
@@ -160,50 +170,68 @@ async function mergeSyntheticPlayer(
           data: { playerId: null },
         })
         await tx.playerOverride.update({
-          where: { id: syntheticOverride.id },
+          where: { id: liveSyntheticOverride.id },
           data: { playerId: realId },
         })
       } else {
+        // Both live: the real player's own values win field by field, and the
+        // manual override fills only the gaps.
         const fill = <T>(current: T | null, incoming: T | null): T | null =>
           current ?? incoming
         await tx.playerOverride.update({
-          where: { id: realOverride.id },
+          where: { id: liveRealOverride.id },
           data: {
             isManual: true,
             displayName: fill(
-              realOverride.displayName,
-              syntheticOverride.displayName,
+              liveRealOverride.displayName,
+              liveSyntheticOverride.displayName,
             ),
             firstName: fill(
-              realOverride.firstName,
-              syntheticOverride.firstName,
+              liveRealOverride.firstName,
+              liveSyntheticOverride.firstName,
             ),
-            lastName: fill(realOverride.lastName, syntheticOverride.lastName),
-            nickname: fill(realOverride.nickname, syntheticOverride.nickname),
-            birthday: fill(realOverride.birthday, syntheticOverride.birthday),
-            team: fill(realOverride.team, syntheticOverride.team),
-            mlbLevel: fill(realOverride.mlbLevel, syntheticOverride.mlbLevel),
-            league: fill(realOverride.league, syntheticOverride.league),
-            active: fill(realOverride.active, syntheticOverride.active),
-            bats: fill(realOverride.bats, syntheticOverride.bats),
-            throws: fill(realOverride.throws, syntheticOverride.throws),
+            lastName: fill(
+              liveRealOverride.lastName,
+              liveSyntheticOverride.lastName,
+            ),
+            nickname: fill(
+              liveRealOverride.nickname,
+              liveSyntheticOverride.nickname,
+            ),
+            birthday: fill(
+              liveRealOverride.birthday,
+              liveSyntheticOverride.birthday,
+            ),
+            team: fill(liveRealOverride.team, liveSyntheticOverride.team),
+            mlbLevel: fill(
+              liveRealOverride.mlbLevel,
+              liveSyntheticOverride.mlbLevel,
+            ),
+            league: fill(liveRealOverride.league, liveSyntheticOverride.league),
+            active: fill(liveRealOverride.active, liveSyntheticOverride.active),
+            bats: fill(liveRealOverride.bats, liveSyntheticOverride.bats),
+            throws: fill(liveRealOverride.throws, liveSyntheticOverride.throws),
             positions:
-              realOverride.positions.length > 0
-                ? realOverride.positions
-                : syntheticOverride.positions,
+              liveRealOverride.positions.length > 0
+                ? liveRealOverride.positions
+                : liveSyntheticOverride.positions,
             fangraphsId: fill(
-              realOverride.fangraphsId,
-              syntheticOverride.fangraphsId,
+              liveRealOverride.fangraphsId,
+              liveSyntheticOverride.fangraphsId,
             ),
-            mlbamId: fill(realOverride.mlbamId, syntheticOverride.mlbamId),
+            mlbamId: fill(
+              liveRealOverride.mlbamId,
+              liveSyntheticOverride.mlbamId,
+            ),
             ottoneuId: fill(
-              realOverride.ottoneuId,
-              syntheticOverride.ottoneuId,
+              liveRealOverride.ottoneuId,
+              liveSyntheticOverride.ottoneuId,
             ),
-            deletedAt: null,
           },
         })
-        await tx.playerOverride.delete({ where: { id: syntheticOverride.id } })
+        await tx.playerOverride.delete({
+          where: { id: liveSyntheticOverride.id },
+        })
       }
     }
 
