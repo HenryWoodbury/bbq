@@ -97,6 +97,12 @@ rows the user can see and keeps rows they cannot — which is why
 `PlayerOverride.fangraphsId` / `mlbamId` / `ottoneuId` are deliberately *not*
 part of this rule: they are sync dedup keys, not display overrides.
 
+**The MLB/MiLB split has its own resolution rule.** It reads the Fangraphs id,
+which no override sets — but the linked `PlayerUniverse` row still wins over
+`Player.fangraphsId`, because a manually-added player frequently carries one only
+there. `levelFangraphsId()` (same module) is that rule; every level filter goes
+through it, or the three views disagree about whether such a player is MLB.
+
 #### Manually-added players
 
 **Invariant: every manually-added player has a canonical `Player` row.**
@@ -111,15 +117,30 @@ The prefix carries two obligations:
 
 1. **Bulk `Player` queries that treat SFBB as the source of truth must exclude
    them.** Replace-mode sweeps soft-delete any `Player` absent from the SFBB CSV;
-   synthetic players are absent by definition, so every such query spreads the
-   shared `EXCLUDE_MANUAL_PLAYERS` fragment (`src/lib/manual-players.ts`) rather
-   than hand-writing the prefix test. Without it, each sync deletes them.
+   synthetic players are absent by definition, so every such query wraps its
+   clause in `excludeManualPlayers()` (`src/lib/manual-players.ts`) rather than
+   hand-writing the prefix test. Without it, each sync deletes them. The helper
+   composes via `AND` rather than exposing a spreadable fragment: the prefix test
+   needs the `NOT` and `sfbbId` keys, and the sweep's own clause is
+   `sfbbId: { notIn: [...] }` — spreading would silently drop one side with no
+   type error.
 2. **They are merge candidates.** Once SFBB publishes the player, a second
    `Player` row would share the same FangraphsId. `reconcilePlayerIds()` folds the
    synthetic row into the real one — repointing stats, roster history, universe
-   rows and the override — then soft-deletes it. Colliding stat rows (the
-   `PlayerStat` compound unique includes `playerId`) resolve in favour of the real
-   player's.
+   rows and the override — then soft-deletes it.
+
+   Both collision rules turn on **liveness, not mere presence**, because neither
+   unique key includes `deletedAt`:
+   - *Stats* (`PlayerStat`'s compound unique includes `playerId`): only a **live**
+     row on the real player wins, and the synthetic's loser is soft-deleted. A
+     **retired** row on the real player yields — it is hard-deleted to free the
+     key so the synthetic's live projection can take it. Letting it win would
+     destroy an uploaded projection in favour of a row no view can see.
+   - *Overrides* (`PlayerOverride.playerId` is unique): a **live** override on the
+     real player absorbs the manual one field-by-field, keeping values it already
+     sets. A **retired** one is detached (`playerId → null`, still soft-deleted)
+     and the manual override takes the slot whole — filling gaps from a dead
+     override would resurrect stale values over the admin's manual edit.
 
 Positions in exports come from the linked `PlayerUniverse` row, not the override,
 so `reconcilePlayerIds()` runs after a manual add to attach it.

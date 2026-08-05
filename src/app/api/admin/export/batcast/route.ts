@@ -7,6 +7,7 @@ import {
   type ActiveFilter,
   effectivePlayer,
   type LeagueFilter,
+  levelFangraphsId,
   matchesPlayerFilters,
 } from "@/lib/player-effective"
 import { deduplicatePrimarySplits, PROJECTION_MAP } from "@/lib/stat-maps"
@@ -159,7 +160,9 @@ export async function GET(request: Request) {
   // ── Fetch player profiles ──────────────────────────────────────────────────
 
   const players = await prisma.player.findMany({
-    where: { id: { in: allPlayerIds } },
+    // A stat row outlives its player: the sync sweep soft-deletes Player without
+    // touching PlayerStat, so a retired player would otherwise still export.
+    where: { id: { in: allPlayerIds }, deletedAt: null },
     select: {
       id: true,
       ottoneuId: true,
@@ -187,7 +190,7 @@ export async function GET(request: Request) {
       },
       universe: {
         where: { format: "ottoneu", deletedAt: null },
-        select: { positions: true },
+        select: { positions: true, fangraphsId: true },
         take: 1,
       },
     },
@@ -200,7 +203,11 @@ export async function GET(request: Request) {
   const sorted = players
     .map((p) => ({ player: p, effective: effectivePlayer(p, p.override) }))
     .filter(({ player, effective }) =>
-      matchesPlayerFilters(effective, player.fangraphsId, filters),
+      matchesPlayerFilters(
+        effective,
+        levelFangraphsId(player.fangraphsId, player.universe[0]?.fangraphsId),
+        filters,
+      ),
     )
     .sort((a, b) => a.effective.displayName.localeCompare(b.effective.displayName))
 

@@ -77,8 +77,26 @@ export type ActiveFilter = "all" | "yes" | "no"
 export type LeagueFilter = "all" | "mlb" | "milb" | "al" | "nl"
 
 /**
+ * The Fangraphs id that decides a player's level (MLB vs MiLB).
+ *
+ * Not an override — `PlayerOverride.fangraphsId` is a sync dedup key — but the
+ * linked `PlayerUniverse` row still takes precedence over `Player.fangraphsId`,
+ * because a manually-added player frequently carries one only there. Reading
+ * `Player.fangraphsId` alone drops such a player from the `mlb` filter while the
+ * admin table, which already resolves the universe row, keeps showing them.
+ */
+export function levelFangraphsId(
+  playerFangraphsId: string | null,
+  universeFangraphsId: string | null | undefined,
+): string | null {
+  return universeFangraphsId ?? playerFangraphsId
+}
+
+/**
  * Applies the active and league filters to a player's effective attributes.
- * `fangraphsId` is not overridable, so the level split reads it directly.
+ *
+ * `fangraphsId` must be the resolved level id — pass `levelFangraphsId(...)`,
+ * not the raw `Player` column.
  */
 export function matchesPlayerFilters(
   effective: Pick<EffectivePlayer, "active" | "league">,

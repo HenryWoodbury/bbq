@@ -46,8 +46,17 @@ files (e.g. Batcast) on demand.
   query rather than as a Prisma `where` on `Player` — the override is not
   reachable from the `PlayerStat` query. See
   [Override precedence](schema.md#override-precedence).
+- **Invariant — the MLB/MiLB split reads the *resolved* Fangraphs id.** Via
+  `levelFangraphsId` (same module), which prefers the linked `PlayerUniverse`
+  row's id over `Player.fangraphsId`. Manually-added players often carry one only
+  there, so reading the `Player` column alone drops them from `league=mlb` while
+  the admin table keeps showing them.
 - **Invariant — unknown `active`/`league` values are rejected**, not treated as
   `all`: an export that silently drops a filter returns more rows than requested.
+- **Invariant — soft-deleted players are excluded.** A stat row outlives its
+  player: the replace-mode sweep soft-deletes `Player` without touching
+  `PlayerStat`, so the profile query filters `deletedAt: null` rather than relying
+  on the stat rows having been retired too.
 - The CSV header is identical whether or not any rows match.
 
 ## Current realization (map)

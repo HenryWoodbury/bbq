@@ -1,8 +1,6 @@
 import { chunk } from "@/lib/csv"
-import {
-  EXCLUDE_MANUAL_PLAYERS,
-  ONLY_MANUAL_PLAYERS,
-} from "@/lib/manual-players"
+import { excludeManualPlayers, onlyManualPlayers } from "@/lib/manual-players"
+import { liveOverride } from "@/lib/player-effective"
 import { prisma } from "@/lib/prisma"
 
 export interface ReconcileResult {
@@ -48,9 +46,14 @@ async function mergeSyntheticPlayer(
   realId: string,
 ): Promise<void> {
   await prisma.$transaction(async (tx) => {
-    // PlayerStat carries a compound unique key that includes playerId, so rows
-    // the real player already has cannot be repointed onto it — the real
-    // player's own stats win and the synthetic duplicates are dropped.
+    // PlayerStat carries a compound unique key that includes playerId, so a row
+    // whose key the real player already holds cannot simply be repointed.
+    //
+    // That key does *not* include deletedAt, so a retired row on the real player
+    // still occupies it. Only a live real row is a genuine winner: letting a
+    // retired one claim the key would drop the synthetic player's uploaded
+    // projection in favour of a row no view can see — the very symptom the
+    // manual-player fix exists to remove.
     const keySelect = {
       season: true,
       playerType: true,
@@ -62,26 +65,64 @@ async function mergeSyntheticPlayer(
     const [syntheticStats, realStats] = await Promise.all([
       tx.playerStat.findMany({
         where: { playerId: syntheticId },
-        select: { id: true, ...keySelect },
+        select: { id: true, deletedAt: true, ...keySelect },
       }),
       tx.playerStat.findMany({
         where: { playerId: realId },
-        select: keySelect,
+        select: { id: true, deletedAt: true, ...keySelect },
       }),
     ])
-    const taken = new Set(realStats.map(statKey))
-    const movable = syntheticStats.filter((s) => !taken.has(statKey(s)))
-    const duplicates = syntheticStats.filter((s) => taken.has(statKey(s)))
 
+    const liveRealKeys = new Set(
+      realStats.filter((s) => s.deletedAt === null).map(statKey),
+    )
+    const retiredRealByKey = new Map(
+      realStats
+        .filter((s) => s.deletedAt !== null)
+        .map((s) => [statKey(s), s.id]),
+    )
+
+    const movable: string[] = []
+    const supersededRealIds: string[] = []
+    const losers: string[] = []
+
+    for (const s of syntheticStats) {
+      const key = statKey(s)
+      if (liveRealKeys.has(key)) {
+        // The real player's own live row wins; retire the synthetic's copy.
+        if (s.deletedAt === null) losers.push(s.id)
+        continue
+      }
+      const retiredRealId = retiredRealByKey.get(key)
+      if (retiredRealId !== undefined) {
+        // Both sides retired — nothing worth moving; leave it on the synthetic
+        // player, which is soft-deleted at the end of this transaction.
+        if (s.deletedAt !== null) continue
+        // A live row is about to take this key, so the retired real row has to
+        // go. Hard delete is the only option — the unique constraint admits one
+        // row per key regardless of deletedAt — and it discards nothing visible.
+        supersededRealIds.push(retiredRealId)
+        retiredRealByKey.delete(key)
+      }
+      movable.push(s.id)
+    }
+
+    // Free the keys before repointing, or the update trips the constraint.
+    if (supersededRealIds.length > 0) {
+      await tx.playerStat.deleteMany({
+        where: { id: { in: supersededRealIds } },
+      })
+    }
     if (movable.length > 0) {
       await tx.playerStat.updateMany({
-        where: { id: { in: movable.map((s) => s.id) } },
+        where: { id: { in: movable } },
         data: { playerId: realId },
       })
     }
-    if (duplicates.length > 0) {
-      await tx.playerStat.deleteMany({
-        where: { id: { in: duplicates.map((s) => s.id) } },
+    if (losers.length > 0) {
+      await tx.playerStat.updateMany({
+        where: { id: { in: losers } },
+        data: { deletedAt: new Date() },
       })
     }
 
@@ -103,7 +144,21 @@ async function mergeSyntheticPlayer(
     ])
 
     if (syntheticOverride) {
+      const liveRealOverride = liveOverride(realOverride)
       if (!realOverride) {
+        await tx.playerOverride.update({
+          where: { id: syntheticOverride.id },
+          data: { playerId: realId },
+        })
+      } else if (!liveRealOverride) {
+        // The real player's override is retired, so its values are stale and
+        // must not beat the admin's manual data. Detach it — playerId is unique
+        // and it stays soft-deleted, so this loses no history — then move the
+        // manual override into the slot it vacated.
+        await tx.playerOverride.update({
+          where: { id: realOverride.id },
+          data: { playerId: null },
+        })
         await tx.playerOverride.update({
           where: { id: syntheticOverride.id },
           data: { playerId: realId },
@@ -163,7 +218,7 @@ async function mergeSyntheticPlayer(
  *  and merges each pair. Returns the number merged. */
 async function mergeSyntheticPlayers(): Promise<number> {
   const synthetic = await prisma.player.findMany({
-    where: { ...ONLY_MANUAL_PLAYERS, deletedAt: null },
+    where: onlyManualPlayers({ deletedAt: null }),
     select: { id: true, fangraphsId: true, mlbamId: true },
   })
   if (synthetic.length === 0) return 0
@@ -178,14 +233,13 @@ async function mergeSyntheticPlayers(): Promise<number> {
   if (fgIds.length === 0 && mlbamIds.length === 0) return 0
 
   const real = await prisma.player.findMany({
-    where: {
+    where: excludeManualPlayers({
       deletedAt: null,
-      ...EXCLUDE_MANUAL_PLAYERS,
       OR: [
         ...(fgIds.length > 0 ? [{ fangraphsId: { in: fgIds } }] : []),
         ...(mlbamIds.length > 0 ? [{ mlbamId: { in: mlbamIds } }] : []),
       ],
-    },
+    }),
     select: { id: true, fangraphsId: true, mlbamId: true },
   })
   if (real.length === 0) return 0

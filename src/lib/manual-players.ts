@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto"
+import type { Prisma } from "@/generated/prisma/client"
 
 /**
  * Prefix marking a Player row minted by the manual-add flow rather than sourced
@@ -40,17 +41,35 @@ export function manualPlayerName(input: {
   return input.displayName?.trim() || full || "Unnamed Player"
 }
 
-/** Prisma `where` fragment excluding synthetic manual players. Spread it into
- *  any bulk `Player` query that treats the SFBB map as the source of truth —
- *  notably the replace-mode sweeps, which would otherwise delete them. */
-export const EXCLUDE_MANUAL_PLAYERS = {
-  NOT: { sfbbId: { startsWith: MANUAL_SFBB_PREFIX } },
-} as const
+/**
+ * Wraps a `Player` where-clause so it cannot match a synthetic manual player.
+ *
+ * Apply it to any bulk `Player` query that treats the SFBB map as the source of
+ * truth — notably the replace-mode sweeps, which would otherwise delete every
+ * manually-added player on each sync.
+ *
+ * These compose via `AND` rather than exposing a spreadable fragment: the
+ * prefix test needs the `NOT` and `sfbbId` keys, both of which a caller's own
+ * clause may already use (`{ sfbbId: { notIn: [...] } }` is exactly the sweep's
+ * shape). Spreading would silently drop one side with no type error — the
+ * failure mode being guarded against here.
+ */
+export function excludeManualPlayers(
+  where: Prisma.PlayerWhereInput,
+): Prisma.PlayerWhereInput {
+  return {
+    AND: [where, { NOT: { sfbbId: { startsWith: MANUAL_SFBB_PREFIX } } }],
+  }
+}
 
-/** Prisma `where` fragment selecting only synthetic manual players. */
-export const ONLY_MANUAL_PLAYERS = {
-  sfbbId: { startsWith: MANUAL_SFBB_PREFIX },
-} as const
+/** Wraps a `Player` where-clause so it matches only synthetic manual players. */
+export function onlyManualPlayers(
+  where: Prisma.PlayerWhereInput,
+): Prisma.PlayerWhereInput {
+  return {
+    AND: [where, { sfbbId: { startsWith: MANUAL_SFBB_PREFIX } }],
+  }
+}
 
 export type ManualPlayerInput = {
   displayName?: string | null

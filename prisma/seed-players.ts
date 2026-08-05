@@ -19,7 +19,7 @@ import { fileURLToPath } from "node:url"
 import { dirname, join, resolve } from "node:path"
 import { PrismaPg } from "@prisma/adapter-pg"
 import { PrismaClient } from "../src/generated/prisma/client"
-import { EXCLUDE_MANUAL_PLAYERS } from "../src/lib/manual-players"
+import { excludeManualPlayers } from "../src/lib/manual-players"
 import { reconcilePlayerIds } from "../src/lib/reconcile-player-ids"
 import { normalizeTeamCode } from "../src/lib/team-codes"
 
@@ -296,13 +296,12 @@ async function seedPlayers(
 
   const uploadedSfbbIds = rows.map((r) => r.sfbbId)
   const { count: deleted } = await prisma.player.updateMany({
-    where: {
+    // Manually-added players are absent from the SFBB CSV by definition and
+    // must survive the sweep, or every re-seed would delete them.
+    where: excludeManualPlayers({
       sfbbId: { notIn: uploadedSfbbIds },
-      // Manually-added players are absent from the SFBB CSV by definition and
-      // must survive the sweep, or every re-seed would delete them.
-      ...EXCLUDE_MANUAL_PLAYERS,
       deletedAt: null,
-    },
+    }),
     data: { deletedAt: new Date() },
   })
 

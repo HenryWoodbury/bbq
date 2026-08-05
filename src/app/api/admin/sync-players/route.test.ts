@@ -299,7 +299,12 @@ describe("POST /api/admin/sync-players — replace vs additive", () => {
     expect(json.deleted).toBe(12)
     expect(prismaMock.player.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ deletedAt: null }),
+        where: {
+          AND: [
+            expect.objectContaining({ deletedAt: null }),
+            expect.anything(),
+          ],
+        },
         data: expect.objectContaining({ deletedAt: expect.any(Date) }),
       }),
     )
@@ -317,12 +322,17 @@ describe("POST /api/admin/sync-players — replace vs additive", () => {
     await POST(makeRequest({ mode: "replace" }))
 
     // Synthetic players are absent from the SFBB CSV by definition, so without
-    // this exclusion every sync would delete them and orphan their stats.
+    // this exclusion every sync would delete them and orphan their stats. The
+    // clauses are ANDed rather than merged: the sweep's own `sfbbId: { notIn }`
+    // would otherwise collide with the prefix test and one side would vanish.
     expect(prismaMock.player.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({
-          NOT: { sfbbId: { startsWith: MANUAL_SFBB_PREFIX } },
-        }),
+        where: {
+          AND: [
+            expect.objectContaining({ sfbbId: expect.objectContaining({}) }),
+            { NOT: { sfbbId: { startsWith: MANUAL_SFBB_PREFIX } } },
+          ],
+        },
       }),
     )
   })

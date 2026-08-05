@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { assertAdmin } from "@/lib/auth-helpers"
 import { chunk, parseCSVLine } from "@/lib/csv"
-import { EXCLUDE_MANUAL_PLAYERS } from "@/lib/manual-players"
+import { excludeManualPlayers } from "@/lib/manual-players"
 import { parsePositions } from "@/lib/positions"
 import { prisma } from "@/lib/prisma"
 import { reconcilePlayerIds } from "@/lib/reconcile-player-ids"
@@ -244,13 +244,12 @@ export async function POST(request: NextRequest) {
   if (mode === "replace") {
     const uploadedIds = rows.map((r) => r.sfbbId)
     const { count } = await prisma.player.updateMany({
-      where: {
+      // Manually-added players are absent from the SFBB CSV by definition and
+      // must survive the sweep, or every sync would delete them.
+      where: excludeManualPlayers({
         sfbbId: { notIn: uploadedIds },
-        // Manually-added players are absent from the SFBB CSV by definition and
-        // must survive the sweep, or every sync would delete them.
-        ...EXCLUDE_MANUAL_PLAYERS,
         deletedAt: null,
-      },
+      }),
       data: { deletedAt: new Date() },
     })
     deleted = count

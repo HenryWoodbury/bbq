@@ -38,6 +38,15 @@ const STAT_KEY = {
   neutralized: false,
   split: "None",
   ros: false,
+  deletedAt: null,
+}
+
+/** The prefix clauses are composed via AND (see `excludeManualPlayers`), so
+ *  routing reads the conjuncts rather than the top-level where keys. */
+function conjuncts(args: unknown): Record<string, unknown>[] {
+  const where =
+    (args as { where?: Record<string, unknown> } | undefined)?.where ?? {}
+  return Array.isArray(where.AND) ? (where.AND as Record<string, unknown>[]) : []
 }
 
 /**
@@ -54,8 +63,9 @@ function setup(opts: {
   prismaMock.player.findMany.mockImplementation(((args: unknown) => {
     const where =
       (args as { where?: Record<string, unknown> } | undefined)?.where ?? {}
-    if ("sfbbId" in where && !("NOT" in where)) return Promise.resolve(synthetic)
-    if ("NOT" in where) return Promise.resolve(real)
+    const and = conjuncts(args)
+    if (and.some((c) => "sfbbId" in c)) return Promise.resolve(synthetic)
+    if (and.some((c) => "NOT" in c)) return Promise.resolve(real)
     if (where.ottoneuId === null) return Promise.resolve([])
     return Promise.resolve(all)
   }) as never)
@@ -118,7 +128,7 @@ describe("reconcilePlayerIds — synthetic player merge", () => {
     expect(prismaMock.playerStat.deleteMany).not.toHaveBeenCalled()
   })
 
-  it("drops synthetic stats that would collide on the compound unique key", async () => {
+  it("retires synthetic stats that would collide on the compound unique key", async () => {
     setup({ synthetic: [SYNTHETIC], real: [REAL] })
     prismaMock.playerStat.findMany
       // synthetic holds one row the real player already has, plus one it doesn't
@@ -126,7 +136,7 @@ describe("reconcilePlayerIds — synthetic player merge", () => {
         { id: "dupe", ...STAT_KEY },
         { id: "unique", ...STAT_KEY, split: "VsLeft" },
       ] as never)
-      .mockResolvedValueOnce([STAT_KEY] as never)
+      .mockResolvedValueOnce([{ id: "real-stat", ...STAT_KEY }] as never)
 
     await reconcilePlayerIds()
 
@@ -134,9 +144,53 @@ describe("reconcilePlayerIds — synthetic player merge", () => {
       where: { id: { in: ["unique"] } },
       data: { playerId: "real-1" },
     })
-    expect(prismaMock.playerStat.deleteMany).toHaveBeenCalledWith({
+    // The loser is soft-deleted, not destroyed — every other retirement path
+    // in this codebase soft-deletes.
+    expect(prismaMock.playerStat.updateMany).toHaveBeenCalledWith({
       where: { id: { in: ["dupe"] } },
+      data: { deletedAt: expect.any(Date) },
     })
+    expect(prismaMock.playerStat.deleteMany).not.toHaveBeenCalled()
+  })
+
+  it("keeps a live synthetic stat when the real player's matching row is retired", async () => {
+    // The compound unique excludes deletedAt, so a retired real row still holds
+    // the key. Letting it win would destroy the uploaded projection in favour of
+    // a row no view can see — the exact symptom the manual-player fix removes.
+    setup({ synthetic: [SYNTHETIC], real: [REAL] })
+    prismaMock.playerStat.findMany
+      .mockResolvedValueOnce([{ id: "manual-stat", ...STAT_KEY }] as never)
+      .mockResolvedValueOnce([
+        { id: "retired-real-stat", ...STAT_KEY, deletedAt: new Date() },
+      ] as never)
+
+    await reconcilePlayerIds()
+
+    // The retired row is cleared out to free the key…
+    expect(prismaMock.playerStat.deleteMany).toHaveBeenCalledWith({
+      where: { id: { in: ["retired-real-stat"] } },
+    })
+    // …so the live one can take it.
+    expect(prismaMock.playerStat.updateMany).toHaveBeenCalledWith({
+      where: { id: { in: ["manual-stat"] } },
+      data: { playerId: "real-1" },
+    })
+  })
+
+  it("leaves an already-retired synthetic stat behind rather than swapping it in", async () => {
+    setup({ synthetic: [SYNTHETIC], real: [REAL] })
+    prismaMock.playerStat.findMany
+      .mockResolvedValueOnce([
+        { id: "dead-manual-stat", ...STAT_KEY, deletedAt: new Date() },
+      ] as never)
+      .mockResolvedValueOnce([
+        { id: "retired-real-stat", ...STAT_KEY, deletedAt: new Date() },
+      ] as never)
+
+    await reconcilePlayerIds()
+
+    expect(prismaMock.playerStat.deleteMany).not.toHaveBeenCalled()
+    expect(prismaMock.playerStat.updateMany).not.toHaveBeenCalled()
   })
 
   it("repoints universe and roster history rows", async () => {
@@ -182,6 +236,7 @@ describe("reconcilePlayerIds — synthetic player merge", () => {
       // the real player's existing override — mostly empty, but team is set
       .mockResolvedValueOnce({
         id: "real-override",
+        deletedAt: null,
         displayName: null,
         firstName: null,
         lastName: null,
@@ -216,6 +271,42 @@ describe("reconcilePlayerIds — synthetic player merge", () => {
       where: { id: "manual-override" },
     })
   })
+
+  it("does not let a retired override on the real player beat the manual data", async () => {
+    // An admin cleared the real player's override, then added the same player
+    // manually. Filling gaps from the dead override would resurrect stale values
+    // and silently overwrite the manual edit.
+    setup({ synthetic: [SYNTHETIC], real: [REAL] })
+    prismaMock.playerOverride.findUnique
+      .mockResolvedValueOnce({
+        id: "manual-override",
+        deletedAt: null,
+        team: "NYY",
+      } as never)
+      .mockResolvedValueOnce({
+        id: "dead-real-override",
+        deletedAt: new Date(),
+        team: "CWS",
+      } as never)
+
+    await reconcilePlayerIds()
+
+    // The dead override is detached, not revived…
+    expect(prismaMock.playerOverride.update).toHaveBeenCalledWith({
+      where: { id: "dead-real-override" },
+      data: { playerId: null },
+    })
+    // …and the manual override takes the slot with its own values intact.
+    expect(prismaMock.playerOverride.update).toHaveBeenCalledWith({
+      where: { id: "manual-override" },
+      data: { playerId: "real-1" },
+    })
+    const revived = prismaMock.playerOverride.update.mock.calls.find(
+      (c) => (c[0] as { data: Record<string, unknown> }).data.deletedAt === null,
+    )
+    expect(revived).toBeUndefined()
+    expect(prismaMock.playerOverride.delete).not.toHaveBeenCalled()
+  })
 })
 
 describe("reconcilePlayerIds — merge guards", () => {
@@ -249,10 +340,7 @@ describe("reconcilePlayerIds — merge guards", () => {
 
     expect(result.manualPlayersMerged).toBe(0)
     const matchQueries = prismaMock.player.findMany.mock.calls.filter((c) =>
-      Object.hasOwn(
-        (c[0] as { where?: Record<string, unknown> })?.where ?? {},
-        "NOT",
-      ),
+      conjuncts(c[0]).some((clause) => "NOT" in clause),
     )
     expect(matchQueries).toHaveLength(0)
   })
@@ -264,11 +352,34 @@ describe("reconcilePlayerIds — merge guards", () => {
 
     expect(prismaMock.player.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({
-          sfbbId: { startsWith: MANUAL_SFBB_PREFIX },
-          deletedAt: null,
-        }),
+        where: {
+          AND: [
+            { deletedAt: null },
+            { sfbbId: { startsWith: MANUAL_SFBB_PREFIX } },
+          ],
+        },
       }),
     )
+  })
+
+  it("composes the prefix test with AND so a caller's own clause survives", async () => {
+    // Spreading a `NOT` fragment into a where that already has one silently
+    // drops a side; the sweep's `sfbbId: { notIn }` is exactly that collision.
+    setup({ synthetic: [SYNTHETIC], real: [REAL] })
+
+    await reconcilePlayerIds()
+
+    const matchQuery = prismaMock.player.findMany.mock.calls.find((c) =>
+      conjuncts(c[0]).some((clause) => "NOT" in clause),
+    )
+    expect(matchQuery).toBeDefined()
+    const and = conjuncts(matchQuery?.[0])
+    expect(and).toHaveLength(2)
+    // The caller's own OR/deletedAt clause is untouched by the prefix test.
+    expect(and[0]).toMatchObject({ deletedAt: null })
+    expect(and[0]).toHaveProperty("OR")
+    expect(and[1]).toEqual({
+      NOT: { sfbbId: { startsWith: MANUAL_SFBB_PREFIX } },
+    })
   })
 })

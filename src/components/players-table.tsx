@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import { csvEscape, triggerCsvDownload } from "@/lib/csv"
 import { PROJECTION_OPTIONS, SPLIT_FILTER_OPTIONS } from "@/lib/stat-labels"
+import { levelFangraphsId } from "@/lib/player-effective"
 import {
   AL_TEAM_CODES,
   isMiLBFangraphsId,
@@ -80,6 +81,8 @@ export type StatRow = {
   playerName: string
   ottoneuId: number | null
   fangraphsId: string | null
+  /** PlayerUniverse.fangraphsId — wins over `fangraphsId` for the level split. */
+  universeFgId: string | null
   mlbLevel: string | null
   team: string | null
   league: string | null
@@ -165,13 +168,16 @@ function hasActiveOverride(row: PlayerRow): boolean {
   )
 }
 
-function isMajorLeague(row: PlayerRow): boolean {
-  const fgId = row.universeFgId ?? row.fangraphsId
+/** Both tables resolve the level id the same way — see `levelFangraphsId`. */
+type LevelFields = { fangraphsId: string | null; universeFgId: string | null }
+
+function isMajorLeague(row: LevelFields): boolean {
+  const fgId = levelFangraphsId(row.fangraphsId, row.universeFgId)
   return fgId !== null && !isMiLBFangraphsId(fgId)
 }
 
-function isMinorLeague(row: PlayerRow): boolean {
-  return isMiLBFangraphsId(row.universeFgId ?? row.fangraphsId)
+function isMinorLeague(row: LevelFields): boolean {
+  return isMiLBFangraphsId(levelFangraphsId(row.fangraphsId, row.universeFgId))
 }
 
 function isPitcher(row: PlayerRow): boolean {
@@ -526,10 +532,10 @@ export function PlayersTable({
 
   if (levelFilter === "mlb")
     displayedStats = displayedStats.filter(
-      (r) => r.fangraphsId !== null && !isMiLBFangraphsId(r.fangraphsId),
+      isMajorLeague,
     )
   else if (levelFilter === "milb")
-    displayedStats = displayedStats.filter((r) => isMiLBFangraphsId(r.fangraphsId))
+    displayedStats = displayedStats.filter(isMinorLeague)
 
   if (mlbLeagueFilter === "al")
     displayedStats = displayedStats.filter((r) => r.league === "AL")

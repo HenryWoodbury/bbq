@@ -264,6 +264,73 @@ describe("GET /api/admin/export/batcast — filters respect overrides", () => {
     ])
     expect(await exportedNames({ ...BASE, league: "mlb" })).toEqual([])
   })
+
+  it("resolves the level id from the universe row when Player has none", async () => {
+    // A manually-added player often carries a Fangraphs id only on the linked
+    // universe row. Reading Player.fangraphsId alone dropped them from `mlb`
+    // while the admin table, which resolves the universe row, still showed them.
+    prismaMock.player.findMany.mockResolvedValue([
+      {
+        ...PLAYER,
+        fangraphsId: null,
+        universe: [{ positions: ["1B"], fangraphsId: "33225" }],
+        override: null,
+      },
+    ] as never)
+    setupStats({
+      primary: [
+        {
+          playerId: "player-1",
+          stats: { wOBA: 0.321 },
+          split: StatSplit.Neutral,
+        },
+      ],
+    })
+
+    expect(await exportedNames({ ...BASE, league: "mlb" })).toEqual([
+      "Jacob Gonzalez",
+    ])
+    expect(await exportedNames({ ...BASE, league: "milb" })).toEqual([])
+  })
+
+  it("lets the universe id win over the Player column for the level split", async () => {
+    prismaMock.player.findMany.mockResolvedValue([
+      {
+        ...PLAYER,
+        fangraphsId: "33225",
+        universe: [{ positions: ["1B"], fangraphsId: "sa3022054" }],
+        override: null,
+      },
+    ] as never)
+    setupStats({
+      primary: [
+        {
+          playerId: "player-1",
+          stats: { wOBA: 0.321 },
+          split: StatSplit.Neutral,
+        },
+      ],
+    })
+
+    expect(await exportedNames({ ...BASE, league: "milb" })).toEqual([
+      "Jacob Gonzalez",
+    ])
+    expect(await exportedNames({ ...BASE, league: "mlb" })).toEqual([])
+  })
+
+  it("excludes soft-deleted players", async () => {
+    // The sync sweep soft-deletes Player without touching PlayerStat, so a
+    // retired player's stat rows outlive them and would otherwise still export.
+    setupPlayerWithOverride(null)
+
+    await GET(makeRequest(BASE))
+
+    expect(prismaMock.player.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ deletedAt: null }),
+      }),
+    )
+  })
 })
 
 describe("GET /api/admin/export/batcast — primary split handling", () => {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
   effectivePlayer,
+  levelFangraphsId,
   liveOverride,
   matchesPlayerFilters,
   type PlayerAttributeFields,
@@ -204,5 +205,26 @@ describe("matchesPlayerFilters", () => {
     expect(matchesPlayerFilters(eff(true, "NL"), "33225", f)).toBe(true)
     expect(matchesPlayerFilters(eff(false, "NL"), "33225", f)).toBe(false)
     expect(matchesPlayerFilters(eff(true, "AL"), "33225", f)).toBe(false)
+  })
+})
+
+describe("levelFangraphsId", () => {
+  it("prefers the universe id over the Player column", () => {
+    expect(levelFangraphsId("33225", "sa3022054")).toBe("sa3022054")
+  })
+
+  it("falls back to the Player column when the universe row has none", () => {
+    expect(levelFangraphsId("33225", null)).toBe("33225")
+    // `undefined` is what an absent universe row yields via `universe[0]?.…`
+    expect(levelFangraphsId("33225", undefined)).toBe("33225")
+  })
+
+  it("resolves an id for a player that only has a universe row", () => {
+    // The manually-added case the export previously dropped from `mlb`.
+    expect(levelFangraphsId(null, "33225")).toBe("33225")
+  })
+
+  it("returns null when neither side has an id", () => {
+    expect(levelFangraphsId(null, null)).toBeNull()
   })
 })

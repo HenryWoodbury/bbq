@@ -271,6 +271,13 @@ async function PlayersTableSection({
         birthday: true,
         bats: true,
         throws: true,
+        // The level filter resolves this ahead of Player.fangraphsId, so the
+        // Stats tab splits MLB/MiLB the same way Profiles and the export do.
+        universe: {
+          where: { format: "ottoneu", deletedAt: null },
+          select: { fangraphsId: true },
+          take: 1,
+        },
         override: {
           select: {
             displayName: true,
@@ -309,6 +316,7 @@ async function PlayersTableSection({
       playerName: effective.displayName,
       ottoneuId: r.player.ottoneuId,
       fangraphsId: r.player.fangraphsId,
+      universeFgId: r.player.universe[0]?.fangraphsId ?? null,
       mlbLevel: effective.mlbLevel,
       team: effective.team,
       league: effective.league,

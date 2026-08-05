@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest"
 import {
+  excludeManualPlayers,
   isManualSfbbId,
   MANUAL_SFBB_PREFIX,
   manualPlayerName,
   newManualSfbbId,
+  onlyManualPlayers,
 } from "./manual-players"
 
 describe("newManualSfbbId", () => {
@@ -30,6 +32,41 @@ describe("isManualSfbbId", () => {
 
   it("does not match the prefix mid-string", () => {
     expect(isManualSfbbId("15640manual:")).toBe(false)
+  })
+})
+
+describe("excludeManualPlayers / onlyManualPlayers", () => {
+  const PREFIX_TEST = { sfbbId: { startsWith: MANUAL_SFBB_PREFIX } }
+
+  it("ANDs the prefix test onto the caller's clause", () => {
+    expect(excludeManualPlayers({ deletedAt: null })).toEqual({
+      AND: [{ deletedAt: null }, { NOT: PREFIX_TEST }],
+    })
+    expect(onlyManualPlayers({ deletedAt: null })).toEqual({
+      AND: [{ deletedAt: null }, PREFIX_TEST],
+    })
+  })
+
+  it("preserves a caller clause that uses the same keys", () => {
+    // The replace-mode sweep's own clause is `sfbbId: { notIn }`, and a caller
+    // may already have a `NOT`. Merging the fragment in would silently drop one
+    // side with no type error — hence the AND.
+    const sweep = {
+      sfbbId: { notIn: ["15640"] },
+      NOT: { team: "FA" },
+      deletedAt: null,
+    }
+
+    expect(excludeManualPlayers(sweep)).toEqual({
+      AND: [sweep, { NOT: PREFIX_TEST }],
+    })
+  })
+
+  it("does not mutate the clause it is given", () => {
+    const where = { deletedAt: null }
+    excludeManualPlayers(where)
+    onlyManualPlayers(where)
+    expect(where).toEqual({ deletedAt: null })
   })
 })
 
