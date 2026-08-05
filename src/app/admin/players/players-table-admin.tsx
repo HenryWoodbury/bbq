@@ -594,6 +594,7 @@ export function PlayersTableAdmin({
       title: (row) =>
         `You have removed ${row.fgSpecialChar ?? row.playerName} from the player list.`,
       variant: "warning",
+      // row.id is the Player id; the manual endpoints are keyed by override id.
       perform: async (row) =>
         row.overrideId !== null &&
         (
@@ -602,8 +603,12 @@ export function PlayersTableAdmin({
           })
         ).ok,
       onSuccess: () => router.refresh(),
+      // A missing override id and a failed request are different problems, and
+      // the edit path already names them separately.
       errorMessage: (row) =>
-        `Failed to remove ${row.fgSpecialChar ?? row.playerName}`,
+        row.overrideId === null
+          ? `${row.fgSpecialChar ?? row.playerName} is missing its manual player record`
+          : `Failed to remove ${row.fgSpecialChar ?? row.playerName}`,
     })
   const [prevData, setPrevData] = useState(data)
   if (prevData !== data) {

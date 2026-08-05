@@ -24,9 +24,13 @@ const manualSchema = z
     mlbamId: z.number().int().nullable().optional(),
     ottoneuId: z.number().int().nullable().optional(),
   })
-  .refine((d) => d.displayName || d.firstName || d.lastName, {
-    message: "displayName or firstName+lastName is required",
-  })
+  // Trim-aware: a whitespace-only name is truthy, so a bare `||` chain let it
+  // through and `manualPlayerName` then fell back to "Unnamed Player" — a
+  // silently misnamed player rather than a rejected request.
+  .refine(
+    (d) => [d.displayName, d.firstName, d.lastName].some((v) => v?.trim()),
+    { message: "displayName or firstName+lastName is required" },
+  )
 
 export async function POST(request: NextRequest) {
   const denied = await assertAdmin()

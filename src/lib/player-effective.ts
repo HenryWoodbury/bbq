@@ -1,4 +1,8 @@
-import { deriveLeagueFromTeam, isMiLBFangraphsId } from "@/lib/team-codes"
+import {
+  deriveLeagueFromTeam,
+  deriveLevelFromFgId,
+  isMiLBFangraphsId,
+} from "@/lib/team-codes"
 
 /**
  * Override precedence for player attributes, in one place.
@@ -90,6 +94,24 @@ export function levelFangraphsId(
   universeFangraphsId: string | null | undefined,
 ): string | null {
   return universeFangraphsId ?? playerFangraphsId
+}
+
+/**
+ * The level to *display*, before any override is applied.
+ *
+ * SFBB's `LG` value (`Player.mlbLevel`) wins when present — `"AAA"` says more
+ * than `"MiLB"` — and the Fangraphs id supplies a coarse `"MLB"`/`"MiLB"` when
+ * SFBB has none, which is the common case for manually-added players.
+ *
+ * Both admin tabs must call this. Deriving on one and reading the raw column on
+ * the other showed the same player as `MiLB` in one place and `AAA` in another,
+ * which reads like a broken filter even though the filters agree.
+ */
+export function displayLevel(
+  mlbLevel: string | null,
+  fangraphsId: string | null,
+): string | null {
+  return mlbLevel ?? (deriveLevelFromFgId(fangraphsId) || null)
 }
 
 /**

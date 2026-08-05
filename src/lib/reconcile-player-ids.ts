@@ -45,6 +45,10 @@ async function mergeSyntheticPlayer(
   syntheticId: string,
   realId: string,
 ): Promise<void> {
+  // One retirement, one timestamp — the losing stat rows and the synthetic
+  // player they belonged to are retired by the same act.
+  const retiredAt = new Date()
+
   await prisma.$transaction(async (tx) => {
     // PlayerStat carries a compound unique key that includes playerId, so a row
     // whose key the real player already holds cannot simply be repointed.
@@ -123,7 +127,7 @@ async function mergeSyntheticPlayer(
     if (losers.length > 0) {
       await tx.playerStat.updateMany({
         where: { id: { in: losers } },
-        data: { deletedAt: new Date() },
+        data: { deletedAt: retiredAt },
       })
     }
 
@@ -237,7 +241,7 @@ async function mergeSyntheticPlayer(
 
     await tx.player.update({
       where: { id: syntheticId },
-      data: { deletedAt: new Date() },
+      data: { deletedAt: retiredAt },
     })
   })
 }
@@ -307,22 +311,61 @@ export async function reconcilePlayerIds(): Promise<ReconcileResult> {
   // that is about to be retired.
   const manualPlayersMerged = await mergeSyntheticPlayers()
 
-  // ── Fetch unlinked universe rows ──────────────────────────────────────────
-  const unlinked = await prisma.playerUniverse.findMany({
-    where: { format: "ottoneu", deletedAt: null, playerId: null },
-    select: { id: true, fangraphsId: true, mlbamId: true, ottoneuId: true },
-  })
+  // ── Fetch the rows that still need a Player ───────────────────────────────
+  const [unlinked, manualOverrides] = await Promise.all([
+    prisma.playerUniverse.findMany({
+      where: { format: "ottoneu", deletedAt: null, playerId: null },
+      select: { id: true, fangraphsId: true, mlbamId: true, ottoneuId: true },
+    }),
+    prisma.playerOverride.findMany({
+      where: { isManual: true, playerId: null, deletedAt: null },
+      select: { id: true, fangraphsId: true, mlbamId: true, ottoneuId: true },
+    }),
+  ])
 
-  // ── Build lookup maps from all non-deleted Players ────────────────────────
-  const allPlayers = await prisma.player.findMany({
-    where: { deletedAt: null },
-    select: { id: true, fangraphsId: true, mlbamId: true, ottoneuId: true },
-  })
+  // ── Build lookup maps from only the Players those rows could match ────────
+  // The maps are probed exclusively with ids drawn from the two sets above, so
+  // loading every non-deleted Player was wasted work — and it made a one-row
+  // manual add cost a full table scan. All three columns are indexed.
+  const wantedFgIds = new Set<string>()
+  const wantedMlbamIds = new Set<number>()
+  const wantedOttoneuIds = new Set<number>()
+  for (const u of unlinked) {
+    if (u.fangraphsId) wantedFgIds.add(u.fangraphsId)
+    if (u.mlbamId !== null) wantedMlbamIds.add(u.mlbamId)
+  }
+  for (const o of manualOverrides) {
+    if (o.fangraphsId) wantedFgIds.add(o.fangraphsId)
+    if (o.mlbamId !== null) wantedMlbamIds.add(o.mlbamId)
+    if (o.ottoneuId !== null) wantedOttoneuIds.add(o.ottoneuId)
+  }
 
-  const byFgId = new Map<string, (typeof allPlayers)[0]>()
-  const byMlbamId = new Map<number, (typeof allPlayers)[0]>()
-  const byOttoneuId = new Map<number, (typeof allPlayers)[0]>()
-  for (const p of allPlayers) {
+  const candidateOr = [
+    ...(wantedFgIds.size > 0
+      ? [{ fangraphsId: { in: [...wantedFgIds] } }]
+      : []),
+    ...(wantedMlbamIds.size > 0
+      ? [{ mlbamId: { in: [...wantedMlbamIds] } }]
+      : []),
+    ...(wantedOttoneuIds.size > 0
+      ? [{ ottoneuId: { in: [...wantedOttoneuIds] } }]
+      : []),
+  ]
+
+  // Nothing to link — and an empty OR would match every Player, the same trap
+  // guarded against in mergeSyntheticPlayers.
+  const candidates =
+    candidateOr.length === 0
+      ? []
+      : await prisma.player.findMany({
+          where: { deletedAt: null, OR: candidateOr },
+          select: { id: true, fangraphsId: true, mlbamId: true, ottoneuId: true },
+        })
+
+  const byFgId = new Map<string, (typeof candidates)[0]>()
+  const byMlbamId = new Map<number, (typeof candidates)[0]>()
+  const byOttoneuId = new Map<number, (typeof candidates)[0]>()
+  for (const p of candidates) {
     if (p.fangraphsId !== null) byFgId.set(p.fangraphsId, p)
     if (p.mlbamId !== null) byMlbamId.set(p.mlbamId, p)
     if (p.ottoneuId !== null) byOttoneuId.set(p.ottoneuId, p)
@@ -334,7 +377,7 @@ export async function reconcilePlayerIds(): Promise<ReconcileResult> {
   const filledPlayerIds = new Set<string>()
 
   for (const u of unlinked) {
-    let player: (typeof allPlayers)[0] | undefined
+    let player: (typeof candidates)[0] | undefined
 
     // 1. FG ID — direct string match (covers numeric and "sa…" minor-league IDs)
     if (u.fangraphsId) player = byFgId.get(u.fangraphsId)
@@ -398,14 +441,9 @@ export async function reconcilePlayerIds(): Promise<ReconcileResult> {
   }
 
   // ── Auto-link manual overrides to canonical Players ──────────────────────
-  const manualOverrides = await prisma.playerOverride.findMany({
-    where: { isManual: true, playerId: null, deletedAt: null },
-    select: { id: true, fangraphsId: true, mlbamId: true, ottoneuId: true },
-  })
-
   const overrideLinks: { id: string; playerId: string }[] = []
   for (const o of manualOverrides) {
-    let player: (typeof allPlayers)[0] | undefined
+    let player: (typeof candidates)[0] | undefined
     if (o.fangraphsId) player = byFgId.get(o.fangraphsId)
     if (!player && o.mlbamId !== null) player = byMlbamId.get(o.mlbamId)
     if (!player && o.ottoneuId !== null) player = byOttoneuId.get(o.ottoneuId)

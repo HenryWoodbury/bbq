@@ -103,6 +103,14 @@ which no override sets — but the linked `PlayerUniverse` row still wins over
 there. `levelFangraphsId()` (same module) is that rule; every level filter goes
 through it, or the three views disagree about whether such a player is MLB.
 
+**The level *displayed* is a third rule again.** `displayLevel()` prefers SFBB's
+`LG` value (`Player.mlbLevel` — `"MLB"`, `"AAA"`, `"AA"`) and falls back to the
+coarse `"MLB"`/`"MiLB"` derived from the resolved Fangraphs id when SFBB has
+none. Both admin tabs must call it: deriving on one and reading the raw column on
+the other showed one player as `MiLB` on Profiles and `AAA` on Stats, which reads
+like a broken filter even when the filters agree. An override on `mlbLevel` still
+wins over both, via `effectivePlayer`.
+
 #### Manually-added players
 
 **Invariant: every manually-added player has a canonical `Player` row.**

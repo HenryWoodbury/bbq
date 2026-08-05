@@ -59,7 +59,12 @@ Runs `prisma/seed-players.ts`. Seeds:
 
 - **Player** table from a PLAYERIDMAP CSV (SFBB format)
 - **PlayerUniverse** table from a player universe CSV (Ottoneu format)
-- Runs `reconcilePlayerIds()` after both loads to cross-link the tables
+- Runs `reconcilePlayerIds()` after both loads to cross-link the tables. It
+  scales with the number of rows still awaiting a link, not with the size of the
+  `Player` table — the id lookup is restricted to Players the pending universe
+  rows and orphan overrides could actually match, so the steady state (nothing
+  pending) issues no lookup at all. This matters because the manual-add route
+  calls it for a single new row.
 
 Uses **replace mode**: rows present in the CSV are upserted; rows absent from the CSV are soft-deleted (`deletedAt` set). Manually-added players are exempt from the sweep — see [Manually-added players](schema.md#manually-added-players).
 

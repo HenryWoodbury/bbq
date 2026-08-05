@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
+  displayLevel,
   effectivePlayer,
   levelFangraphsId,
   liveOverride,
@@ -226,5 +227,24 @@ describe("levelFangraphsId", () => {
 
   it("returns null when neither side has an id", () => {
     expect(levelFangraphsId(null, null)).toBeNull()
+  })
+})
+
+describe("displayLevel", () => {
+  it("prefers the SFBB level, which is more specific than MLB/MiLB", () => {
+    expect(displayLevel("AAA", "sa3022054")).toBe("AAA")
+    expect(displayLevel("MLB", "33225")).toBe("MLB")
+  })
+
+  it("derives from the Fangraphs id when SFBB has no level", () => {
+    // The common case for a manually-added player.
+    expect(displayLevel(null, "sa3022054")).toBe("MiLB")
+    expect(displayLevel(null, "33225")).toBe("MLB")
+  })
+
+  it("returns null when neither source can answer", () => {
+    // deriveLevelFromFgId yields "" for a null id — that must not reach the UI.
+    expect(displayLevel(null, null)).toBeNull()
+    expect(displayLevel(null, "")).toBeNull()
   })
 })

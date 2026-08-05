@@ -141,10 +141,14 @@ export async function DELETE(
     select: {
       id: true,
       isManual: true,
+      deletedAt: true,
       player: { select: { id: true, sfbbId: true } },
     },
   })
-  if (!existing || !existing.isManual)
+  // Same liveness test as PATCH: an already-retired manual player is gone as far
+  // as both endpoints are concerned. Without it a second DELETE moves the
+  // retirement timestamp and re-retires stats that were already retired.
+  if (!existing || !existing.isManual || existing.deletedAt !== null)
     return NextResponse.json(
       { error: "Manual player not found" },
       { status: 404 },

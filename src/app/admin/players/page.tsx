@@ -9,10 +9,15 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { StatPlayerType, StatProjection, StatSplit } from "@/generated/prisma/client"
 import { requireAdmin } from "@/lib/auth-helpers"
 import { toISODate } from "@/lib/date"
-import { effectivePlayer, liveOverride } from "@/lib/player-effective"
+import {
+  displayLevel,
+  effectivePlayer,
+  levelFangraphsId,
+  liveOverride,
+} from "@/lib/player-effective"
 import { prisma } from "@/lib/prisma"
 import { deduplicatePrimarySplits, PROJECTION_MAP, SPLIT_MAP } from "@/lib/stat-maps"
-import { deriveLeagueFromTeam, deriveLevelFromFgId } from "@/lib/team-codes"
+import { deriveLeagueFromTeam } from "@/lib/team-codes"
 import { flatPositions } from "@/lib/positions"
 import { PlayerPageTabs, type Tab } from "./player-page-tabs"
 import { PlayerProfilesSection } from "./player-profiles-section"
@@ -310,7 +315,14 @@ async function PlayersTableSection({
   })()
 
   const statRows: StatRow[] = rawStatRows.map((r) => {
-    const effective = effectivePlayer(r.player, r.player.override)
+    const levelFgId = levelFangraphsId(
+      r.player.fangraphsId,
+      r.player.universe[0]?.fangraphsId,
+    )
+    const effective = effectivePlayer(
+      { ...r.player, mlbLevel: displayLevel(r.player.mlbLevel, levelFgId) },
+      r.player.override,
+    )
     return {
       playerId: r.playerId,
       playerName: effective.displayName,
@@ -335,9 +347,10 @@ async function PlayersTableSection({
     const ov = liveOverride(p.override)
     const canonicalPositions = flatPositions(p.universe[0]?.positions ?? [])
     const baseTeam = p.team
-    const baseFgId = p.fangraphsId ?? p.universe[0]?.fangraphsId
-    // Level comes from the Fangraphs id here, not Player.mlbLevel
-    const derivedLevel = deriveLevelFromFgId(baseFgId ?? null) || null
+    // Same resolution the Stats tab and the export use, so one player cannot
+    // read "AAA" here and "MiLB" there.
+    const levelFgId = levelFangraphsId(p.fangraphsId, p.universe[0]?.fangraphsId)
+    const derivedLevel = displayLevel(p.mlbLevel, levelFgId)
     const derivedLeague = deriveLeagueFromTeam(baseTeam ?? null)
     const effective = effectivePlayer(
       { ...p, mlbLevel: derivedLevel },

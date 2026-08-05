@@ -273,6 +273,22 @@ describe("DELETE /api/admin/players/manual/[id]", () => {
     expect(prismaMock.playerOverride.update).not.toHaveBeenCalled()
   })
 
+  it("404s when the manual player is already retired, as PATCH does", async () => {
+    // Without the guard a second DELETE moves the retirement timestamp and
+    // re-retires stats that were already retired.
+    prismaMock.playerOverride.findUnique.mockResolvedValue({
+      ...EXISTING,
+      deletedAt: new Date("2026-01-01T00:00:00Z"),
+    } as never)
+
+    const res = await DELETE(deleteRequest(), params("override-1"))
+
+    expect(res.status).toBe(404)
+    expect(prismaMock.playerOverride.update).not.toHaveBeenCalled()
+    expect(prismaMock.player.update).not.toHaveBeenCalled()
+    expect(prismaMock.playerStat.updateMany).not.toHaveBeenCalled()
+  })
+
   it("soft-deletes the override, the synthetic Player and its stats", async () => {
     const res = await DELETE(deleteRequest(), params("override-1"))
 
