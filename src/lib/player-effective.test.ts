@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
+  displayLevel,
   effectivePlayer,
   levelFangraphsId,
   liveOverride,
@@ -37,7 +38,9 @@ describe("liveOverride", () => {
   })
 
   it("returns null when soft-deleted", () => {
-    expect(liveOverride({ ...EMPTY_OVERRIDE, deletedAt: new Date() })).toBeNull()
+    expect(
+      liveOverride({ ...EMPTY_OVERRIDE, deletedAt: new Date() }),
+    ).toBeNull()
   })
 
   it("returns null for absent overrides", () => {
@@ -106,16 +109,22 @@ describe("effectivePlayer — attributes", () => {
   it("distinguishes active: false from active: null", () => {
     // false is a real override; null means "no opinion, use the base value"
     expect(
-      effectivePlayer({ ...PLAYER, active: true }, {
-        ...EMPTY_OVERRIDE,
-        active: false,
-      }).active,
+      effectivePlayer(
+        { ...PLAYER, active: true },
+        {
+          ...EMPTY_OVERRIDE,
+          active: false,
+        },
+      ).active,
     ).toBe(false)
     expect(
-      effectivePlayer({ ...PLAYER, active: true }, {
-        ...EMPTY_OVERRIDE,
-        active: null,
-      }).active,
+      effectivePlayer(
+        { ...PLAYER, active: true },
+        {
+          ...EMPTY_OVERRIDE,
+          active: null,
+        },
+      ).active,
     ).toBe(true)
   })
 })
@@ -226,5 +235,24 @@ describe("levelFangraphsId", () => {
 
   it("returns null when neither side has an id", () => {
     expect(levelFangraphsId(null, null)).toBeNull()
+  })
+})
+
+describe("displayLevel", () => {
+  it("prefers the SFBB level, which is more specific than MLB/MiLB", () => {
+    expect(displayLevel("AAA", "sa3022054")).toBe("AAA")
+    expect(displayLevel("MLB", "33225")).toBe("MLB")
+  })
+
+  it("derives from the Fangraphs id when SFBB has no level", () => {
+    // The common case for a manually-added player.
+    expect(displayLevel(null, "sa3022054")).toBe("MiLB")
+    expect(displayLevel(null, "33225")).toBe("MLB")
+  })
+
+  it("returns null when neither source can answer", () => {
+    // deriveLevelFromFgId yields "" for a null id — that must not reach the UI.
+    expect(displayLevel(null, null)).toBeNull()
+    expect(displayLevel(null, "")).toBeNull()
   })
 })

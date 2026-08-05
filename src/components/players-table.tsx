@@ -1,7 +1,12 @@
 "use client"
 
 import type { ColumnDef } from "@tanstack/react-table"
-import { DownloadIcon, PencilIcon, Trash2Icon, Undo2Icon } from "@/components/icons/lucide"
+import {
+  DownloadIcon,
+  PencilIcon,
+  Trash2Icon,
+  Undo2Icon,
+} from "@/components/icons/lucide"
 import { useRouter } from "next/navigation"
 import type React from "react"
 import { useState } from "react"
@@ -531,9 +536,7 @@ export function PlayersTable({
     displayedStats = displayedStats.filter((r) => !r.active)
 
   if (levelFilter === "mlb")
-    displayedStats = displayedStats.filter(
-      isMajorLeague,
-    )
+    displayedStats = displayedStats.filter(isMajorLeague)
   else if (levelFilter === "milb")
     displayedStats = displayedStats.filter(isMinorLeague)
 

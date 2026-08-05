@@ -95,6 +95,21 @@ describe("POST /api/admin/players/manual — validation", () => {
     const res = await POST(makeRequest({ mlbamId: "not-a-number" }))
     expect(res.status).toBe(400)
   })
+
+  it("400s on a whitespace-only name rather than minting 'Unnamed Player'", async () => {
+    // A bare `||` chain treats "   " as a supplied name, and manualPlayerName
+    // then falls back to its placeholder — a silently misnamed player.
+    const res = await POST(makeRequest({ displayName: "   " }))
+    expect(res.status).toBe(400)
+    expect(prismaMock.player.create).not.toHaveBeenCalled()
+  })
+
+  it("accepts a name supplied only as first + last", async () => {
+    const res = await POST(
+      makeRequest({ firstName: "Jacob", lastName: "Gonzalez" }),
+    )
+    expect(res.status).toBe(201)
+  })
 })
 
 describe("POST /api/admin/players/manual — Player row", () => {

@@ -173,9 +173,7 @@ describe("toCsv", () => {
   })
 
   it("outputs empty abbr when teamName is null", () => {
-    const rows: DisplayRow[] = [
-      { ...makeRow({ teamName: null }), rank: 1 },
-    ]
+    const rows: DisplayRow[] = [{ ...makeRow({ teamName: null }), rank: 1 }]
     const lines = toCsv(rows).split("\n")
     expect(lines[1]).toMatch(/^,/)
   })

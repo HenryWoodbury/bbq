@@ -45,7 +45,11 @@ export async function GET(request: NextRequest) {
           select: UNIVERSE_SELECT,
         })
       : await prisma.playerUniverse.findMany({
-          where: { format: "ottoneu", deletedAt: null, playerName: { contains: q, mode: "insensitive" } },
+          where: {
+            format: "ottoneu",
+            deletedAt: null,
+            playerName: { contains: q, mode: "insensitive" },
+          },
           select: UNIVERSE_SELECT,
           orderBy: { playerName: "asc" },
           take: 30,
@@ -58,7 +62,11 @@ export async function GET(request: NextRequest) {
         select: { ottoneuId: true },
       })
     : []
-  const overrideIds = new Set(existingOverrides.flatMap((o) => (o.ottoneuId !== null ? [o.ottoneuId] : [])))
+  const overrideIds = new Set(
+    existingOverrides.flatMap((o) =>
+      o.ottoneuId !== null ? [o.ottoneuId] : [],
+    ),
+  )
 
   const results: UniverseSearchResult[] = rows.map((r) => ({
     ottoneuId: r.ottoneuId,

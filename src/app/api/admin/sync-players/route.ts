@@ -66,7 +66,6 @@ interface ParsedRow {
   ottoneuId: number | null
 }
 
-
 export async function POST(request: NextRequest) {
   const denied = await assertAdmin()
   if (denied) return denied
@@ -255,8 +254,12 @@ export async function POST(request: NextRequest) {
     deleted = count
   }
 
-  const { linked, ottoneuIdsFilled, manualOverridesLinked, manualPlayersMerged } =
-    await reconcilePlayerIds()
+  const {
+    linked,
+    ottoneuIdsFilled,
+    manualOverridesLinked,
+    manualPlayersMerged,
+  } = await reconcilePlayerIds()
 
   const syncedAt = new Date().toISOString()
   return NextResponse.json({

@@ -49,7 +49,11 @@ export function MenuFilterGroup<T extends string>({
   const corners = CORNER_ROUNDING[size]
 
   return (
-    <div role="group" aria-label={label} className="border-border flex border-b">
+    <div
+      role="group"
+      aria-label={label}
+      className="border-border flex border-b"
+    >
       {options.map((opt, i) => (
         <button
           key={opt.value}

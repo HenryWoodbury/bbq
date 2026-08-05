@@ -19,11 +19,7 @@ export function AnimatedBall({ size = 160, className }: AnimatedBallProps) {
       onClick={() => setPaused((p) => !p)}
       className="cursor-default bg-transparent border-0 p-0"
     >
-      <SpinningStitchBall
-        size={size}
-        paused={paused}
-        className={className}
-      />
+      <SpinningStitchBall size={size} paused={paused} className={className} />
     </button>
   )
 }

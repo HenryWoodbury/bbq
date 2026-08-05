@@ -1,6 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
 import { useState } from "react"
-import { type FieldDef, InputFieldGroup } from "@/components/ui/input-field-group"
+import {
+  type FieldDef,
+  InputFieldGroup,
+} from "@/components/ui/input-field-group"
 
 const meta = {
   title: "UI/InputFieldGroup",

@@ -9,6 +9,7 @@
       "!prisma/migrations",
       "!dist",
       "!build",
+      "!storybook-static",
       "!.turbo",
       "!scripts/.venv"
     ]

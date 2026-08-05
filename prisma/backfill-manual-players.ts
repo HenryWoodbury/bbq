@@ -42,7 +42,9 @@ async function main() {
     },
   })
 
-  console.log(`Found ${orphans.length} manual override(s) without a Player row.`)
+  console.log(
+    `Found ${orphans.length} manual override(s) without a Player row.`,
+  )
 
   for (const o of orphans) {
     const name = manualPlayerName(o)

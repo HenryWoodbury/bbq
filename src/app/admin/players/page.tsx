@@ -6,13 +6,26 @@ import type {
 } from "@/components/players-table"
 import { TableSkeleton } from "@/components/table-skeleton"
 import { Skeleton } from "@/components/ui/skeleton"
-import { StatPlayerType, StatProjection, StatSplit } from "@/generated/prisma/client"
+import {
+  StatPlayerType,
+  StatProjection,
+  StatSplit,
+} from "@/generated/prisma/client"
 import { requireAdmin } from "@/lib/auth-helpers"
 import { toISODate } from "@/lib/date"
-import { effectivePlayer, liveOverride } from "@/lib/player-effective"
+import {
+  displayLevel,
+  effectivePlayer,
+  levelFangraphsId,
+  liveOverride,
+} from "@/lib/player-effective"
 import { prisma } from "@/lib/prisma"
-import { deduplicatePrimarySplits, PROJECTION_MAP, SPLIT_MAP } from "@/lib/stat-maps"
-import { deriveLeagueFromTeam, deriveLevelFromFgId } from "@/lib/team-codes"
+import {
+  deduplicatePrimarySplits,
+  PROJECTION_MAP,
+  SPLIT_MAP,
+} from "@/lib/stat-maps"
+import { deriveLeagueFromTeam } from "@/lib/team-codes"
 import { flatPositions } from "@/lib/positions"
 import { PlayerPageTabs, type Tab } from "./player-page-tabs"
 import { PlayerProfilesSection } from "./player-profiles-section"
@@ -35,7 +48,6 @@ export type StatUploadRow = {
   createdAt: Date
 }
 
-
 const PROJECTION_KEY: Record<string, string> = Object.fromEntries(
   Object.entries(PROJECTION_MAP).map(([k, v]) => [v, k]),
 )
@@ -52,7 +64,9 @@ export default async function AdminPlayersPage({
   const params = await searchParams
 
   const TABS: Tab[] = ["players", "stats", "profiles"]
-  const tab: Tab = TABS.includes(params.tab as Tab) ? (params.tab as Tab) : "players"
+  const tab: Tab = TABS.includes(params.tab as Tab)
+    ? (params.tab as Tab)
+    : "players"
 
   return (
     <div className="page-layout">
@@ -213,12 +227,12 @@ async function PlayersTableSection({
 
   // ── Stats filter params ──────────────────────────────────────────────────
 
-  const availableYears: number[] = [...new Set(statSeasons.map((r) => r.season))]
+  const availableYears: number[] = [
+    ...new Set(statSeasons.map((r) => r.season)),
+  ]
 
   const playerType =
-    params.show === "pitchers"
-      ? StatPlayerType.PITCHER
-      : StatPlayerType.BATTER
+    params.show === "pitchers" ? StatPlayerType.PITCHER : StatPlayerType.BATTER
 
   const sseRaw = params.sse ? Number(params.sse) : NaN
   const selectedSeason: number = availableYears.includes(sseRaw)
@@ -297,20 +311,40 @@ async function PlayersTableSection({
 
   const rawStatRows = await (async () => {
     if (availableYears.length === 0) return []
-    const baseWhere = { season: selectedSeason, playerType, ros: false, projection, deletedAt: null }
+    const baseWhere = {
+      season: selectedSeason,
+      playerType,
+      ros: false,
+      projection,
+      deletedAt: null,
+    }
     if (playerType === StatPlayerType.PITCHER) {
       const rows = await prisma.playerStat.findMany({
-        where: { ...baseWhere, split: { in: [StatSplit.None, StatSplit.Neutral] } },
+        where: {
+          ...baseWhere,
+          split: { in: [StatSplit.None, StatSplit.Neutral] },
+        },
         include: playerStatSelect,
         orderBy: { player: { playerName: "asc" } },
       })
       return deduplicatePrimarySplits(rows)
     }
-    return prisma.playerStat.findMany({ where: { ...baseWhere, split }, include: playerStatSelect, orderBy: { player: { playerName: "asc" } } })
+    return prisma.playerStat.findMany({
+      where: { ...baseWhere, split },
+      include: playerStatSelect,
+      orderBy: { player: { playerName: "asc" } },
+    })
   })()
 
   const statRows: StatRow[] = rawStatRows.map((r) => {
-    const effective = effectivePlayer(r.player, r.player.override)
+    const levelFgId = levelFangraphsId(
+      r.player.fangraphsId,
+      r.player.universe[0]?.fangraphsId,
+    )
+    const effective = effectivePlayer(
+      { ...r.player, mlbLevel: displayLevel(r.player.mlbLevel, levelFgId) },
+      r.player.override,
+    )
     return {
       playerId: r.playerId,
       playerName: effective.displayName,
@@ -335,9 +369,20 @@ async function PlayersTableSection({
     const ov = liveOverride(p.override)
     const canonicalPositions = flatPositions(p.universe[0]?.positions ?? [])
     const baseTeam = p.team
-    const baseFgId = p.fangraphsId ?? p.universe[0]?.fangraphsId
-    // Level comes from the Fangraphs id here, not Player.mlbLevel
-    const derivedLevel = deriveLevelFromFgId(baseFgId ?? null) || null
+    // Same resolution the Stats tab and the export use, so one player cannot
+    // read "AAA" here and "MiLB" there.
+    //
+    // Note this reverses the id precedence this view used to apply: it read
+    // `p.fangraphsId ?? universe`, and `levelFangraphsId` is universe-first. For
+    // a player carrying a numeric Player id *and* an "sa…" universe id, with no
+    // SFBB level, Profiles used to show MLB and now shows MiLB. Universe-first
+    // is deliberate — it is what the level *filter* already uses, and a row the
+    // filter calls MiLB must not be labelled MLB.
+    const levelFgId = levelFangraphsId(
+      p.fangraphsId,
+      p.universe[0]?.fangraphsId,
+    )
+    const derivedLevel = displayLevel(p.mlbLevel, levelFgId)
     const derivedLeague = deriveLeagueFromTeam(baseTeam ?? null)
     const effective = effectivePlayer(
       { ...p, mlbLevel: derivedLevel },

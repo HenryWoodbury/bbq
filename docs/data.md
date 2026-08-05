@@ -59,7 +59,20 @@ Runs `prisma/seed-players.ts`. Seeds:
 
 - **Player** table from a PLAYERIDMAP CSV (SFBB format)
 - **PlayerUniverse** table from a player universe CSV (Ottoneu format)
-- Runs `reconcilePlayerIds()` after both loads to cross-link the tables
+- Runs `reconcilePlayerIds()` after both loads to cross-link the tables.
+
+  **Cost:** the `Player` id lookup is bounded — it is restricted to Players the
+  pending universe rows and orphan overrides could actually match, and is skipped
+  entirely when nothing is pending. Two queries remain unbounded, and both run on
+  every call including the single-row manual add: the scan for unlinked
+  `PlayerUniverse` rows, and the scan for Players still missing an `ottoneuId`.
+
+  The unlinked-universe scan does **not** drain to empty. The Ottoneu universe
+  contains players absent from the SFBB map, and those rows can never match, so
+  they are re-examined on every reconcile forever. Net: the call scales with that
+  permanent backlog rather than with the `Player` table — better, but not small.
+  If it starts to bite, the fix is to stop re-examining known-unmatchable rows
+  (a `lastReconciledAt` marker on `PlayerUniverse`), not to scope the entry point.
 
 Uses **replace mode**: rows present in the CSV are upserted; rows absent from the CSV are soft-deleted (`deletedAt` set). Manually-added players are exempt from the sweep — see [Manually-added players](schema.md#manually-added-players).
 

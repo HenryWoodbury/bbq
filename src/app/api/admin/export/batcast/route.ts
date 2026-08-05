@@ -100,7 +100,7 @@ export async function GET(request: Request) {
   // lookup maps below silently keep whichever arrived last. Uploads only write
   // `false` today, so this is a guard against a future upload mixing the two
   // into one file with nothing to signal it.
-  const statsWhere = (split: StatSplit) => ({
+  const statsWhere = (split: StatSplit | { in: StatSplit[] }) => ({
     season: seasonParam,
     playerType,
     projection,
@@ -113,10 +113,7 @@ export async function GET(request: Request) {
   // The primary (unsplit) line is stored as None or Neutral depending on the
   // upload, so accept both for batters and pitchers alike — querying None alone
   // left the wOBA/FIP column empty for every row of a Neutral-sourced upload.
-  const primaryWhere = {
-    ...statsWhere(StatSplit.None),
-    split: { in: [StatSplit.None, StatSplit.Neutral] },
-  }
+  const primaryWhere = statsWhere({ in: [StatSplit.None, StatSplit.Neutral] })
 
   const [primaryRows, vsLeftRows, vsRightRows] = await Promise.all([
     prisma.playerStat
@@ -215,15 +212,14 @@ export async function GET(request: Request) {
     .map((p) => ({
       player: p,
       effective: effectivePlayer(p, p.override),
-      fangraphsId: levelFangraphsId(
-        p.fangraphsId,
-        p.universe[0]?.fangraphsId,
-      ),
+      fangraphsId: levelFangraphsId(p.fangraphsId, p.universe[0]?.fangraphsId),
     }))
     .filter(({ effective, fangraphsId }) =>
       matchesPlayerFilters(effective, fangraphsId, filters),
     )
-    .sort((a, b) => a.effective.displayName.localeCompare(b.effective.displayName))
+    .sort((a, b) =>
+      a.effective.displayName.localeCompare(b.effective.displayName),
+    )
 
   // ── Build lookup maps ──────────────────────────────────────────────────────
 

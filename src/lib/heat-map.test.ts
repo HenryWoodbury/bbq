@@ -332,7 +332,10 @@ describe("getHeatMapStyle — power curve (k=2, continuous)", () => {
   it("value 95 (step=5/20, t=0.25 → t'=0.25^0.5=0.5 curved)", () => {
     const { l } = components(95, CURVED)
     const tPrime = Math.pow(0.25, 0.5) // 0.5
-    expect(l).toBeCloseTo(BLUE.lightness + tPrime * (RED.lightness - BLUE.lightness), 3)
+    expect(l).toBeCloseTo(
+      BLUE.lightness + tPrime * (RED.lightness - BLUE.lightness),
+      3,
+    )
   })
 
   it("k=1 matches linear", () => {

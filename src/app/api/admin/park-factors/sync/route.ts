@@ -35,7 +35,11 @@ function parseParams(body: {
   if (!(VALID_ROLLING as readonly unknown[]).includes(rollingRaw)) {
     return NextResponse.json({ error: "Invalid rolling" }, { status: 400 })
   }
-  return { season, batSide: body.batSide as BatSide, rolling: rollingRaw as Rolling }
+  return {
+    season,
+    batSide: body.batSide as BatSide,
+    rolling: rollingRaw as Rolling,
+  }
 }
 
 export async function GET() {
@@ -53,7 +57,9 @@ export async function DELETE(request: NextRequest) {
   const denied = await assertAdmin()
   if (denied) return denied
 
-  const body = (await request.json().catch(() => ({}))) as Parameters<typeof parseParams>[0]
+  const body = (await request.json().catch(() => ({}))) as Parameters<
+    typeof parseParams
+  >[0]
   const params = parseParams(body)
   if (params instanceof NextResponse) return params
   const { season, batSide, rolling } = params
@@ -70,7 +76,9 @@ export async function POST(request: NextRequest) {
   const denied = await assertAdmin()
   if (denied) return denied
 
-  const body = (await request.json().catch(() => ({}))) as Parameters<typeof parseParams>[0]
+  const body = (await request.json().catch(() => ({}))) as Parameters<
+    typeof parseParams
+  >[0]
   const params = parseParams(body)
   if (params instanceof NextResponse) return params
   const { season, batSide, rolling } = params
@@ -131,7 +139,8 @@ export async function POST(request: NextRequest) {
 
       for (const row of rows) {
         const venueId = Number(row.venue_id)
-        if (Number.isNaN(venueId) || typeof row.venue_name !== "string") continue
+        if (Number.isNaN(venueId) || typeof row.venue_name !== "string")
+          continue
 
         const teamName =
           typeof row.name_display_club === "string"
@@ -141,7 +150,11 @@ export async function POST(request: NextRequest) {
         const park = await tx.park.upsert({
           where: { venueId },
           create: { venueId, venueName: row.venue_name, teamName },
-          update: { venueName: row.venue_name, teamName: teamName ?? undefined, deletedAt: null },
+          update: {
+            venueName: row.venue_name,
+            teamName: teamName ?? undefined,
+            deletedAt: null,
+          },
         })
 
         const factors: Record<string, number> = {}

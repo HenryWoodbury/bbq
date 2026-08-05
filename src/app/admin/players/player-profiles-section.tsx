@@ -10,7 +10,6 @@ export function PlayerProfilesSection({
   playerMapUploads: UploadHistoryRow[]
   playerUniverseUploads: UploadHistoryRow[]
 }) {
-
   return (
     <div className="mb-4">
       <section className="flex flex-col gap-3">

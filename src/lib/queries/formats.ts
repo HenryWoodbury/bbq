@@ -7,11 +7,21 @@ import {
 } from "@/generated/prisma/client"
 
 // Typed tuples so z.enum() infers the Prisma enum type (not string)
-export const FORMAT_PLATFORM_VALUES = Object.values(FormatPlatform) as unknown as [FormatPlatform, ...FormatPlatform[]]
-export const FORMAT_PLAY_TYPE_VALUES = Object.values(FormatPlayType) as unknown as [FormatPlayType, ...FormatPlayType[]]
-export const FORMAT_SCORING_VALUES = Object.values(FormatScoring) as unknown as [FormatScoring, ...FormatScoring[]]
-export const FORMAT_DRAFT_MODE_VALUES = Object.values(FormatDraftMode) as unknown as [FormatDraftMode, ...FormatDraftMode[]]
-export const FORMAT_DRAFT_TYPE_VALUES = Object.values(FormatDraftType) as unknown as [FormatDraftType, ...FormatDraftType[]]
+export const FORMAT_PLATFORM_VALUES = Object.values(
+  FormatPlatform,
+) as unknown as [FormatPlatform, ...FormatPlatform[]]
+export const FORMAT_PLAY_TYPE_VALUES = Object.values(
+  FormatPlayType,
+) as unknown as [FormatPlayType, ...FormatPlayType[]]
+export const FORMAT_SCORING_VALUES = Object.values(
+  FormatScoring,
+) as unknown as [FormatScoring, ...FormatScoring[]]
+export const FORMAT_DRAFT_MODE_VALUES = Object.values(
+  FormatDraftMode,
+) as unknown as [FormatDraftMode, ...FormatDraftMode[]]
+export const FORMAT_DRAFT_TYPE_VALUES = Object.values(
+  FormatDraftType,
+) as unknown as [FormatDraftType, ...FormatDraftType[]]
 
 export const formatSelect = {
   name: true,

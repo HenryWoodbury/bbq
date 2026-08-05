@@ -128,7 +128,6 @@ export async function POST(request: NextRequest) {
       if (!rawName)
         addError({ row: rowNum, field: "PLAYERNAME", message: "Required" })
 
-
       const rawFgId = get("fgId")
       const fangraphsId: string | null = rawFgId || null
 

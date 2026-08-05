@@ -46,7 +46,9 @@ const STAT_KEY = {
 function conjuncts(args: unknown): Record<string, unknown>[] {
   const where =
     (args as { where?: Record<string, unknown> } | undefined)?.where ?? {}
-  return Array.isArray(where.AND) ? (where.AND as Record<string, unknown>[]) : []
+  return Array.isArray(where.AND)
+    ? (where.AND as Record<string, unknown>[])
+    : []
 }
 
 /**
@@ -303,7 +305,8 @@ describe("reconcilePlayerIds — synthetic player merge", () => {
       data: { playerId: "real-1" },
     })
     const revived = prismaMock.playerOverride.update.mock.calls.find(
-      (c) => (c[0] as { data: Record<string, unknown> }).data.deletedAt === null,
+      (c) =>
+        (c[0] as { data: Record<string, unknown> }).data.deletedAt === null,
     )
     expect(revived).toBeUndefined()
     expect(prismaMock.playerOverride.delete).not.toHaveBeenCalled()
@@ -406,6 +409,40 @@ describe("reconcilePlayerIds — merge guards", () => {
         },
       }),
     )
+  })
+
+  it("never loads the whole Player table", async () => {
+    // The lookup maps are probed only with ids drawn from the unlinked universe
+    // rows and orphan overrides, so an unbounded `{ deletedAt: null }` query was
+    // wasted work — and made a one-row manual add cost a full table scan.
+    setup({ synthetic: [], real: [] })
+
+    await reconcilePlayerIds()
+
+    const unbounded = prismaMock.player.findMany.mock.calls.filter((c) => {
+      const where = (c[0] as { where?: Record<string, unknown> })?.where ?? {}
+      return !("AND" in where) && !("OR" in where) && !("ottoneuId" in where)
+    })
+    expect(unbounded).toEqual([])
+  })
+
+  it("looks up only the Players the pending rows could match", async () => {
+    setup({ synthetic: [], real: [], all: [REAL] })
+    prismaMock.playerUniverse.findMany.mockResolvedValue([
+      { id: "u1", fangraphsId: "33225", mlbamId: 694378, ottoneuId: 43973 },
+    ] as never)
+
+    await reconcilePlayerIds()
+
+    const candidateQuery = prismaMock.player.findMany.mock.calls.find((c) =>
+      Object.hasOwn((c[0] as { where: Record<string, unknown> }).where, "OR"),
+    )
+    expect(candidateQuery?.[0]).toMatchObject({
+      where: {
+        deletedAt: null,
+        OR: [{ fangraphsId: { in: ["33225"] } }, { mlbamId: { in: [694378] } }],
+      },
+    })
   })
 
   it("composes the prefix test with AND so a caller's own clause survives", async () => {

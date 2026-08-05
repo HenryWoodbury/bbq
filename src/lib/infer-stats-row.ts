@@ -43,11 +43,14 @@ export function inferStatsRow(file: File, currentYear: number): PendingRow {
   else if (/oopsy/.test(name)) projection = "OOPSY"
 
   let split: PendingRow["split"] = "none"
-  if (/vs?[\s_]?l(?:eft|h[bph]?)?(?![a-z])|(?<![a-z])lh[bp]/.test(name)) split = "vs_left"
-  else if (/vs?[\s_]?r(?:ight|h[bph]?)?(?![a-z])|(?<![a-z])rh[bp]/.test(name)) split = "vs_right"
+  if (/vs?[\s_]?l(?:eft|h[bph]?)?(?![a-z])|(?<![a-z])lh[bp]/.test(name))
+    split = "vs_left"
+  else if (/vs?[\s_]?r(?:ight|h[bph]?)?(?![a-z])|(?<![a-z])rh[bp]/.test(name))
+    split = "vs_right"
   else if (/neutral/.test(name)) split = "neutral"
 
-  const statType: StatType = projection !== "None" || split !== "none" ? "projected" : "actual"
+  const statType: StatType =
+    projection !== "None" || split !== "none" ? "projected" : "actual"
 
   return {
     id: crypto.randomUUID(),

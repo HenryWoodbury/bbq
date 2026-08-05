@@ -142,7 +142,11 @@ export function PlayerFormGrid({
   return (
     <div className="grid grid-cols-2 gap-3">
       <Field label="Display Name">
-        <FieldWithUndo dirty={!!undo?.isDirty("displayName")} onUndo={() => undo?.clearField("displayName")} label="display name">
+        <FieldWithUndo
+          dirty={!!undo?.isDirty("displayName")}
+          onUndo={() => undo?.clearField("displayName")}
+          label="display name"
+        >
           <Input
             autoFocus={autoFocusDisplayName}
             value={fields.displayName}
@@ -155,8 +159,16 @@ export function PlayerFormGrid({
 
       <div className="flex gap-4">
         <Field label="Level">
-          <FieldWithUndo dirty={!!undo?.isDirty("mlbLevel")} onUndo={() => undo?.clearField("mlbLevel")} label="level">
-            <Select value={fields.mlbLevel} onChange={(e) => onChange("mlbLevel", e.target.value)} className="flex-1">
+          <FieldWithUndo
+            dirty={!!undo?.isDirty("mlbLevel")}
+            onUndo={() => undo?.clearField("mlbLevel")}
+            label="level"
+          >
+            <Select
+              value={fields.mlbLevel}
+              onChange={(e) => onChange("mlbLevel", e.target.value)}
+              className="flex-1"
+            >
               <option value="">—</option>
               <option value="MLB">MLB</option>
               <option value="MiLB">MiLB</option>
@@ -164,8 +176,16 @@ export function PlayerFormGrid({
           </FieldWithUndo>
         </Field>
         <Field label="League">
-          <FieldWithUndo dirty={!!undo?.isDirty("league")} onUndo={() => undo?.clearField("league")} label="league">
-            <Select value={fields.league} onChange={(e) => onChange("league", e.target.value)} className="flex-1">
+          <FieldWithUndo
+            dirty={!!undo?.isDirty("league")}
+            onUndo={() => undo?.clearField("league")}
+            label="league"
+          >
+            <Select
+              value={fields.league}
+              onChange={(e) => onChange("league", e.target.value)}
+              className="flex-1"
+            >
               <option value="">—</option>
               <option value="AL">AL</option>
               <option value="NL">NL</option>
@@ -175,29 +195,61 @@ export function PlayerFormGrid({
       </div>
 
       <Field label="First Name">
-        <FieldWithUndo dirty={!!undo?.isDirty("firstName")} onUndo={() => undo?.clearField("firstName")} label="first name">
-          <Input value={fields.firstName} onChange={(e) => onChange("firstName", e.target.value)} className="flex-1" />
+        <FieldWithUndo
+          dirty={!!undo?.isDirty("firstName")}
+          onUndo={() => undo?.clearField("firstName")}
+          label="first name"
+        >
+          <Input
+            value={fields.firstName}
+            onChange={(e) => onChange("firstName", e.target.value)}
+            className="flex-1"
+          />
         </FieldWithUndo>
       </Field>
 
       <Field label="Team">
-        <FieldWithUndo dirty={!!undo?.isDirty("team")} onUndo={() => undo?.clearField("team")} label="team">
-          <Input value={fields.team} onChange={(e) => onChange("team", e.target.value)} placeholder="e.g. LAD" className="flex-1" />
+        <FieldWithUndo
+          dirty={!!undo?.isDirty("team")}
+          onUndo={() => undo?.clearField("team")}
+          label="team"
+        >
+          <Input
+            value={fields.team}
+            onChange={(e) => onChange("team", e.target.value)}
+            placeholder="e.g. LAD"
+            className="flex-1"
+          />
         </FieldWithUndo>
       </Field>
 
       <Field label="Last Name">
-        <FieldWithUndo dirty={!!undo?.isDirty("lastName")} onUndo={() => undo?.clearField("lastName")} label="last name">
-          <Input value={fields.lastName} onChange={(e) => onChange("lastName", e.target.value)} className="flex-1" />
+        <FieldWithUndo
+          dirty={!!undo?.isDirty("lastName")}
+          onUndo={() => undo?.clearField("lastName")}
+          label="last name"
+        >
+          <Input
+            value={fields.lastName}
+            onChange={(e) => onChange("lastName", e.target.value)}
+            className="flex-1"
+          />
         </FieldWithUndo>
       </Field>
 
       <Field label="Active">
-        <FieldWithUndo dirty={!!undo?.isDirtyActive()} onUndo={() => undo?.clearField("active")} label="active">
+        <FieldWithUndo
+          dirty={!!undo?.isDirtyActive()}
+          onUndo={() => undo?.clearField("active")}
+          label="active"
+        >
           <Select
             value={fields.active === null ? "" : String(fields.active)}
             onChange={(e) =>
-              onChange("active", e.target.value === "" ? null : e.target.value === "true")
+              onChange(
+                "active",
+                e.target.value === "" ? null : e.target.value === "true",
+              )
             }
             className="flex-1"
           >
@@ -209,7 +261,11 @@ export function PlayerFormGrid({
       </Field>
 
       <Field label="Nickname">
-        <FieldWithUndo dirty={!!undo?.hasNickname} onUndo={() => undo?.clearField("nickname")} label="nickname">
+        <FieldWithUndo
+          dirty={!!undo?.hasNickname}
+          onUndo={() => undo?.clearField("nickname")}
+          label="nickname"
+        >
           <Input
             value={fields.nickname}
             onChange={(e) => onChange("nickname", e.target.value)}
@@ -221,8 +277,16 @@ export function PlayerFormGrid({
 
       <div className="flex gap-4">
         <Field label="B">
-          <FieldWithUndo dirty={!!undo?.isDirty("bats")} onUndo={() => undo?.clearField("bats")} label="bats">
-            <Select value={fields.bats} onChange={(e) => onChange("bats", e.target.value)} className="flex-1">
+          <FieldWithUndo
+            dirty={!!undo?.isDirty("bats")}
+            onUndo={() => undo?.clearField("bats")}
+            label="bats"
+          >
+            <Select
+              value={fields.bats}
+              onChange={(e) => onChange("bats", e.target.value)}
+              className="flex-1"
+            >
               <option value="">—</option>
               <option value="R">R</option>
               <option value="L">L</option>
@@ -231,8 +295,16 @@ export function PlayerFormGrid({
           </FieldWithUndo>
         </Field>
         <Field label="T">
-          <FieldWithUndo dirty={!!undo?.isDirty("throws")} onUndo={() => undo?.clearField("throws")} label="throws">
-            <Select value={fields.throws} onChange={(e) => onChange("throws", e.target.value)} className="flex-1">
+          <FieldWithUndo
+            dirty={!!undo?.isDirty("throws")}
+            onUndo={() => undo?.clearField("throws")}
+            label="throws"
+          >
+            <Select
+              value={fields.throws}
+              onChange={(e) => onChange("throws", e.target.value)}
+              className="flex-1"
+            >
               <option value="">—</option>
               <option value="R">R</option>
               <option value="L">L</option>
@@ -242,7 +314,11 @@ export function PlayerFormGrid({
       </div>
 
       <Field label="Birthday (YYYY-MM-DD)">
-        <FieldWithUndo dirty={!!undo?.isDirty("birthday")} onUndo={() => undo?.clearField("birthday")} label="birthday">
+        <FieldWithUndo
+          dirty={!!undo?.isDirty("birthday")}
+          onUndo={() => undo?.clearField("birthday")}
+          label="birthday"
+        >
           <Input
             value={fields.birthday}
             onChange={(e) => onChange("birthday", e.target.value)}
@@ -253,7 +329,11 @@ export function PlayerFormGrid({
       </Field>
 
       <Field label="Position">
-        <FieldWithUndo dirty={!!undo?.isDirtyPositions()} onUndo={() => undo?.clearField("positions")} label="position">
+        <FieldWithUndo
+          dirty={!!undo?.isDirtyPositions()}
+          onUndo={() => undo?.clearField("positions")}
+          label="position"
+        >
           <Input
             value={fields.positions}
             onChange={(e) => onChange("positions", e.target.value)}

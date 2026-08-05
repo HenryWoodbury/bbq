@@ -17,11 +17,7 @@ const options = [
 ]
 
 // FilterGroup is controlled, so each story owns its selected value.
-function StatefulFilterGroup({
-  size,
-}: {
-  size?: "sm" | "md" | "lg"
-}) {
+function StatefulFilterGroup({ size }: { size?: "sm" | "md" | "lg" }) {
   const [value, setValue] = useState("3")
   return (
     <FilterGroup

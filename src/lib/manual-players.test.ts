@@ -97,9 +97,9 @@ describe("manualPlayerName", () => {
   })
 
   it("treats whitespace-only values as absent", () => {
-    expect(
-      manualPlayerName({ displayName: "   ", firstName: "Jacob" }),
-    ).toBe("Jacob")
+    expect(manualPlayerName({ displayName: "   ", firstName: "Jacob" })).toBe(
+      "Jacob",
+    )
   })
 
   it("never returns an empty string — Player.playerName is non-null", () => {

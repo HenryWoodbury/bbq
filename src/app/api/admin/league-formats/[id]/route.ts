@@ -27,7 +27,6 @@ const patchSchema = z.object({
   isActive: z.boolean().optional(),
 })
 
-
 type RouteContext = { params: Promise<{ id: string }> }
 
 export async function GET(_request: NextRequest, { params }: RouteContext) {
