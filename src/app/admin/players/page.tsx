@@ -9,8 +9,9 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { StatPlayerType, StatProjection, StatSplit } from "@/generated/prisma/client"
 import { requireAdmin } from "@/lib/auth-helpers"
 import { toISODate } from "@/lib/date"
+import { effectivePlayer, liveOverride } from "@/lib/player-effective"
 import { prisma } from "@/lib/prisma"
-import { deduplicatePitcherSplits, PROJECTION_MAP, SPLIT_MAP } from "@/lib/stat-maps"
+import { deduplicatePrimarySplits, PROJECTION_MAP, SPLIT_MAP } from "@/lib/stat-maps"
 import { deriveLeagueFromTeam, deriveLevelFromFgId } from "@/lib/team-codes"
 import { flatPositions } from "@/lib/positions"
 import { PlayerPageTabs, type Tab } from "./player-page-tabs"
@@ -159,6 +160,7 @@ async function PlayersTableSection({
           override: {
             select: {
               id: true,
+              isManual: true,
               displayName: true,
               firstName: true,
               lastName: true,
@@ -254,15 +256,34 @@ async function PlayersTableSection({
         : "None"
   const split = SPLIT_MAP[splitKey]
 
+  // The override fields are needed so the stats view filters on the same
+  // effective values the Profiles view already shows.
   const playerStatSelect = {
     player: {
       select: {
         playerName: true,
+        fgSpecialChar: true,
         ottoneuId: true,
         fangraphsId: true,
         mlbLevel: true,
         team: true,
         active: true,
+        birthday: true,
+        bats: true,
+        throws: true,
+        override: {
+          select: {
+            displayName: true,
+            team: true,
+            mlbLevel: true,
+            league: true,
+            active: true,
+            birthday: true,
+            bats: true,
+            throws: true,
+            deletedAt: true,
+          },
+        },
       },
     },
   } as const
@@ -276,21 +297,25 @@ async function PlayersTableSection({
         include: playerStatSelect,
         orderBy: { player: { playerName: "asc" } },
       })
-      return deduplicatePitcherSplits(rows)
+      return deduplicatePrimarySplits(rows)
     }
     return prisma.playerStat.findMany({ where: { ...baseWhere, split }, include: playerStatSelect, orderBy: { player: { playerName: "asc" } } })
   })()
 
-  const statRows: StatRow[] = rawStatRows.map((r) => ({
-    playerId: r.playerId,
-    playerName: r.player.playerName,
-    ottoneuId: r.player.ottoneuId,
-    fangraphsId: r.player.fangraphsId,
-    mlbLevel: r.player.mlbLevel,
-    team: r.player.team,
-    active: r.player.active,
-    stats: r.stats as Record<string, number | string | null>,
-  }))
+  const statRows: StatRow[] = rawStatRows.map((r) => {
+    const effective = effectivePlayer(r.player, r.player.override)
+    return {
+      playerId: r.playerId,
+      playerName: effective.displayName,
+      ottoneuId: r.player.ottoneuId,
+      fangraphsId: r.player.fangraphsId,
+      mlbLevel: effective.mlbLevel,
+      team: effective.team,
+      league: effective.league,
+      active: effective.active,
+      stats: r.stats as Record<string, number | string | null>,
+    }
+  })
 
   const statsFilter: StatsFilter = {
     season: selectedSeason,
@@ -299,35 +324,44 @@ async function PlayersTableSection({
   }
 
   const playerRows: PlayerRow[] = players.map((p) => {
-    const ov = p.override?.deletedAt ? null : p.override
+    const ov = liveOverride(p.override)
     const canonicalPositions = flatPositions(p.universe[0]?.positions ?? [])
     const baseTeam = p.team
     const baseFgId = p.fangraphsId ?? p.universe[0]?.fangraphsId
+    // Level comes from the Fangraphs id here, not Player.mlbLevel
     const derivedLevel = deriveLevelFromFgId(baseFgId ?? null) || null
     const derivedLeague = deriveLeagueFromTeam(baseTeam ?? null)
+    const effective = effectivePlayer(
+      { ...p, mlbLevel: derivedLevel },
+      p.override,
+    )
     return {
       id: p.id,
       ottoneuId: p.ottoneuId ?? p.universe[0]?.ottoneuId ?? null,
-      // Display name: override.displayName > fgSpecialChar > playerName
+      // Display name: override.displayName > fgSpecialChar > playerName.
+      // fgSpecialChar stays nullable — the UI falls back to playerName itself.
       playerName: p.playerName,
       fgSpecialChar: ov?.displayName ?? p.fgSpecialChar,
       firstName: ov?.firstName ?? p.firstName,
       lastName: ov?.lastName ?? p.lastName,
-      active: ov?.active ?? p.active,
-      birthday: toISODate(ov?.birthday ?? p.birthday),
-      team: ov?.team ?? baseTeam,
-      mlbLevel: ov?.mlbLevel ?? derivedLevel,
-      league: ov?.league ?? derivedLeague,
+      active: effective.active,
+      birthday: toISODate(effective.birthday),
+      team: effective.team,
+      mlbLevel: effective.mlbLevel,
+      league: effective.league,
       nickname: ov?.nickname ?? null,
       fangraphsId: p.fangraphsId,
-      bats: ov?.bats ?? p.bats,
-      throws: ov?.throws ?? p.throws,
+      bats: effective.bats,
+      throws: effective.throws,
       ottoneuPositions: ov?.positions?.length
         ? flatPositions(ov.positions)
         : canonicalPositions,
       universeFgId: p.universe[0]?.fangraphsId ?? null,
       overrideId: ov?.id ?? null,
-      isManual: false,
+      // Manually-added players now carry a synthetic Player row, so they arrive
+      // through this query rather than the orphan-override branch below. Row id
+      // stays the Player id — the stats views join statRows on it.
+      isManual: ov?.isManual ?? false,
       baseFields: {
         displayName: p.fgSpecialChar ?? p.playerName,
         firstName: p.firstName,
@@ -344,7 +378,9 @@ async function PlayersTableSection({
     }
   })
 
-  // Build rows for manual overrides that haven't been auto-linked yet
+  // Fallback for manual overrides with no Player row. The manual-add flow now
+  // always mints one, so this should only ever catch pre-backfill leftovers —
+  // they have no Player id and so can hold no stats.
   const manualRows: PlayerRow[] = manualOverrides.map((o) => ({
     id: o.id, // use override id as row id since there's no player record
     ottoneuId: o.ottoneuId,

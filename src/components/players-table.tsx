@@ -19,7 +19,11 @@ import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import { csvEscape, triggerCsvDownload } from "@/lib/csv"
 import { PROJECTION_OPTIONS, SPLIT_FILTER_OPTIONS } from "@/lib/stat-labels"
-import { AL_TEAM_CODES, NL_TEAM_CODES } from "@/lib/team-codes"
+import {
+  AL_TEAM_CODES,
+  isMiLBFangraphsId,
+  NL_TEAM_CODES,
+} from "@/lib/team-codes"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -69,6 +73,8 @@ export type PlayerBaseFields = {
   positions: string[]
 }
 
+/** Player fields here are override-resolved (see `effectivePlayer`), so the
+ *  stats filters agree with the Profiles view. */
 export type StatRow = {
   playerId: string
   playerName: string
@@ -76,6 +82,7 @@ export type StatRow = {
   fangraphsId: string | null
   mlbLevel: string | null
   team: string | null
+  league: string | null
   active: boolean
   stats: Record<string, number | string | null>
 }
@@ -88,8 +95,6 @@ export type StatsFilter = {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const AL_TEAMS = new Set(AL_TEAM_CODES)
-const NL_TEAMS = new Set(NL_TEAM_CODES)
 const ALL_TEAM_CODES = [...AL_TEAM_CODES, ...NL_TEAM_CODES].sort()
 
 const BATTING_COLS = [
@@ -160,25 +165,13 @@ function hasActiveOverride(row: PlayerRow): boolean {
   )
 }
 
-function isMiLBFgId(fgId: string | null): boolean {
-  return fgId !== null && fgId.startsWith("sa")
-}
-
 function isMajorLeague(row: PlayerRow): boolean {
   const fgId = row.universeFgId ?? row.fangraphsId
-  return fgId !== null && !isMiLBFgId(fgId)
+  return fgId !== null && !isMiLBFangraphsId(fgId)
 }
 
 function isMinorLeague(row: PlayerRow): boolean {
-  return isMiLBFgId(row.universeFgId ?? row.fangraphsId)
-}
-
-function isAL(team: string | null): boolean {
-  return AL_TEAMS.has(team ?? "")
-}
-
-function isNL(team: string | null): boolean {
-  return NL_TEAMS.has(team ?? "")
+  return isMiLBFangraphsId(row.universeFgId ?? row.fangraphsId)
 }
 
 function isPitcher(row: PlayerRow): boolean {
@@ -479,14 +472,12 @@ export function PlayersTable({
   else if (levelFilter === "milb")
     displayedProfiles = displayedProfiles.filter(isMinorLeague)
 
+  // `league` is already override-resolved server-side (see `effectivePlayer`)
+  // and falls back to the team-derived value, so it alone decides the split.
   if (mlbLeagueFilter === "al")
-    displayedProfiles = displayedProfiles.filter(
-      (r) => isAL(r.team) || r.league === "AL",
-    )
+    displayedProfiles = displayedProfiles.filter((r) => r.league === "AL")
   else if (mlbLeagueFilter === "nl")
-    displayedProfiles = displayedProfiles.filter(
-      (r) => isNL(r.team) || r.league === "NL",
-    )
+    displayedProfiles = displayedProfiles.filter((r) => r.league === "NL")
   if (teamFilter !== "all")
     displayedProfiles = displayedProfiles.filter((r) => r.team === teamFilter)
 
@@ -535,15 +526,15 @@ export function PlayersTable({
 
   if (levelFilter === "mlb")
     displayedStats = displayedStats.filter(
-      (r) => r.fangraphsId !== null && !isMiLBFgId(r.fangraphsId),
+      (r) => r.fangraphsId !== null && !isMiLBFangraphsId(r.fangraphsId),
     )
   else if (levelFilter === "milb")
-    displayedStats = displayedStats.filter((r) => isMiLBFgId(r.fangraphsId))
+    displayedStats = displayedStats.filter((r) => isMiLBFangraphsId(r.fangraphsId))
 
   if (mlbLeagueFilter === "al")
-    displayedStats = displayedStats.filter((r) => isAL(r.team))
+    displayedStats = displayedStats.filter((r) => r.league === "AL")
   else if (mlbLeagueFilter === "nl")
-    displayedStats = displayedStats.filter((r) => isNL(r.team))
+    displayedStats = displayedStats.filter((r) => r.league === "NL")
   if (teamFilter !== "all")
     displayedStats = displayedStats.filter((r) => r.team === teamFilter)
 

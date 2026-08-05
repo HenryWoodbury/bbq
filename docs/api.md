@@ -70,9 +70,9 @@ while **write methods** add a stronger guard.
 | `POST` | `/api/admin/upload-universe` | admin | Upload Ottoneu universe CSV → `PlayerUniverse` (logs `PlayerUniverseUpload`) |
 | `DELETE` | `/api/admin/player-universe-uploads/[id]` | admin | Delete a universe upload audit row |
 | `GET` | `/api/admin/players/universe-search` | admin | Search `PlayerUniverse` by name/ID |
-| `POST` | `/api/admin/players/manual` | admin | Create a manual player (`PlayerOverride`) |
-| `PATCH` | `/api/admin/players/manual/[id]` | admin | Update a manual player |
-| `DELETE` | `/api/admin/players/manual/[id]` | admin | Delete a manual player |
+| `POST` | `/api/admin/players/manual` | admin | Create a manual player: `Player` (synthetic `sfbbId`) + linked `PlayerOverride`, then reconcile |
+| `PATCH` | `/api/admin/players/manual/[id]` | admin | Update a manual player (`[id]` is the **override** id; also syncs the synthetic `Player`) |
+| `DELETE` | `/api/admin/players/manual/[id]` | admin | Soft-delete a manual player, its synthetic `Player` and that player's stats |
 | `POST` | `/api/admin/players/[id]/override` | admin | Create/set an override for a player |
 | `DELETE` | `/api/admin/players/[id]/override` | admin | Clear a player override |
 

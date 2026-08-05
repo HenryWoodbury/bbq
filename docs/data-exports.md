@@ -27,7 +27,28 @@ files (e.g. Batcast) on demand.
 - **Goal:** an admin can download a file formatted for an external platform.
 - **Acceptance:** `GET /api/admin/export/batcast` returns a Batcast-format file.
 - **Realization:** `src/app/api/admin/export/batcast/route.ts`; CSV assembly via
-  `src/lib/csv.ts` (covered by `src/lib/csv.test.ts`).
+  `src/lib/csv.ts` (covered by `src/lib/csv.test.ts` and
+  `src/app/api/admin/export/batcast/route.test.ts`).
+- **Invariant — the primary line is `None` *or* `Neutral`.** Uploads store the
+  unsplit projection under either split depending on the source file, so the
+  export queries both and reduces with `deduplicatePrimarySplits`
+  (`src/lib/stat-maps.ts`), preferring `Neutral`. Querying `None` alone silently
+  empties the `wOBA`/`FIP` column for a Neutral-sourced upload.
+- **Invariant — a player reaches the export only through `Player`.** Rows are
+  found via `PlayerStat` → `Player`, positions via the linked `PlayerUniverse`
+  row. A manually-added player therefore needs both (see
+  [Manually-added players](schema.md#manually-added-players)); an override alone
+  is invisible here.
+- **Invariant — the `active` and `league` filters read *effective* values.** Both
+  resolve `PlayerOverride` first via `effectivePlayer` / `matchesPlayerFilters`
+  (`src/lib/player-effective.ts`), so the export selects the same players the
+  admin table shows. This is why filtering happens in memory after the profile
+  query rather than as a Prisma `where` on `Player` — the override is not
+  reachable from the `PlayerStat` query. See
+  [Override precedence](schema.md#override-precedence).
+- **Invariant — unknown `active`/`league` values are rejected**, not treated as
+  `all`: an export that silently drops a filter returns more rows than requested.
+- The CSV header is identical whether or not any rows match.
 
 ## Current realization (map)
 - **Model:** `DataExport` + `ExportScope` / `ExportType` enums (see [schema.md](schema.md)).

@@ -23,7 +23,7 @@ be reconciled to one record.
 | Field | Type | Null | Notes |
 |---|---|---|---|
 | `id` | UUID | No | PK |
-| `sfbbId` | String | No | SFBB `PLAYERID`. **Unique.** Primary external key. |
+| `sfbbId` | String | No | SFBB `PLAYERID`. **Unique.** Primary external key. Manually-added players get a synthetic `manual:<uuid>` value — see [Manually-added players](#manually-added-players). |
 | `playerName` | String | No | Display name from SFBB |
 | `fgSpecialChar` | String | Yes | Name with diacritics (`FGSPECIALCHAR`). Preferred display when present. |
 | `positions` | String[] | No | Eligible positions, e.g. `["C","1B"]`. GIN-indexed. |
@@ -67,13 +67,62 @@ Manual overrides for display/attributes, and the anchor for manually-added playe
 | Field | Type | Null | Notes |
 |---|---|---|---|
 | `id` | UUID | No | PK |
-| `playerId` | String | Yes | FK → `Player.id`. **Unique.** Null for manual players not yet in SFBB. |
+| `playerId` | String | Yes | FK → `Player.id`. **Unique.** Nullable for historical reasons only — the manual-add flow always mints a `Player`. |
 | `isManual` | Boolean | No | True = manually added. Stays true after auto-linking. |
 | `fangraphsId` `mlbamId` `ottoneuId` | — | Yes | Dedup matching during sync/upload |
 | `displayName` `firstName` `lastName` `nickname` | String | Yes | Display overrides — null = use canonical `Player` field |
 | `birthday` `team` `mlbLevel` `league` `active` `bats` `throws` | — | Yes | Attribute overrides |
 | `positions` | String[] | No | Position override (default `[]`) |
 | timestamps | | | incl. `deletedAt` |
+
+#### Override precedence
+
+**Invariant: a consumer that resolves overrides for display must also resolve
+them for filtering.**
+
+An override wins only when it is **live** (`deletedAt IS NULL`) and **actually
+sets the field**; otherwise the canonical `Player` value stands. Note
+`active: false` is a real override while `active: null` means "no opinion" — a
+`??` chain is required, not `||`. Effective `league` is `override.league`, else
+derived from the *effective* team.
+
+`src/lib/player-effective.ts` is the single implementation: `effectivePlayer()`
+resolves the attributes, `matchesPlayerFilters()` applies the active/league
+filters to them. Consumers: the Batcast export
+(`src/app/api/admin/export/batcast/route.ts`) and the admin players page
+(`src/app/admin/players/page.tsx`, for both `PlayerRow` and `StatRow`).
+
+Resolving overrides for display but filtering on the raw `Player` column drops
+rows the user can see and keeps rows they cannot — which is why
+`PlayerOverride.fangraphsId` / `mlbamId` / `ottoneuId` are deliberately *not*
+part of this rule: they are sync dedup keys, not display overrides.
+
+#### Manually-added players
+
+**Invariant: every manually-added player has a canonical `Player` row.**
+
+`PlayerStat.playerId` is a required FK to `Player`, so an override on its own can
+carry no projections — such a player is invisible to the stats views and to every
+export. `POST /api/admin/players/manual` therefore creates both rows in one
+transaction: a `Player` with a synthetic `sfbbId` (`manual:<uuid>`, see
+`src/lib/manual-players.ts`) plus the linked `PlayerOverride`.
+
+The prefix carries two obligations:
+
+1. **Bulk `Player` queries that treat SFBB as the source of truth must exclude
+   them.** Replace-mode sweeps soft-delete any `Player` absent from the SFBB CSV;
+   synthetic players are absent by definition, so every such query spreads the
+   shared `EXCLUDE_MANUAL_PLAYERS` fragment (`src/lib/manual-players.ts`) rather
+   than hand-writing the prefix test. Without it, each sync deletes them.
+2. **They are merge candidates.** Once SFBB publishes the player, a second
+   `Player` row would share the same FangraphsId. `reconcilePlayerIds()` folds the
+   synthetic row into the real one — repointing stats, roster history, universe
+   rows and the override — then soft-deletes it. Colliding stat rows (the
+   `PlayerStat` compound unique includes `playerId`) resolve in favour of the real
+   player's.
+
+Positions in exports come from the linked `PlayerUniverse` row, not the override,
+so `reconcilePlayerIds()` runs after a manual add to attach it.
 
 ### `StatDefinition`
 Catalog of scoring stats. ~41 batter + ~33 pitcher definitions seeded.

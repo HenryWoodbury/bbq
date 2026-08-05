@@ -1,6 +1,13 @@
 import { StatProjection, StatSplit } from "@/generated/prisma/client"
 
-export function deduplicatePitcherSplits<T extends { playerId: string; split: StatSplit }>(rows: T[]): T[] {
+/**
+ * Collapses a player's primary (unsplit) stat rows to one.
+ *
+ * Uploads land the primary line as either `None` or `Neutral` depending on the
+ * source file, so consumers query both and reduce here, preferring `Neutral`.
+ * Applies to batters and pitchers alike.
+ */
+export function deduplicatePrimarySplits<T extends { playerId: string; split: StatSplit }>(rows: T[]): T[] {
   const map = new Map<string, T>()
   for (const r of rows) {
     if (!map.has(r.playerId) || r.split === StatSplit.Neutral) map.set(r.playerId, r)
