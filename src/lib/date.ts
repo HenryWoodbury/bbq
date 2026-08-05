@@ -5,11 +5,17 @@
  * Temporal migration: replace body with Temporal.ZonedDateTime.from(input)
  * and format via toLocaleDateString / toLocaleTimeString equivalents.
  */
-export function formatDateTime(input: Date | string | null | undefined): string {
+export function formatDateTime(
+  input: Date | string | null | undefined,
+): string {
   if (input == null) return ""
   const d = input instanceof Date ? input : new Date(input)
   const datePart = d
-    .toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "2-digit" })
+    .toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "2-digit",
+    })
     .replace(/ /g, "-")
   const timePart = d
     .toLocaleTimeString("en-US", {

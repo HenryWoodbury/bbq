@@ -19,13 +19,21 @@ interface EditInPlaceProps {
   ref?: Ref<EditInPlaceHandle>
 }
 
-export function EditInPlace({ value, onChange, maxLength, className, ref }: EditInPlaceProps) {
+export function EditInPlace({
+  value,
+  onChange,
+  maxLength,
+  className,
+  ref,
+}: EditInPlaceProps) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(value)
 
   useImperativeHandle(ref, () => ({
     getCurrentValue: () => (editing ? draft : value),
-    commit: () => { if (editing) accept() },
+    commit: () => {
+      if (editing) accept()
+    },
   }))
 
   function startEdit() {
@@ -63,7 +71,10 @@ export function EditInPlace({ value, onChange, maxLength, className, ref }: Edit
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={handleKeyDown}
             maxLength={maxLength}
-            className={cn("absolute inset-0 w-full bg-transparent outline-none p-0", className)}
+            className={cn(
+              "absolute inset-0 w-full bg-transparent outline-none p-0",
+              className,
+            )}
             style={{ boxShadow: "0 2px 0 currentColor" }}
           />
         </span>
@@ -82,7 +93,12 @@ export function EditInPlace({ value, onChange, maxLength, className, ref }: Edit
       className="inline-flex items-center gap-1.5 cursor-pointer group"
       onClick={startEdit}
     >
-      <span className={cn("inline-block group-hover:[box-shadow:0_2px_0_currentColor]", className)}>
+      <span
+        className={cn(
+          "inline-block group-hover:[box-shadow:0_2px_0_currentColor]",
+          className,
+        )}
+      >
         {value}
       </span>
       <PencilIcon className="size-[0.875em] shrink-0" />

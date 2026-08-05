@@ -212,15 +212,14 @@ export async function GET(request: Request) {
     .map((p) => ({
       player: p,
       effective: effectivePlayer(p, p.override),
-      fangraphsId: levelFangraphsId(
-        p.fangraphsId,
-        p.universe[0]?.fangraphsId,
-      ),
+      fangraphsId: levelFangraphsId(p.fangraphsId, p.universe[0]?.fangraphsId),
     }))
     .filter(({ effective, fangraphsId }) =>
       matchesPlayerFilters(effective, fangraphsId, filters),
     )
-    .sort((a, b) => a.effective.displayName.localeCompare(b.effective.displayName))
+    .sort((a, b) =>
+      a.effective.displayName.localeCompare(b.effective.displayName),
+    )
 
   // ── Build lookup maps ──────────────────────────────────────────────────────
 

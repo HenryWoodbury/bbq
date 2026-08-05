@@ -34,7 +34,11 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html lang="en" suppressHydrationWarning className={cn(lato.variable, geistMono.variable)}>
+      <html
+        lang="en"
+        suppressHydrationWarning
+        className={cn(lato.variable, geistMono.variable)}
+      >
         <body className="min-h-screen w-full overflow-x-hidden bg-background antialiased">
           <ThemeProvider>
             <TooltipProvider>

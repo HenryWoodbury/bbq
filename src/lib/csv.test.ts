@@ -42,14 +42,17 @@ describe("triggerCsvDownload", () => {
     const anchor = { href: "", download: "", click: clickSpy }
 
     vi.stubGlobal("URL", { createObjectURL, revokeObjectURL })
-    vi.stubGlobal("Blob", class MockBlob {
-      content: string[]
-      options: unknown
-      constructor(content: string[], options: unknown) {
-        this.content = content
-        this.options = options
-      }
-    })
+    vi.stubGlobal(
+      "Blob",
+      class MockBlob {
+        content: string[]
+        options: unknown
+        constructor(content: string[], options: unknown) {
+          this.content = content
+          this.options = options
+        }
+      },
+    )
     vi.stubGlobal("document", {
       createElement: vi.fn(() => anchor),
     })

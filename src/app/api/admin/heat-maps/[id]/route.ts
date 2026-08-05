@@ -44,7 +44,22 @@ export async function PATCH(req: NextRequest, { params }: RouteContext) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
 
-  const { name, min, max, avg, increments, isPivot, curve, curveDark, minColor, avgColor, maxColor, minDarkColor, avgDarkColor, maxDarkColor } = parsed.data
+  const {
+    name,
+    min,
+    max,
+    avg,
+    increments,
+    isPivot,
+    curve,
+    curveDark,
+    minColor,
+    avgColor,
+    maxColor,
+    minDarkColor,
+    avgDarkColor,
+    maxDarkColor,
+  } = parsed.data
 
   try {
     await prisma.heatMap.update({

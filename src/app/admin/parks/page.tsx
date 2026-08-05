@@ -55,7 +55,14 @@ async function ParkFactorsTabContent() {
     }),
     prisma.heatMap.findMany({
       orderBy: { createdAt: "asc" },
-      include: { minColor: true, avgColor: true, maxColor: true, minDarkColor: true, avgDarkColor: true, maxDarkColor: true },
+      include: {
+        minColor: true,
+        avgColor: true,
+        maxColor: true,
+        minDarkColor: true,
+        avgDarkColor: true,
+        maxDarkColor: true,
+      },
     }),
   ])
 

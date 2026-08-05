@@ -127,7 +127,8 @@ export function DataTable<T>({
                           header.column.columnDef.header,
                           header.getContext(),
                         )}
-                        {canSort && showSortIcons &&
+                        {canSort &&
+                          showSortIcons &&
                           (sorted === "asc" ? (
                             <ArrowUpIcon className="h-3 w-3" />
                           ) : sorted === "desc" ? (

@@ -38,7 +38,9 @@ describe("liveOverride", () => {
   })
 
   it("returns null when soft-deleted", () => {
-    expect(liveOverride({ ...EMPTY_OVERRIDE, deletedAt: new Date() })).toBeNull()
+    expect(
+      liveOverride({ ...EMPTY_OVERRIDE, deletedAt: new Date() }),
+    ).toBeNull()
   })
 
   it("returns null for absent overrides", () => {
@@ -107,16 +109,22 @@ describe("effectivePlayer — attributes", () => {
   it("distinguishes active: false from active: null", () => {
     // false is a real override; null means "no opinion, use the base value"
     expect(
-      effectivePlayer({ ...PLAYER, active: true }, {
-        ...EMPTY_OVERRIDE,
-        active: false,
-      }).active,
+      effectivePlayer(
+        { ...PLAYER, active: true },
+        {
+          ...EMPTY_OVERRIDE,
+          active: false,
+        },
+      ).active,
     ).toBe(false)
     expect(
-      effectivePlayer({ ...PLAYER, active: true }, {
-        ...EMPTY_OVERRIDE,
-        active: null,
-      }).active,
+      effectivePlayer(
+        { ...PLAYER, active: true },
+        {
+          ...EMPTY_OVERRIDE,
+          active: null,
+        },
+      ).active,
     ).toBe(true)
   })
 })

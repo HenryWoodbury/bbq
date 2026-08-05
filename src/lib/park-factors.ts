@@ -15,27 +15,30 @@ export type DisplayRow = ParkFactorRow & { rank: number }
 const FACTOR_W = 64
 const PA_W = 84
 
-export const FACTOR_COLS: Array<{ key: string; header: string; size: number }> = [
-  { key: "index_woba", header: "PF", size: FACTOR_W },
-  { key: "index_wobacon", header: "wOBAcon", size: FACTOR_W },
-  { key: "index_xwobacon", header: "xwOBAcon", size: FACTOR_W },
-  { key: "index_bacon", header: "BACON", size: FACTOR_W },
-  { key: "index_xbacon", header: "xBACON", size: FACTOR_W },
-  { key: "index_hardhit", header: "HardHit", size: FACTOR_W },
-  { key: "index_runs", header: "R", size: FACTOR_W },
-  { key: "index_obp", header: "OBP", size: FACTOR_W },
-  { key: "index_hits", header: "H", size: FACTOR_W },
-  { key: "index_1b", header: "1B", size: FACTOR_W },
-  { key: "index_2b", header: "2B", size: FACTOR_W },
-  { key: "index_3b", header: "3B", size: FACTOR_W },
-  { key: "index_hr", header: "HR", size: FACTOR_W },
-  { key: "index_bb", header: "BB", size: FACTOR_W },
-  { key: "index_so", header: "SO", size: FACTOR_W },
-  { key: "pa", header: "PA", size: PA_W },
-]
+export const FACTOR_COLS: Array<{ key: string; header: string; size: number }> =
+  [
+    { key: "index_woba", header: "PF", size: FACTOR_W },
+    { key: "index_wobacon", header: "wOBAcon", size: FACTOR_W },
+    { key: "index_xwobacon", header: "xwOBAcon", size: FACTOR_W },
+    { key: "index_bacon", header: "BACON", size: FACTOR_W },
+    { key: "index_xbacon", header: "xBACON", size: FACTOR_W },
+    { key: "index_hardhit", header: "HardHit", size: FACTOR_W },
+    { key: "index_runs", header: "R", size: FACTOR_W },
+    { key: "index_obp", header: "OBP", size: FACTOR_W },
+    { key: "index_hits", header: "H", size: FACTOR_W },
+    { key: "index_1b", header: "1B", size: FACTOR_W },
+    { key: "index_2b", header: "2B", size: FACTOR_W },
+    { key: "index_3b", header: "3B", size: FACTOR_W },
+    { key: "index_hr", header: "HR", size: FACTOR_W },
+    { key: "index_bb", header: "BB", size: FACTOR_W },
+    { key: "index_so", header: "SO", size: FACTOR_W },
+    { key: "pa", header: "PA", size: PA_W },
+  ]
 
 export const FACTOR_COL_IDS = new Set(FACTOR_COLS.map((c) => c.key))
-export const HEAT_MAP_COL_IDS = new Set(FACTOR_COLS.filter((c) => c.key !== "pa").map((c) => c.key))
+export const HEAT_MAP_COL_IDS = new Set(
+  FACTOR_COLS.filter((c) => c.key !== "pa").map((c) => c.key),
+)
 
 const CSV_COL_HEADER: Record<string, string> = {
   index_woba: "Park Factor",

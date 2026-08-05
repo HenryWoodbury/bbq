@@ -46,7 +46,9 @@ const STAT_KEY = {
 function conjuncts(args: unknown): Record<string, unknown>[] {
   const where =
     (args as { where?: Record<string, unknown> } | undefined)?.where ?? {}
-  return Array.isArray(where.AND) ? (where.AND as Record<string, unknown>[]) : []
+  return Array.isArray(where.AND)
+    ? (where.AND as Record<string, unknown>[])
+    : []
 }
 
 /**
@@ -303,7 +305,8 @@ describe("reconcilePlayerIds — synthetic player merge", () => {
       data: { playerId: "real-1" },
     })
     const revived = prismaMock.playerOverride.update.mock.calls.find(
-      (c) => (c[0] as { data: Record<string, unknown> }).data.deletedAt === null,
+      (c) =>
+        (c[0] as { data: Record<string, unknown> }).data.deletedAt === null,
     )
     expect(revived).toBeUndefined()
     expect(prismaMock.playerOverride.delete).not.toHaveBeenCalled()
@@ -437,10 +440,7 @@ describe("reconcilePlayerIds — merge guards", () => {
     expect(candidateQuery?.[0]).toMatchObject({
       where: {
         deletedAt: null,
-        OR: [
-          { fangraphsId: { in: ["33225"] } },
-          { mlbamId: { in: [694378] } },
-        ],
+        OR: [{ fangraphsId: { in: ["33225"] } }, { mlbamId: { in: [694378] } }],
       },
     })
   })

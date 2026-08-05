@@ -22,7 +22,10 @@ const EMPTY: Promise<never[]> = Promise.resolve([])
  * Pass `null` to reset to an empty resolved promise immediately.
  * Callers read data via `use(promise)` in a child component wrapped in <Suspense>.
  */
-export function useDebouncedFetch<T>(url: string | null, delay = 300): {
+export function useDebouncedFetch<T>(
+  url: string | null,
+  delay = 300,
+): {
   promise: Promise<T[]>
   pending: boolean
 } {

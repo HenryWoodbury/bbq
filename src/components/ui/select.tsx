@@ -26,7 +26,13 @@ export interface SelectProps
   wrapperClassName?: string
 }
 
-function Select({ className, size, ref, wrapperClassName, ...props }: SelectProps) {
+function Select({
+  className,
+  size,
+  ref,
+  wrapperClassName,
+  ...props
+}: SelectProps) {
   return (
     <span className={cn("inline-grid", wrapperClassName)}>
       <select

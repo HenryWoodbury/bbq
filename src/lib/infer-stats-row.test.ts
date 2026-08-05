@@ -125,28 +125,58 @@ describe("inferStatsRow", () => {
     })
 
     const LEFT_CASES = [
-      "vs_left", "vs left", "vsleft",
-      "vs_lhb", "vs lhb", "vslhb",
-      "vs_lhh", "vs lhh", "vslhh",
-      "vs_lhp", "vs lhp", "vslhp",
-      "vs_lh",  "vs lh",  "vslh",
-      "vlhb", "vlhh", "vlhp", "vlh",
-      "vl", "v_l",
-      "lhp", "lhb",
+      "vs_left",
+      "vs left",
+      "vsleft",
+      "vs_lhb",
+      "vs lhb",
+      "vslhb",
+      "vs_lhh",
+      "vs lhh",
+      "vslhh",
+      "vs_lhp",
+      "vs lhp",
+      "vslhp",
+      "vs_lh",
+      "vs lh",
+      "vslh",
+      "vlhb",
+      "vlhh",
+      "vlhp",
+      "vlh",
+      "vl",
+      "v_l",
+      "lhp",
+      "lhb",
     ]
     it.each(LEFT_CASES)("detects vs_left via '%s'", (pattern) => {
       expect(infer(`steamer_batters_${pattern}.csv`).split).toBe("vs_left")
     })
 
     const RIGHT_CASES = [
-      "vs_right", "vs right", "vsright",
-      "vs_rhb", "vs rhb", "vsrhb",
-      "vs_rhh", "vs rhh", "vsrhh",
-      "vs_rhp", "vs rhp", "vsrhp",
-      "vs_rh",  "vs rh",  "vsrh",
-      "vrhb", "vrhh", "vrhp", "vrh",
-      "vr", "v_r",
-      "rhp", "rhb",
+      "vs_right",
+      "vs right",
+      "vsright",
+      "vs_rhb",
+      "vs rhb",
+      "vsrhb",
+      "vs_rhh",
+      "vs rhh",
+      "vsrhh",
+      "vs_rhp",
+      "vs rhp",
+      "vsrhp",
+      "vs_rh",
+      "vs rh",
+      "vsrh",
+      "vrhb",
+      "vrhh",
+      "vrhp",
+      "vrh",
+      "vr",
+      "v_r",
+      "rhp",
+      "rhb",
     ]
     it.each(RIGHT_CASES)("detects vs_right via '%s'", (pattern) => {
       expect(infer(`steamer_batters_${pattern}.csv`).split).toBe("vs_right")
@@ -170,5 +200,4 @@ describe("inferStatsRow", () => {
       expect(infer("batters_vs_left.csv").statType).toBe("projected")
     })
   })
-
 })

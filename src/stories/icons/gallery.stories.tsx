@@ -1,6 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
 import type { ComponentType } from "react"
-import { BaseballIcon, ParkIcon, PlayerAddIcon, PlayerIcon } from "@/components/icons"
+import {
+  BaseballIcon,
+  ParkIcon,
+  PlayerAddIcon,
+  PlayerIcon,
+} from "@/components/icons"
 import * as lucideIcons from "@/components/icons/lucide"
 
 // One size control drives both galleries. The scale mirrors the sizes the app

@@ -36,7 +36,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
   }
 
-  const { name, min, max, avg, increments, isPivot, curve, curveDark, minColor, avgColor, maxColor, minDarkColor, avgDarkColor, maxDarkColor } = parsed.data
+  const {
+    name,
+    min,
+    max,
+    avg,
+    increments,
+    isPivot,
+    curve,
+    curveDark,
+    minColor,
+    avgColor,
+    maxColor,
+    minDarkColor,
+    avgDarkColor,
+    maxDarkColor,
+  } = parsed.data
 
   try {
     const heatMap = await prisma.heatMap.create({
@@ -57,7 +72,10 @@ export async function POST(req: NextRequest) {
         maxDarkColor: { create: maxDarkColor },
       },
     })
-    return NextResponse.json({ id: heatMap.id, name: heatMap.name }, { status: 201 })
+    return NextResponse.json(
+      { id: heatMap.id, name: heatMap.name },
+      { status: 201 },
+    )
   } catch (err) {
     if (
       typeof err === "object" &&
@@ -65,7 +83,10 @@ export async function POST(req: NextRequest) {
       "code" in err &&
       (err as { code: string }).code === "P2002"
     ) {
-      return NextResponse.json({ error: `A heat map named "${name}" already exists` }, { status: 409 })
+      return NextResponse.json(
+        { error: `A heat map named "${name}" already exists` },
+        { status: 409 },
+      )
     }
     throw err
   }

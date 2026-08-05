@@ -105,7 +105,9 @@ describe("POST /api/admin/players/manual — validation", () => {
   })
 
   it("accepts a name supplied only as first + last", async () => {
-    const res = await POST(makeRequest({ firstName: "Jacob", lastName: "Gonzalez" }))
+    const res = await POST(
+      makeRequest({ firstName: "Jacob", lastName: "Gonzalez" }),
+    )
     expect(res.status).toBe(201)
   })
 })

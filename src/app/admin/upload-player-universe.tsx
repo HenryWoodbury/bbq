@@ -1,4 +1,7 @@
-import { type UploadHistoryRow, UploadHistoryPanel } from "./upload-history-panel"
+import {
+  type UploadHistoryRow,
+  UploadHistoryPanel,
+} from "./upload-history-panel"
 
 export type { UploadHistoryRow as PlayerUniverseUploadRow }
 

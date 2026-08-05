@@ -72,7 +72,8 @@ export async function PATCH(
         ? new Date(data.birthday)
         : null
       : undefined
-  const team = data.team !== undefined ? normalizeTeamCode(data.team) : undefined
+  const team =
+    data.team !== undefined ? normalizeTeamCode(data.team) : undefined
 
   const updated = await prisma.$transaction(async (tx) => {
     const override = await tx.playerOverride.update({

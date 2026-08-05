@@ -73,7 +73,11 @@ export async function POST(request: NextRequest) {
     Object.entries(COL).map(([key, col]) => [key, headers.indexOf(col)]),
   ) as Record<keyof typeof COL, number>
 
-  const REQUIRED_COLS = new Set<keyof typeof COL>(["ottoneuId", "playerName", "positions"])
+  const REQUIRED_COLS = new Set<keyof typeof COL>([
+    "ottoneuId",
+    "playerName",
+    "positions",
+  ])
   const missing = (Object.entries(COL) as [keyof typeof COL, string][])
     .filter(([key]) => REQUIRED_COLS.has(key) && idx[key] === -1)
     .map(([, col]) => col)
@@ -194,8 +198,12 @@ export async function POST(request: NextRequest) {
     deleted = count
   }
 
-  const { linked, ottoneuIdsFilled, manualOverridesLinked, manualPlayersMerged } =
-    await reconcilePlayerIds()
+  const {
+    linked,
+    ottoneuIdsFilled,
+    manualOverridesLinked,
+    manualPlayersMerged,
+  } = await reconcilePlayerIds()
 
   await prisma.playerUniverseUpload.create({
     data: {

@@ -86,7 +86,14 @@ function InputFieldGroup({
   const rowDisplay = allFixed ? "inline-flex" : "flex"
 
   return (
-    <div className={cn(rowDisplay, "flex-col gap-1", allFixed ? "self-start" : "w-full", className)}>
+    <div
+      className={cn(
+        rowDisplay,
+        "flex-col gap-1",
+        allFixed ? "self-start" : "w-full",
+        className,
+      )}
+    >
       <div className={rowDisplay}>
         {fields.map((field) => (
           <label
@@ -114,7 +121,10 @@ function InputFieldGroup({
             onChange={(e) => onChange(field.key, e.target.value)}
             onBlur={onBlur ? (e) => onBlur(field.key, e) : undefined}
             onFocus={onFocus ? (e) => onFocus(field.key, e) : undefined}
-            className={cn(cellVariants({ size }), i > 0 && "border-l border-border")}
+            className={cn(
+              cellVariants({ size }),
+              i > 0 && "border-l border-border",
+            )}
             style={cellStyle(field)}
           />
         ))}

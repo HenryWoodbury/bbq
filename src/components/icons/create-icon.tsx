@@ -16,7 +16,12 @@ export interface IconProps extends SVGProps<SVGSVGElement> {
  * re-exported lucide icons. Each icon file supplies only its inner paths.
  */
 export function createIcon(displayName: string, children: ReactNode) {
-  function Icon({ size = 24, strokeWidth = 2, className, ...props }: IconProps) {
+  function Icon({
+    size = 24,
+    strokeWidth = 2,
+    className,
+    ...props
+  }: IconProps) {
     return (
       <svg
         xmlns="http://www.w3.org/2000/svg"

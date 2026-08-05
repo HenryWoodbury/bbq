@@ -1,5 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { StatPlayerType, type StatProjection, StatSplit } from "@/generated/prisma/client"
+import {
+  StatPlayerType,
+  type StatProjection,
+  StatSplit,
+} from "@/generated/prisma/client"
 import { assertAdmin } from "@/lib/auth-helpers"
 import { chunk, parseCSVLine } from "@/lib/csv"
 import { prisma } from "@/lib/prisma"

@@ -49,7 +49,11 @@ function setupPlayerWithOverride(override: Record<string, unknown> | null) {
   ] as never)
   setupStats({
     primary: [
-      { playerId: "player-1", stats: { wOBA: 0.321 }, split: StatSplit.Neutral },
+      {
+        playerId: "player-1",
+        stats: { wOBA: 0.321 },
+        split: StatSplit.Neutral,
+      },
     ],
   })
 }
@@ -74,7 +78,8 @@ function setupStats(opts: {
     const split = (
       args as { where: { split: StatSplit | { in: StatSplit[] } } }
     ).where.split
-    if (typeof split === "object" && "in" in split) return Promise.resolve(primary)
+    if (typeof split === "object" && "in" in split)
+      return Promise.resolve(primary)
     if (split === StatSplit.VsLeft) return Promise.resolve(vsLeft)
     if (split === StatSplit.VsRight) return Promise.resolve(vsRight)
     return Promise.resolve([])
@@ -105,9 +110,7 @@ beforeEach(() => {
 describe("GET /api/admin/export/batcast — auth", () => {
   it("401s when unauthenticated", async () => {
     mockAuth.mockResolvedValue({ userId: null, sessionClaims: null })
-    const res = await GET(
-      makeRequest({ season: "2026", playerType: "BATTER" }),
-    )
+    const res = await GET(makeRequest({ season: "2026", playerType: "BATTER" }))
     expect(res.status).toBe(401)
   })
 
@@ -116,9 +119,7 @@ describe("GET /api/admin/export/batcast — auth", () => {
       userId: "user_1",
       sessionClaims: { metadata: { role: "member" } },
     })
-    const res = await GET(
-      makeRequest({ season: "2026", playerType: "BATTER" }),
-    )
+    const res = await GET(makeRequest({ season: "2026", playerType: "BATTER" }))
     expect(res.status).toBe(403)
   })
 })
@@ -141,9 +142,7 @@ describe("GET /api/admin/export/batcast — params", () => {
   })
 
   it("400s on a season before 2000", async () => {
-    const res = await GET(
-      makeRequest({ season: "1999", playerType: "BATTER" }),
-    )
+    const res = await GET(makeRequest({ season: "1999", playerType: "BATTER" }))
     expect(res.status).toBe(400)
   })
 
@@ -458,7 +457,11 @@ describe("GET /api/admin/export/batcast — primary split handling", () => {
   it("queries both None and Neutral for pitchers too", async () => {
     setupStats({
       primary: [
-        { playerId: "player-1", stats: { FIP: 3.85 }, split: StatSplit.Neutral },
+        {
+          playerId: "player-1",
+          stats: { FIP: 3.85 },
+          split: StatSplit.Neutral,
+        },
       ],
     })
 

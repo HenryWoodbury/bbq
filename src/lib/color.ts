@@ -25,16 +25,38 @@ export function oklchToHex(color: OklchColorData): string {
 }
 
 /** r, g, b are 0–255 integers; a is 0–1. */
-export function rgbToOklch(r: number, g: number, b: number, a = 1): OklchColorData {
-  const c = toOklchCulori({ mode: "rgb", r: r / 255, g: g / 255, b: b / 255, alpha: a })
+export function rgbToOklch(
+  r: number,
+  g: number,
+  b: number,
+  a = 1,
+): OklchColorData {
+  const c = toOklchCulori({
+    mode: "rgb",
+    r: r / 255,
+    g: g / 255,
+    b: b / 255,
+    alpha: a,
+  })
   if (!c) return { lightness: 0, chroma: 0, hue: 0, alpha: a }
   return { lightness: c.l, chroma: c.c, hue: c.h ?? 0, alpha: c.alpha ?? 1 }
 }
 
 /** Returns r, g, b as 0–255 integers. */
-export function oklchToRgb(color: OklchColorData): { r: number; g: number; b: number; alpha: number } {
+export function oklchToRgb(color: OklchColorData): {
+  r: number
+  g: number
+  b: number
+  alpha: number
+} {
   const clamped = clampRgb(
-    toRgbCulori({ mode: "oklch", l: color.lightness, c: color.chroma, h: color.hue, alpha: color.alpha }),
+    toRgbCulori({
+      mode: "oklch",
+      l: color.lightness,
+      c: color.chroma,
+      h: color.hue,
+      alpha: color.alpha,
+    }),
   )
   if (!clamped) return { r: 0, g: 0, b: 0, alpha: color.alpha }
   return {
@@ -51,7 +73,9 @@ export function rgbToHex(r: number, g: number, b: number): string {
 }
 
 /** Returns null for invalid hex. r, g, b are 0–255 integers. */
-export function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+export function hexToRgb(
+  hex: string,
+): { r: number; g: number; b: number } | null {
   const parsed = parseHex(hex)
   if (!parsed) return null
   const c = toRgbCulori(parsed)

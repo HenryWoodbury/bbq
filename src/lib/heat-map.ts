@@ -36,9 +36,9 @@ export const BBQ_DEFAULT = {
   minColor: { lightness: 0.4959, chroma: 0.1094, hue: 262.94, alpha: 1 },
   avgColor: { lightness: 1, chroma: 0, hue: 0, alpha: 1 },
   maxColor: { lightness: 0.5063, chroma: 0.1842, hue: 26.381, alpha: 1 },
-  minDarkColor: { lightness: 0.3970, chroma: 0.1094, hue: 262.94, alpha: 1 },
+  minDarkColor: { lightness: 0.397, chroma: 0.1094, hue: 262.94, alpha: 1 },
   avgDarkColor: { lightness: 0, chroma: 0, hue: 0, alpha: 1 },
-  maxDarkColor: { lightness: 0.3830, chroma: 0.1842, hue: 26.381, alpha: 1 },
+  maxDarkColor: { lightness: 0.383, chroma: 0.1842, hue: 26.381, alpha: 1 },
 } as const
 
 function lerpHue(a: number, b: number, t: number): number {
@@ -74,7 +74,10 @@ function applyCurve(t: number, curve: number): number {
 }
 
 /** Returns the interpolated OklchColorData at a given step index (0 = min color, increments = max color). */
-export function getStepColor(step: number, config: HeatMapData): OklchColorData {
+export function getStepColor(
+  step: number,
+  config: HeatMapData,
+): OklchColorData {
   const { increments, isPivot, curve, minColor, avgColor, maxColor } = config
   const stepsToAvg = Math.round(
     (config.avg - config.min) / ((config.max - config.min) / increments),
@@ -85,19 +88,40 @@ export function getStepColor(step: number, config: HeatMapData): OklchColorData 
     const pivotFromMin: OklchColorData = { ...avgColor, hue: minColor.hue }
     const pivotToMax: OklchColorData = { ...avgColor, hue: maxColor.hue }
     if (clampedStep <= stepsToAvg) {
-      const distFromAvg = stepsToAvg > 0 ? (stepsToAvg - clampedStep) / stepsToAvg : 0
-      return lerpColor(minColor, pivotFromMin, 1 - applyCurve(distFromAvg, curve))
+      const distFromAvg =
+        stepsToAvg > 0 ? (stepsToAvg - clampedStep) / stepsToAvg : 0
+      return lerpColor(
+        minColor,
+        pivotFromMin,
+        1 - applyCurve(distFromAvg, curve),
+      )
     }
     const stepsFromAvg = increments - stepsToAvg
-    const t = applyCurve(stepsFromAvg > 0 ? (clampedStep - stepsToAvg) / stepsFromAvg : 1, curve)
+    const t = applyCurve(
+      stepsFromAvg > 0 ? (clampedStep - stepsToAvg) / stepsFromAvg : 1,
+      curve,
+    )
     return lerpColor(pivotToMax, maxColor, t)
   }
-  return lerpColor(minColor, maxColor, applyCurve(clampedStep / increments, curve))
+  return lerpColor(
+    minColor,
+    maxColor,
+    applyCurve(clampedStep / increments, curve),
+  )
 }
 
-export function getConfigForTheme(config: HeatMapData, isDark: boolean): HeatMapData {
+export function getConfigForTheme(
+  config: HeatMapData,
+  isDark: boolean,
+): HeatMapData {
   if (!isDark) return config
-  return { ...config, curve: config.curveDark, minColor: config.minDarkColor, avgColor: config.avgDarkColor, maxColor: config.maxDarkColor }
+  return {
+    ...config,
+    curve: config.curveDark,
+    minColor: config.minDarkColor,
+    avgColor: config.avgDarkColor,
+    maxColor: config.maxDarkColor,
+  }
 }
 
 export function getHeatMapStyle(

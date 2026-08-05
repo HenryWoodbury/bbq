@@ -359,7 +359,12 @@ export async function reconcilePlayerIds(): Promise<ReconcileResult> {
       ? []
       : await prisma.player.findMany({
           where: { deletedAt: null, OR: candidateOr },
-          select: { id: true, fangraphsId: true, mlbamId: true, ottoneuId: true },
+          select: {
+            id: true,
+            fangraphsId: true,
+            mlbamId: true,
+            ottoneuId: true,
+          },
         })
 
   const byFgId = new Map<string, (typeof candidates)[0]>()

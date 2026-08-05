@@ -27,7 +27,6 @@ const formatSchema = z.object({
   isActive: z.boolean().optional(),
 })
 
-
 export async function GET() {
   const denied = await assertAdmin()
   if (denied) return denied

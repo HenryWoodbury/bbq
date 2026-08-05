@@ -60,9 +60,7 @@ export function SyncPlayerMap({
   return (
     <div className={cn("flex flex-col gap-2", className)}>
       <p className="caption">
-        {syncedAt
-          ? `Last synced ${formatDateTime(syncedAt)}`
-          : "No sync yet."}
+        {syncedAt ? `Last synced ${formatDateTime(syncedAt)}` : "No sync yet."}
       </p>
       <Button
         onClick={handleSync}
