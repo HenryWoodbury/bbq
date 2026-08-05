@@ -101,6 +101,7 @@ function ToastContent({
             <Button
               variant="secondary"
               size="sm"
+              className="bg-white/50 hover:bg-white/65"
               onClick={() => {
                 action.onClick()
                 toast.dismiss(toastId)

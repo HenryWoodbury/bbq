@@ -1,6 +1,6 @@
 import type { VariantProps } from "class-variance-authority"
-import { ChevronDownIcon } from "@/components/icons/lucide"
 import type { ButtonHTMLAttributes, Ref } from "react"
+import { ChevronDownIcon } from "@/components/icons/lucide"
 import { Button, type buttonVariants } from "@/components/ui/button"
 
 interface MenuButtonProps
