@@ -94,11 +94,19 @@ export async function GET(request: Request) {
 
   // The active/league filters are applied after profiles load, not here: they
   // must respect PlayerOverride, which is only reachable from the player query.
+  //
+  // `ros` and `neutralized` complete PlayerStat's compound unique — pin them, or
+  // a player with both a season and a rest-of-season row matches twice and the
+  // lookup maps below silently keep whichever arrived last. Uploads only write
+  // `false` today, so this is a guard against a future upload mixing the two
+  // into one file with nothing to signal it.
   const statsWhere = (split: StatSplit) => ({
     season: seasonParam,
     playerType,
     projection,
     split,
+    ros: false,
+    neutralized: false,
     deletedAt: null as null,
   })
 

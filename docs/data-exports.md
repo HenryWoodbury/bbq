@@ -34,6 +34,13 @@ files (e.g. Batcast) on demand.
   export queries both and reduces with `deduplicatePrimarySplits`
   (`src/lib/stat-maps.ts`), preferring `Neutral`. Querying `None` alone silently
   empties the `wOBA`/`FIP` column for a Neutral-sourced upload.
+- **Invariant — every field of `PlayerStat`'s compound unique is pinned.** The
+  stat queries constrain `season`, `playerType`, `projection`, `split`, `ros` and
+  `neutralized`. Leaving `ros`/`neutralized` open lets a rest-of-season or
+  park-neutralized row match alongside the season row; the export's lookup maps
+  are keyed by `playerId` alone and would silently keep whichever arrived last,
+  mixing both into one file. Uploads write only `false` today, so this is a guard
+  against a future upload rather than a live defect.
 - **Invariant — a player reaches the export only through `Player`.** Rows are
   found via `PlayerStat` → `Player`, positions via the linked `PlayerUniverse`
   row. A manually-added player therefore needs both (see

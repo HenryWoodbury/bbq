@@ -427,6 +427,34 @@ describe("GET /api/admin/export/batcast — primary split handling", () => {
     expect(row[header.indexOf("wOBA")]).toBe("0.321")
   })
 
+  it("pins every field of the compound unique on all three queries", async () => {
+    // ros and neutralized complete PlayerStat's compound unique. Leaving them
+    // open lets a rest-of-season row match alongside the season row, and the
+    // lookup maps keep whichever came last — a silent mix of the two in one file.
+    setupPlayerWithOverride(null)
+
+    await GET(
+      makeRequest({
+        season: "2026",
+        playerType: "BATTER",
+        projection: "Steamer",
+      }),
+    )
+
+    const wheres = prismaMock.playerStat.findMany.mock.calls.map(
+      (c) => (c[0] as { where: Record<string, unknown> }).where,
+    )
+    expect(wheres).toHaveLength(3)
+    for (const where of wheres) {
+      expect(where).toMatchObject({
+        season: 2026,
+        ros: false,
+        neutralized: false,
+        deletedAt: null,
+      })
+    }
+  })
+
   it("queries both None and Neutral for pitchers too", async () => {
     setupStats({
       primary: [
