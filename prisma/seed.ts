@@ -902,34 +902,59 @@ async function seedDataExports() {
         "wOBA vs RHB",
       ],
     },
-    ...["Batcast Batting Left", "Batcast Batting Right"].map((name) => ({
-      name,
-      scope: "Parks" as const,
-      type: "Standard" as const,
-      fields: [
-        "Abbr",
-        "Team",
-        "Venue",
-        "Year",
-        "Park Factor",
-        "wOBAcon",
-        "xwOBAcon",
-        "BACON",
-        "xBACON",
-        "HardHit",
-        "R",
-        "OBP",
-        "H",
-        "1B",
-        "2B",
-        "3B",
-        "HR",
-        "BB",
-        "SO",
-        "PA",
-      ],
-    })),
+    ...["Park Factors Batting Left", "Park Factors Batting Right"].map(
+      (name) => ({
+        name,
+        scope: "Parks" as const,
+        type: "Standard" as const,
+        fields: [
+          "Abbr",
+          "Team",
+          "Venue",
+          "Year",
+          "Park Factor",
+          "wOBAcon",
+          "xwOBAcon",
+          "BACON",
+          "xBACON",
+          "HardHit",
+          "R",
+          "OBP",
+          "H",
+          "1B",
+          "2B",
+          "3B",
+          "HR",
+          "BB",
+          "SO",
+          "PA",
+        ],
+      }),
+    ),
   ]
+
+  // The two Parks exports were renamed from "Batcast Batting …". Carry existing
+  // rows over first: the upsert below keys on name, so on an already-seeded
+  // database it would create the new names and strand the originals.
+  for (const side of ["Left", "Right"]) {
+    const from = `Batcast Batting ${side}`
+    const to = `Park Factors Batting ${side}`
+    const [legacy, renamed] = await Promise.all([
+      prisma.dataExport.findUnique({ where: { name: from } }),
+      prisma.dataExport.findUnique({ where: { name: to } }),
+    ])
+    if (!legacy) continue
+    // If both names exist the rename already ran and the legacy row is a
+    // leftover — dropping it avoids a unique-constraint violation on `name`.
+    if (renamed) {
+      await prisma.dataExport.delete({ where: { name: from } })
+    } else {
+      await prisma.dataExport.update({
+        where: { name: from },
+        data: { name: to },
+      })
+    }
+  }
 
   for (const e of exports) {
     await prisma.dataExport.upsert({
