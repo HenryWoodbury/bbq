@@ -52,3 +52,23 @@ export function toISODate(input: Date | null | undefined): string | null {
   if (input == null) return null
   return input.toISOString().slice(0, 10)
 }
+
+/**
+ * Today's date in the local timezone as YYYY-MM-DD.
+ *
+ * Unlike toISODate above, which is UTC: an evening call here still returns
+ * today's local date rather than rolling over to tomorrow. Used for stamping
+ * generated export filenames.
+ *
+ * Temporal migration: replace with Temporal.Now.plainDateISO().toString()
+ */
+export function todayStamp(): string {
+  const [month, day, year] = new Date()
+    .toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    })
+    .split("/")
+  return `${year}-${month}-${day}`
+}

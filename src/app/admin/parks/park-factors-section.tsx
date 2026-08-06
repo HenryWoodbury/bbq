@@ -61,6 +61,7 @@ import {
 import { useOptimisticDelete } from "@/hooks/use-optimistic-delete"
 import { hexToOklch, oklchToHex } from "@/lib/color"
 import { triggerCsvDownload } from "@/lib/csv"
+import { todayStamp } from "@/lib/date"
 import {
   BBQ_DEFAULT,
   getConfigForTheme,
@@ -566,7 +567,7 @@ export function ParkFactorsSection({
     })
   }
 
-  function handleBatcastExport(batSide: "L" | "R") {
+  function handleParkFactorsExport(batSide: "L" | "R") {
     const season = availableSeasons[0]
     if (!season) return
     const sideRows = recentRows.filter(
@@ -574,7 +575,7 @@ export function ParkFactorsSection({
     )
     downloadCsv(
       addRanks(applyFallback(sideRows, 3)),
-      `park-factors-batcast-${batSide}-${season}-3yr.csv`,
+      `park-factors-${batSide}-${season}-3yr-${todayStamp()}.csv`,
     )
   }
 
@@ -749,11 +750,15 @@ export function ParkFactorsSection({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onSelect={() => handleBatcastExport("L")}>
-                      Batcast Batting Left
+                    <DropdownMenuItem
+                      onSelect={() => handleParkFactorsExport("L")}
+                    >
+                      Park Factors Batting Left
                     </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => handleBatcastExport("R")}>
-                      Batcast Batting Right
+                    <DropdownMenuItem
+                      onSelect={() => handleParkFactorsExport("R")}
+                    >
+                      Park Factors Batting Right
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onSelect={() => {
