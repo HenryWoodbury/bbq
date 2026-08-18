@@ -1,7 +1,7 @@
 "use client"
 
 import { Tabs as TabsPrimitive } from "radix-ui"
-import { createContext, type ComponentProps, use } from "react"
+import { type ComponentProps, createContext, use } from "react"
 import { cn } from "@/lib/utils"
 
 type TabsSize = "sm" | "md" | "lg"
@@ -69,4 +69,4 @@ function TabsContent({
   )
 }
 
-export { Tabs, TabsList, TabsTrigger, TabsContent }
+export { Tabs, TabsContent, TabsList, TabsTrigger }

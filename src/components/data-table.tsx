@@ -10,6 +10,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table"
 import type { CSSProperties } from "react"
+import { useState } from "react"
 import {
   ArrowDownIcon,
   ArrowUpDownIcon,
@@ -17,7 +18,6 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
 } from "@/components/icons/lucide"
-import { useState } from "react"
 import { IconButton } from "@/components/ui/icon-button"
 import { Select } from "@/components/ui/select"
 import { cn } from "@/lib/utils"

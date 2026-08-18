@@ -1,6 +1,6 @@
 import {
-  type UploadHistoryRow,
   UploadHistoryPanel,
+  type UploadHistoryRow,
 } from "./upload-history-panel"
 
 export type { UploadHistoryRow as PlayerMapUploadRow }

@@ -190,5 +190,5 @@ showToast.warning = (title: string, description?: string) =>
 showToast.error = (title: string, description?: string) =>
   showToast({ title, description, variant: "error" })
 
-export { showToast, Toaster }
 export type { ToastVariant }
+export { showToast, Toaster }

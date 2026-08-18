@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { toISODate } from "@/lib/date"
 import { assertAdmin } from "@/lib/auth-helpers"
+import { toISODate } from "@/lib/date"
 import { prisma } from "@/lib/prisma"
 
 export type UniverseSearchResult = {

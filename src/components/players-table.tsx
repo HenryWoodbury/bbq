@@ -1,17 +1,17 @@
 "use client"
 
 import type { ColumnDef } from "@tanstack/react-table"
+import { useRouter } from "next/navigation"
+import type React from "react"
+import { useState } from "react"
+import { DataTable } from "@/components/data-table"
+import { FilterGroup } from "@/components/filter-group"
 import {
   DownloadIcon,
   PencilIcon,
   Trash2Icon,
   Undo2Icon,
 } from "@/components/icons/lucide"
-import { useRouter } from "next/navigation"
-import type React from "react"
-import { useState } from "react"
-import { DataTable } from "@/components/data-table"
-import { FilterGroup } from "@/components/filter-group"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -23,8 +23,8 @@ import { IconButton } from "@/components/ui/icon-button"
 import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
 import { csvEscape, triggerCsvDownload } from "@/lib/csv"
-import { PROJECTION_OPTIONS, SPLIT_FILTER_OPTIONS } from "@/lib/stat-labels"
 import { levelFangraphsId } from "@/lib/player-effective"
+import { PROJECTION_OPTIONS, SPLIT_FILTER_OPTIONS } from "@/lib/stat-labels"
 import {
   AL_TEAM_CODES,
   isMiLBFangraphsId,
@@ -183,10 +183,6 @@ function isMajorLeague(row: LevelFields): boolean {
 
 function isMinorLeague(row: LevelFields): boolean {
   return isMiLBFangraphsId(levelFangraphsId(row.fangraphsId, row.universeFgId))
-}
-
-function isPitcher(row: PlayerRow): boolean {
-  return row.ottoneuPositions.some((p) => p === "SP" || p === "RP")
 }
 
 function isUtil(row: PlayerRow): boolean {

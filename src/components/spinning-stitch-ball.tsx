@@ -331,6 +331,7 @@ export function SpinningStitchBall({
       {...props}
     >
       <svg
+        aria-hidden="true"
         width={size}
         height={size}
         viewBox={`0 0 ${size} ${size}`}
@@ -346,7 +347,6 @@ export function SpinningStitchBall({
         />
         {stitches.map((s, i) => (
           <line
-            // biome-ignore lint/suspicious/noArrayIndexKey: stable computed array, no reordering
             key={i}
             x1={s.x1.toFixed(2)}
             y1={s.y1.toFixed(2)}

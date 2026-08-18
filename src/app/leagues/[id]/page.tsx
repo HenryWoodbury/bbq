@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation"
-import { getLeagueById } from "@/lib/queries/leagues"
 import { scoringLabel } from "@/lib/queries/formats"
+import { getLeagueById } from "@/lib/queries/leagues"
 
 type Props = {
   params: Promise<{ id: string }>

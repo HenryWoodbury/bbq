@@ -15,8 +15,8 @@
 
 import "dotenv/config"
 import { readdirSync, readFileSync } from "node:fs"
-import { fileURLToPath } from "node:url"
 import { dirname, join, resolve } from "node:path"
+import { fileURLToPath } from "node:url"
 import { PrismaPg } from "@prisma/adapter-pg"
 import { PrismaClient } from "../src/generated/prisma/client"
 import { excludeManualPlayers } from "../src/lib/manual-players"

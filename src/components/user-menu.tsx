@@ -1,6 +1,7 @@
 "use client"
 
 import { useClerk } from "@clerk/nextjs"
+import type { ReactNode } from "react"
 import {
   FolderPenIcon,
   LogOutIcon,
@@ -9,7 +10,6 @@ import {
   SunIcon,
   UserIcon,
 } from "@/components/icons/lucide"
-import type { ReactNode } from "react"
 import { type Theme, useTheme } from "@/components/theme-provider"
 import {
   DropdownMenu,

@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
 import { useState } from "react"
-import { BBQ_DEFAULT, type OklchColorData } from "@/lib/heat-map"
 import { ColorInput } from "@/components/ui/color-input"
+import { BBQ_DEFAULT, type OklchColorData } from "@/lib/heat-map"
 
 const meta = {
   title: "UI/ColorInput",

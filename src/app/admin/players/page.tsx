@@ -19,6 +19,7 @@ import {
   levelFangraphsId,
   liveOverride,
 } from "@/lib/player-effective"
+import { flatPositions } from "@/lib/positions"
 import { prisma } from "@/lib/prisma"
 import {
   deduplicatePrimarySplits,
@@ -26,7 +27,6 @@ import {
   SPLIT_MAP,
 } from "@/lib/stat-maps"
 import { deriveLeagueFromTeam } from "@/lib/team-codes"
-import { flatPositions } from "@/lib/positions"
 import { PlayerPageTabs, type Tab } from "./player-page-tabs"
 import { PlayerProfilesSection } from "./player-profiles-section"
 import { PlayerStatsSection } from "./player-stats-section"

@@ -1,10 +1,10 @@
 "use client"
 
-import { CheckIcon, PencilIcon, XIcon } from "@/components/icons/lucide"
-import { useImperativeHandle, useState } from "react"
 import type { Ref } from "react"
-import { cn } from "@/lib/utils"
+import { useImperativeHandle, useState } from "react"
+import { CheckIcon, PencilIcon, XIcon } from "@/components/icons/lucide"
 import { IconButton } from "@/components/ui/icon-button"
+import { cn } from "@/lib/utils"
 
 export interface EditInPlaceHandle {
   getCurrentValue: () => string
@@ -66,6 +66,7 @@ export function EditInPlace({
             {draft}
           </span>
           <input
+            // biome-ignore lint/a11y/noAutofocus: edit mode is user-initiated, focus must follow
             autoFocus
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
@@ -89,8 +90,10 @@ export function EditInPlace({
   }
 
   return (
-    <span
-      className="inline-flex items-center gap-1.5 cursor-pointer group"
+    <button
+      type="button"
+      aria-label={`Edit ${value}`}
+      className="inline-flex items-center gap-1.5 cursor-pointer group text-left"
       onClick={startEdit}
     >
       <span
@@ -102,6 +105,6 @@ export function EditInPlace({
         {value}
       </span>
       <PencilIcon className="size-[0.875em] shrink-0" />
-    </span>
+    </button>
   )
 }

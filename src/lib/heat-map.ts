@@ -70,7 +70,7 @@ type HeatMapStyleOptions = {
 }
 
 function applyCurve(t: number, curve: number): number {
-  return curve === 1 ? t : Math.pow(t, 1 / curve)
+  return curve === 1 ? t : t ** (1 / curve)
 }
 
 /** Returns the interpolated OklchColorData at a given step index (0 = min color, increments = max color). */
