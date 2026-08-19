@@ -312,12 +312,12 @@ describe("DELETE /api/admin/players/manual/[id]", () => {
     await DELETE(deleteRequest(), params("override-1"))
 
     const overrideAt = (
-      prismaMock.playerOverride.update.mock.calls[0]?.[0] as {
+      prismaMock.playerOverride.update.mock.calls[0][0] as {
         data: { deletedAt: Date }
       }
     ).data.deletedAt
     const playerAt = (
-      prismaMock.player.update.mock.calls[0]?.[0] as {
+      prismaMock.player.update.mock.calls[0][0] as {
         data: { deletedAt: Date }
       }
     ).data.deletedAt

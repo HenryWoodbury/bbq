@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { assert, describe, expect, it } from "vitest"
 import {
   hexToOklch,
   hexToRgb,
@@ -126,22 +126,22 @@ describe("oklchToHex — brick palette", () => {
 describe("hexToOklch — rain palette", () => {
   it.each(RAIN)("$hex", ({ color, hex }) => {
     const result = hexToOklch(hex)
-    expect(result).not.toBeNull()
-    expect(result!.lightness).toBeCloseTo(color.lightness, 3)
-    expect(result!.chroma).toBeCloseTo(color.chroma, 3)
-    expect(result!.hue).toBeCloseTo(color.hue, 1)
-    expect(result!.alpha).toBe(1)
+    assert(result !== null)
+    expect(result.lightness).toBeCloseTo(color.lightness, 3)
+    expect(result.chroma).toBeCloseTo(color.chroma, 3)
+    expect(result.hue).toBeCloseTo(color.hue, 1)
+    expect(result.alpha).toBe(1)
   })
 })
 
 describe("hexToOklch — brick palette", () => {
   it.each(BRICK)("$hex", ({ color, hex }) => {
     const result = hexToOklch(hex)
-    expect(result).not.toBeNull()
-    expect(result!.lightness).toBeCloseTo(color.lightness, 3)
-    expect(result!.chroma).toBeCloseTo(color.chroma, 3)
-    expect(result!.hue).toBeCloseTo(color.hue, 1)
-    expect(result!.alpha).toBe(1)
+    assert(result !== null)
+    expect(result.lightness).toBeCloseTo(color.lightness, 3)
+    expect(result.chroma).toBeCloseTo(color.chroma, 3)
+    expect(result.hue).toBeCloseTo(color.hue, 1)
+    expect(result.alpha).toBe(1)
   })
 })
 
@@ -195,8 +195,8 @@ describe("rgbToHex", () => {
   it("round-trips with hexToRgb", () => {
     for (const { hex } of [...RAIN, ...BRICK]) {
       const rgb = hexToRgb(hex)
-      expect(rgb).not.toBeNull()
-      expect(rgbToHex(rgb!.r, rgb!.g, rgb!.b)).toBe(hex)
+      assert(rgb !== null)
+      expect(rgbToHex(rgb.r, rgb.g, rgb.b)).toBe(hex)
     }
   })
 })
@@ -206,11 +206,11 @@ describe("rgbToHex", () => {
 describe("oklchToRgb — rain palette", () => {
   it.each(RAIN)("$hex", ({ color, hex }) => {
     const expected = hexToRgb(hex)
-    expect(expected).not.toBeNull()
+    assert(expected !== null)
     const result = oklchToRgb(color)
-    expect(result.r).toBe(expected!.r)
-    expect(result.g).toBe(expected!.g)
-    expect(result.b).toBe(expected!.b)
+    expect(result.r).toBe(expected.r)
+    expect(result.g).toBe(expected.g)
+    expect(result.b).toBe(expected.b)
     expect(result.alpha).toBe(1)
   })
 })
@@ -218,11 +218,11 @@ describe("oklchToRgb — rain palette", () => {
 describe("oklchToRgb — brick palette", () => {
   it.each(BRICK)("$hex", ({ color, hex }) => {
     const expected = hexToRgb(hex)
-    expect(expected).not.toBeNull()
+    assert(expected !== null)
     const result = oklchToRgb(color)
-    expect(result.r).toBe(expected!.r)
-    expect(result.g).toBe(expected!.g)
-    expect(result.b).toBe(expected!.b)
+    expect(result.r).toBe(expected.r)
+    expect(result.g).toBe(expected.g)
+    expect(result.b).toBe(expected.b)
     expect(result.alpha).toBe(1)
   })
 })
@@ -232,8 +232,8 @@ describe("oklchToRgb — brick palette", () => {
 describe("rgbToOklch — rain palette", () => {
   it.each(RAIN)("$hex", ({ color, hex }) => {
     const rgb = hexToRgb(hex)
-    expect(rgb).not.toBeNull()
-    const result = rgbToOklch(rgb!.r, rgb!.g, rgb!.b)
+    assert(rgb !== null)
+    const result = rgbToOklch(rgb.r, rgb.g, rgb.b)
     expect(result.lightness).toBeCloseTo(color.lightness, 3)
     expect(result.chroma).toBeCloseTo(color.chroma, 3)
     expect(result.hue).toBeCloseTo(color.hue, 1)
@@ -244,8 +244,8 @@ describe("rgbToOklch — rain palette", () => {
 describe("rgbToOklch — brick palette", () => {
   it.each(BRICK)("$hex", ({ color, hex }) => {
     const rgb = hexToRgb(hex)
-    expect(rgb).not.toBeNull()
-    const result = rgbToOklch(rgb!.r, rgb!.g, rgb!.b)
+    assert(rgb !== null)
+    const result = rgbToOklch(rgb.r, rgb.g, rgb.b)
     expect(result.lightness).toBeCloseTo(color.lightness, 3)
     expect(result.chroma).toBeCloseTo(color.chroma, 3)
     expect(result.hue).toBeCloseTo(color.hue, 1)

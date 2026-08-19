@@ -1,8 +1,8 @@
 "use client"
 
-import { XIcon } from "@/components/icons/lucide"
 import { Dialog as DialogPrimitive } from "radix-ui"
 import type { HTMLAttributes, ReactNode } from "react"
+import { XIcon } from "@/components/icons/lucide"
 import { cn } from "@/lib/utils"
 
 // ── Root ─────────────────────────────────────────────────────────────────────
@@ -144,10 +144,10 @@ function DrawerFooter({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
 
 export {
   Drawer,
-  DrawerTrigger,
+  DrawerBody,
   DrawerContent,
+  DrawerFooter,
   DrawerHeader,
   DrawerTitle,
-  DrawerBody,
-  DrawerFooter,
+  DrawerTrigger,
 }

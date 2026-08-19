@@ -1,12 +1,12 @@
 "use client"
 
 import type { ColumnDef } from "@tanstack/react-table"
-import { Trash2Icon, XIcon } from "@/components/icons/lucide"
 import { useRouter } from "next/navigation"
 import { type CSSProperties, useEffect, useRef, useState } from "react"
 import { DataTable } from "@/components/data-table"
 import { DropZoneOverlay } from "@/components/drop-zone-overlay"
 import { FilterGroup } from "@/components/filter-group"
+import { Trash2Icon, XIcon } from "@/components/icons/lucide"
 import { Button } from "@/components/ui/button"
 import { FormError } from "@/components/ui/field"
 import { FileLabel } from "@/components/ui/file-label"
@@ -278,7 +278,7 @@ export function UploadStats({
 
         {hasPending && (
           <div className={cn("flex flex-col", hasExisting && "mt-1")}>
-            {pendingRows.map((row, i) => {
+            {pendingRows.map((row) => {
               const isProjected = row.statType === "projected"
               const pendingKey = specKey({
                 ...row,

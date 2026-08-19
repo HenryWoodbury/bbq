@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
           }
         }
         const pa = Number(row.n_pa)
-        if (!Number.isNaN(pa)) factors["pa"] = pa
+        if (!Number.isNaN(pa)) factors.pa = pa
 
         await tx.parkFactor.upsert({
           where: {

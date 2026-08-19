@@ -331,7 +331,7 @@ describe("getHeatMapStyle — power curve (k=2, continuous)", () => {
 
   it("value 95 (step=5/20, t=0.25 → t'=0.25^0.5=0.5 curved)", () => {
     const { l } = components(95, CURVED)
-    const tPrime = Math.pow(0.25, 0.5) // 0.5
+    const tPrime = 0.25 ** 0.5 // 0.5
     expect(l).toBeCloseTo(
       BLUE.lightness + tPrime * (RED.lightness - BLUE.lightness),
       3,
@@ -357,14 +357,14 @@ describe("getHeatMapStyle — power curve (k=2, pivot)", () => {
   it("lower half: value 95 (step 5 of 10) measures distFromAvg=0.5 → t'=1-√0.5≈0.293", () => {
     // distFromAvg = (10-5)/10 = 0.5; applyCurve(0.5, 2) = √0.5 ≈ 0.707; t_lerp = 1 - 0.707 ≈ 0.293
     const { l } = components(95, CURVED)
-    const tLerp = 1 - Math.pow(0.5, 0.5)
+    const tLerp = 1 - 0.5 ** 0.5
     expect(l).toBeCloseTo(BLUE.lightness + tLerp * (1 - BLUE.lightness), 3)
   })
 
   it("upper half: value 105 (step 5 of 10 from avg) measures distFromAvg=0.5 → t'=√0.5≈0.707", () => {
     // t = (step-stepsToAvg)/stepsFromAvg = 5/10 = 0.5; applyCurve(0.5, 2) = √0.5 ≈ 0.707
     const { l } = components(105, CURVED)
-    const tLerp = Math.pow(0.5, 0.5)
+    const tLerp = 0.5 ** 0.5
     expect(l).toBeCloseTo(1 + tLerp * (RED.lightness - 1), 3)
   })
 

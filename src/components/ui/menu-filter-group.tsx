@@ -49,6 +49,7 @@ export function MenuFilterGroup<T extends string>({
   const corners = CORNER_ROUNDING[size]
 
   return (
+    // biome-ignore lint/a11y/useSemanticElements: toggle-button group, not form fields; <fieldset> brings min-inline-size that breaks the flex row
     <div
       role="group"
       aria-label={label}

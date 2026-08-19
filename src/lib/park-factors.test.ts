@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
-import { addRanks, applyFallback, csvYearDisplay, toCsv } from "./park-factors"
 import type { DisplayRow, ParkFactorRow } from "./park-factors"
+import { addRanks, applyFallback, csvYearDisplay, toCsv } from "./park-factors"
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 

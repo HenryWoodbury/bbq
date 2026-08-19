@@ -331,6 +331,7 @@ export function SpinningStitchBall({
       {...props}
     >
       <svg
+        aria-hidden="true"
         width={size}
         height={size}
         viewBox={`0 0 ${size} ${size}`}

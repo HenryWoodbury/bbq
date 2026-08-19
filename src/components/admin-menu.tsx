@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import {
   BarChart2Icon,
   BaseballIcon,
@@ -9,7 +10,6 @@ import {
   SettingsIcon,
   SquareLibraryIcon,
 } from "@/components/icons"
-import Link from "next/link"
 import {
   DropdownMenu,
   DropdownMenuContent,

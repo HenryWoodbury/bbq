@@ -1,10 +1,10 @@
 "use client"
 
-import { ChevronLeftIcon, Undo2Icon } from "@/components/icons/lucide"
 import { useRouter } from "next/navigation"
 import { Suspense, use, useRef, useState } from "react"
 import type { UniverseSearchResult } from "@/app/api/admin/players/universe-search/route"
 import { PlayerAddIcon } from "@/components/icons"
+import { ChevronLeftIcon, Undo2Icon } from "@/components/icons/lucide"
 import {
   type PlayerRow,
   PlayersTable,
@@ -388,8 +388,7 @@ function AddManualDrawer({ onClose }: { onClose: () => void }) {
     else params.set("q", nameQuery)
     return `/api/admin/players/universe-search?${params}`
   })()
-  const { promise, pending: searching } =
-    useDebouncedFetch<UniverseSearchResult>(searchUrl)
+  const { promise } = useDebouncedFetch<UniverseSearchResult>(searchUrl)
 
   // ── Step 2: Fill ────────────────────────────────────────────────────────────
   const [selected, setSelected] = useState<UniverseSearchResult | null>(null)

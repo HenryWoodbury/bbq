@@ -1,6 +1,6 @@
 import { cva, type VariantProps } from "class-variance-authority"
-import { ChevronDownIcon } from "@/components/icons/lucide"
 import type { Ref, SelectHTMLAttributes } from "react"
+import { ChevronDownIcon } from "@/components/icons/lucide"
 import { cn } from "@/lib/utils"
 
 const selectVariants = cva(
