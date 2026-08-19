@@ -5,6 +5,13 @@ import userEvent from "@testing-library/user-event"
 import { createRef } from "react"
 import { describe, expect, it, vi } from "vitest"
 import {
+  Drawer,
+  DrawerBody,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer"
+import {
   EditInPlace,
   type EditInPlaceHandle,
 } from "@/components/ui/edit-in-place"
@@ -111,5 +118,48 @@ describe("EditInPlace", () => {
 
     act(() => ref.current?.commit())
     expect(onChange).toHaveBeenCalledWith("Wrigley!")
+  })
+
+  // The only call site renders inside the Edit Heat Map drawer, where Radix
+  // listens for Escape on document in the capture phase.
+  describe("inside a Drawer", () => {
+    function renderInDrawer(onClose: () => void, onChange: () => void) {
+      return render(
+        <Drawer open onClose={onClose}>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>Edit Heat Map</DrawerTitle>
+            </DrawerHeader>
+            <DrawerBody>
+              <EditInPlace value="Wrigley" onChange={onChange} />
+            </DrawerBody>
+          </DrawerContent>
+        </Drawer>,
+      )
+    }
+
+    it("cancels the edit on Escape without closing the drawer", async () => {
+      const user = userEvent.setup()
+      const onClose = vi.fn()
+      const onChange = vi.fn()
+      renderInDrawer(onClose, onChange)
+
+      await user.click(trigger())
+      await user.keyboard("xyz{Escape}")
+
+      expect(onClose).not.toHaveBeenCalled()
+      expect(onChange).not.toHaveBeenCalled()
+      expect(trigger()).toBeInTheDocument()
+    })
+
+    it("leaves Escape to the drawer when no edit is in flight", async () => {
+      const user = userEvent.setup()
+      const onClose = vi.fn()
+      renderInDrawer(onClose, vi.fn())
+
+      await user.keyboard("{Escape}")
+
+      expect(onClose).toHaveBeenCalled()
+    })
   })
 })

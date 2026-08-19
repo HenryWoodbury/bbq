@@ -1,7 +1,7 @@
 "use client"
 
 import type { Ref } from "react"
-import { useImperativeHandle, useState } from "react"
+import { useEffect, useImperativeHandle, useState } from "react"
 import { CheckIcon, PencilIcon, XIcon } from "@/components/icons/lucide"
 import { IconButton } from "@/components/ui/icon-button"
 import { cn } from "@/lib/utils"
@@ -35,6 +35,17 @@ export function EditInPlace({
       if (editing) accept()
     },
   }))
+
+  useEffect(() => {
+    if (!editing) return
+    // Radix reads Escape from document capture; window capture runs first and claims it.
+    function claimEscape(e: KeyboardEvent) {
+      if (e.key === "Escape") e.preventDefault()
+    }
+    window.addEventListener("keydown", claimEscape, { capture: true })
+    return () =>
+      window.removeEventListener("keydown", claimEscape, { capture: true })
+  }, [editing])
 
   function startEdit() {
     setDraft(value)
